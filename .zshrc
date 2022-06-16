@@ -7,11 +7,11 @@ if [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then . ~/.nix-profile/etc/profile
 # aliases
 source ~/.dotfiles-private/aliases.sh
 alias typora="open -a typora"
-alias nvini="nvim ~/.config/nvim/init.vim"
+alias nvini="nvim ~/.dotfiles/.config/nvim/init.vim"
 alias jc="~/j903-user/temp/launch.command ; exit;" # ???
 alias swank="ros run -e '(ql:quickload :swank) (swank:create-server)'"
 alias reee="exec '$SHELL'" # restarts shell env
-alias zconfig="nvim ~/.dotfiles/.zshrc"
+alias zc="nvim ~/.dotfiles/.zshrc"
 alias pwdc="pwd | pbcopy" # copy current path
 alias javapath="export PATH=$JAVA_HOME/bin:$PATH"
 
