@@ -1,3 +1,5 @@
 .DS_Store
 .backups
 .private
+.clj-kondo
+.lsp

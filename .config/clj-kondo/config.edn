@@ -1,0 +1,6 @@
+{:linters
+ {:namespace-name-mismatch
+  {:level :off}}
+ :lint-as {reagent.core/with-let clojure.core/let}
+ :hooks {:analyze-call {taoensso.tengen.reagent/def-cmptfn
+                        hooks.tengen/def-cmptfn}}}
