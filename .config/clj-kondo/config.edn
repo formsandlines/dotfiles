@@ -1,6 +1,18 @@
 {:linters
- {:namespace-name-mismatch
-  {:level :off}}
- :lint-as {reagent.core/with-let clojure.core/let}
+ {:namespace-name-mismatch {:level :off}
+  :unresolved-symbol {:exclude [(clojure.core.logic/run*)
+                                (clojure.core.logic/run)
+                                (clojure.core.logic/defne)
+                                (clojure.core.logic/fresh)
+                                (clojure.core.logic/conde)
+                                (clojure.core.logic/==)
+                                (dom-top.core/loopr)
+                                (dom-top.core/letr [return])]}}
+ :config-in-call {dom-top.core/loopr
+                  {:linters {:unexpected-recur {:level :off}}}}
+ :lint-as {reagent.core/with-let clojure.core/let
+           clojure.core.logic/defne clojure.core/defn
+           dom-top.core/loopr clojure.core/loop
+           dom-top.core/letr clojure.core/let}
  :hooks {:analyze-call {taoensso.tengen.reagent/def-cmptfn
                         hooks.tengen/def-cmptfn}}}

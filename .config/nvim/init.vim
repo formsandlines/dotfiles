@@ -313,6 +313,7 @@ Plug 'rust-lang/rust.vim'
 Plug 'rescript-lang/vim-rescript'
 Plug 'nkrkv/nvim-treesitter-rescript'
 Plug 'clojure-vim/clojure.vim'
+Plug 'datwaft/prolog-syntax-vim'
 " --- experimental ---
 " Plug 'tpope/vim-fireplace'
 " Plug 'guns/vim-clojure-static'
