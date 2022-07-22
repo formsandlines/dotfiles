@@ -6,12 +6,25 @@
                                 (clojure.core.logic/fresh)
                                 (clojure.core.logic/conde)
                                 (clojure.core.logic/==)
+                                (meander.epsilon/rewrite)
+                                (meander.epsilon/match)
+                                (meander.epsilon/search)
+                                (meander.epsilon/find)
+                                (meander.strategy.epsilon/rewrite)
+                                (meander.strategy.epsilon/rewrites)
                                 (dom-top.core/loopr)
                                 (dom-top.core/letr [return])]}}
- :config-in-call {dom-top.core/loopr
+ :config-in-call {
+                  ; clojure.core.logic/run*
+                  ; {:linters {:unused-binding {:level :off}}}
+                  ; clojure.core.logic/fresh
+                  ; {:linters {:unused-binding {:level :off}}}
+                  dom-top.core/loopr
                   {:linters {:unexpected-recur {:level :off}}}}
  :lint-as {reagent.core/with-let clojure.core/let
            clojure.core.logic/defne clojure.core/defn
+           ; clojure.core.logic/run* clojure.core/fn
+           ; clojure.core.logic/fresh clojure.core/fn
            dom-top.core/loopr clojure.core/loop
            dom-top.core/letr clojure.core/let}
  :hooks {:analyze-call {taoensso.tengen.reagent/def-cmptfn

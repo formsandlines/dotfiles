@@ -272,7 +272,7 @@ Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 Plug 'kassio/neoterm' " Terminal and REPL
 
 Plug 'preservim/tagbar' " Tagbar for code navigation
-Plug 'liuchengxu/vim-which-key'
+Plug 'liuchengxu/vim-which-key' " port of emacs-which-key
 Plug 'vim-airline/vim-airline' " Status bar
 Plug 'vim-airline/vim-airline-themes'
 Plug 'airblade/vim-gitgutter' " see git changes on left gutter
@@ -748,6 +748,22 @@ if exists('g:plugs["vim-iced"]')
   let g:iced_enable_auto_indent = v:false
   let g:iced#nrepl#skip_evaluation_when_buffer_size_is_exceeded = v:true
 
+  " indent rules for cljfmt (used by vim-iced)
+  " let g:iced#format#rule = {
+  "     \ 'clojure.core.logic/run*': '[[:block 2] [:inner 1]]',
+  "     \ }
+
+  " Tonsky’s formatting rule
+  let g:iced#format#rule = {'#"^\w"': '[[:inner 0]]'}
+
+  let g:iced#format#options = {
+      \ 'remove-surrounding-whitespace?': v:false,
+      \ 'insert-missing-whitespace?': v:true,
+      \ 'remove-consecutive-blank-lines?': v:false,
+      \ 'remove-multiple-non-indenting-spaces?': v:false,
+      \ 'split-keypairs-over-multiple-lines?': v:false,
+      \ }
+
   " mapping for "xee
   " nmap <silent> ee <Plug>(iced_eval)<Plug>(sexp_outer_list)``
 
@@ -867,6 +883,9 @@ au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':
 " PLUGIN: vim-sexp
 
 let g:sexp_enable_insert_mode_mappings = 0
+
+" disable default mappings for indent (see vim-iced):
+let g:sexp_mappings = {'sexp_indent': '', 'sexp_indent_top': ''}
 
 " emulate text object for pair of elements
 " i.e. key/value binding/expr test/expr

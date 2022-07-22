@@ -49,7 +49,7 @@ require'nvim-tree'.setup {
   actions = {
     open_file = {
       resize_window = true,
-      quit_on_open = true, -- false by default, closes the tree when you open a file
+      quit_on_open = true, -- false by default, closes the tree when you open a file 
     }
   },
   renderer = {
@@ -83,7 +83,9 @@ require'nvim-tree'.setup {
     }
   },
   hijack_directories = {
-    enable = true,
+    -- !! bug: disables equal window resize if quit_on_open=true
+    --    and something other than nvim-tree has been used to open a file
+    enable = false,
     auto_open = true, -- false to not open automatically on dir open
   },
 }
