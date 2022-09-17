@@ -269,7 +269,7 @@ call plug#begin()
 Plug 'neoclide/coc.nvim', {'branch': 'release'}  " Auto Completion
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 " Plug 'dense-analysis/ale' " LSP diagnostics (linter)
-Plug 'kassio/neoterm' " Terminal and REPL
+" Plug 'kassio/neoterm' " Terminal and REPL
 
 Plug 'preservim/tagbar' " Tagbar for code navigation
 Plug 'liuchengxu/vim-which-key' " port of emacs-which-key
@@ -312,7 +312,7 @@ Plug 'junegunn/fzf.vim'
 Plug 'rust-lang/rust.vim'
 Plug 'rescript-lang/vim-rescript'
 Plug 'nkrkv/nvim-treesitter-rescript'
-Plug 'clojure-vim/clojure.vim'
+" Plug 'clojure-vim/clojure.vim' " needed?
 Plug 'datwaft/prolog-syntax-vim'
 " --- experimental ---
 " Plug 'tpope/vim-fireplace'
@@ -342,6 +342,8 @@ Plug 'liquidz/vim-iced-coc-source', {'for': 'clojure'} " coc plugin for vim-iced
 
 Plug 'tpope/vim-surround' " Surrounding ysw)
 Plug 'tpope/vim-commentary' " For Commenting gcc & gc
+" Plug 'jbgutierrez/vim-better-comments' " Color coding of comments (!, ?, …)
+" -> does not work with TreeSitter :(
 " Plug 'terryma/vim-multiple-cursors' " (deprecated!) CTRL + N for multiple cursors
 Plug 'mg979/vim-visual-multi', {'branch': 'master'}
 Plug 'ap/vim-css-color' " CSS Color Preview
@@ -607,7 +609,28 @@ vnoremap <leader>/ :Commentary<cr>
 " ------------------------------------------------------------
 " PLUGIN: coc.nvim
 
-inoremap <expr> <Tab> pumvisible() ? coc#_select_confirm() : "<Tab>"
+" inoremap <silent><expr> <TAB>
+"       \ coc#pum#visible() ? coc#_select_confirm() : "\<Tab>"
+
+inoremap <silent><expr> <TAB>
+      \ coc#pum#visible() ? coc#_select_confirm() : "\<Tab>"
+
+" inoremap <silent><expr> <TAB>
+"       \ coc#pum#visible() ? coc#_select_confirm() :
+"       \ CheckBackspace() ? "\<Tab>" :
+"       \ coc#refresh()
+
+" Use tab for trigger completion with characters ahead and navigate.
+" inoremap <silent><expr> <TAB>
+"       \ coc#pum#visible() ? coc#pum#next(1):
+"       \ CheckBackspace() ? "\<Tab>" :
+"       \ coc#refresh()
+" inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+
+" Make <CR> to accept selected completion item or notify coc.nvim to format
+" <C-g>u breaks current undo, please make your own choice.
+inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 " Remap keys for gotos
 nmap <silent> gd <Plug>(coc-definition)
@@ -764,10 +787,14 @@ if exists('g:plugs["vim-iced"]')
       \ 'split-keypairs-over-multiple-lines?': v:false,
       \ }
 
+  let g:iced#eval#keep_inline_result = v:true
+
   " mapping for "xee
   " nmap <silent> ee <Plug>(iced_eval)<Plug>(sexp_outer_list)``
 
   nmap <localleader>e' <Plug>(iced_eval_and_print)af
+
+  nmap <localleader>ce <Plug>(iced_clear_inline_result)
 
   " ---------------
   " default keymaps
@@ -781,8 +808,8 @@ if exists('g:plugs["vim-iced"]')
   nmap <Leader>" <Plug>(iced_jack_in)
 
     "" if !hasmapto(<Plug>(iced_eval))
-  nmap <localleader>ei <Plug>(iced_eval)<Plug>(sexp_inner_element)``
-  nmap <localleader>ee <Plug>(iced_eval)<Plug>(sexp_outer_list)``
+  nmap <localleader>ei <Plug>(iced_eval)<Plug>(sexp_inner_element)
+  nmap <localleader>ee <Plug>(iced_eval)<Plug>(sexp_outer_list)
   nmap <localleader>et <Plug>(iced_eval_outer_top_list)
     "" endif
 
@@ -798,6 +825,7 @@ if exists('g:plugs["vim-iced"]')
   nmap <localleader>eM <Plug>(iced_macroexpand_outer_list)
   nmap <localleader>em <Plug>(iced_macroexpand_1_outer_list)
   nmap <localleader>enr <Plug>(iced_refresh)
+  nmap <localleader>ece <Plug>(iced_eval_in_context)<Plug>(sexp_outer_list)
 
     "" Testing (<Leader>t)
   nmap <localleader>tt <Plug>(iced_test_under_cursor)
@@ -870,7 +898,7 @@ endif
 " Comment out a Clojure form
 " - (from https://clojurians.slack.com/archives/C0DF8R51A/p1651138951103709?thread_ts=1638731389.109100&cid=C0DF8R51A):
 let g:surround_99 = "#_\r"
-nmap <Leader>c :ysafc
+nmap <Leader>c ysafc
 
 " ------------------------------------------------------------
 " PLUGIN: auto-pairs
@@ -918,6 +946,9 @@ endfunction
 " PLUGIN: rainbow
 
 let g:rainbow_active = 0 "set to 0 if you want to enable it later via :RainbowToggle
+
+" ------------------------------------------------------------
+" PLUGIN: vim-better-comments
 
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

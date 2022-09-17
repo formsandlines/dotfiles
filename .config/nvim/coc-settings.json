@@ -1,5 +1,8 @@
 {
   "languageserver": {
+    /*
+    // already managed by coc-clojure extension
+    // see https://clojure-lsp.io/clients/#vim
     "clojure-lsp": {
       "additionalSchemes": [
         "jar",
@@ -21,6 +24,7 @@
       ],
       "trace.server": "verbose"
     },
+    */
     "rescript": {
       "enable": true,
       "module": "~/.config/nvim/plugged/vim-rescript/server/out/server.js",
@@ -35,7 +39,11 @@
       "filetypes": ["haskell", "lhaskell"]
     }
   },
-  "coc.source.iced.enable": false,
+  "clojure": {
+    // config for coc-clojure
+    // see https://github.com/NoahTheDuke/coc-clojure
+  },
+  "coc.source.iced.enable": true, // was false?
   "diagnostic.virtualText": false,
   "diagnostic.displayByAle": false,
   "diagnostic.autoRefresh": true,

@@ -13,6 +13,7 @@ alias swank="ros run -e '(ql:quickload :swank) (swank:create-server)'"
 alias reee="exec '$SHELL'" # restarts shell env
 alias zc="nvim ~/.dotfiles/.zshrc"
 alias pwdc="pwd | pbcopy" # copy current path
+alias temperature="sudo powermetrics --samplers smc |grep -i 'CPU die temperature'" # monitor temperature of MacBook Pro
 alias javapath="export PATH=$JAVA_HOME/bin:$PATH"
 
 # https://github.com/nvbn/thefuck
@@ -30,12 +31,14 @@ export TEMURIN_8_HOME="$JVMPATH/temurin-8.jdk/Contents/Home"
 export TEMURIN_11_HOME="$JVMPATH/temurin-11.jdk/Contents/Home"
 export TEMURIN_17_HOME="$JVMPATH/temurin-17.jdk/Contents/Home"
 export TEMURIN_18_HOME="$JVMPATH/temurin-18.jdk/Contents/Home"
+export OPENJDK_11_HOME="$JVMPATH/openjdk-11.jdk/Contents/Home"
 export OPENJDK_17_HOME="$JVMPATH/openjdk-17.jdk/Contents/Home"
 export OPENJDK_18_HOME="$JVMPATH/openjdk.jdk/Contents/Home"
 
 # switch Java version with these commands (need to add to $PATH afterwards, use javapath alias):
 alias graal17="export JAVA_HOME=$GRAALVM_17_HOME"
 alias gluon17="export JAVA_HOME=$GRAALVM_GLUON_17_HOME"
+alias openjdk11="export JAVA_HOME=$OPENJDK_11_HOME"
 alias openjdk17="export JAVA_HOME=$OPENJDK_17_HOME"
 alias openjdk18="export JAVA_HOME=$OPENJDK_18_HOME"
 alias temurin8="export JAVA_HOME=$TEMURIN_8_HOME"

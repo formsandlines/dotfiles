@@ -40,7 +40,7 @@ require'nvim-tree'.setup {
     height = 30,
     hide_root_folder = false,
     side = 'left',
-    auto_resize = false,
+    -- auto_resize = false, -- now actions.open_file.resize_window
     mappings = {
       custom_only = false,
       list = {}
