@@ -13,7 +13,9 @@
 
 (package! persistent-scratch)
 (package! org-roam)
-(package! evil-cleverparens)
+;; (package! evil-cleverparens)
+(package! evil-cleverparens :disable t)
+(package! symex)
 
 ;; Workaround for https://github.com/hlissner/doom-emacs/issues/5668
 ;; See https://github.com/hlissner/doom-emacs/issues/5667#issuecomment-948229579

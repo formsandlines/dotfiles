@@ -165,15 +165,17 @@
          :target (file+head "%<%Y-%m-%d>.org"
                             "#+title: %<%Y-%m-%d>\n"))))
 
-(add-hook 'lisp-mode-hook #'evil-cleverparens-mode)
-(add-hook 'scheme-mode-hook #'evil-cleverparens-mode)
-(add-hook 'clojure-mode-hook #'evil-cleverparens-mode)
-(add-hook 'racket-mode-hook #'evil-cleverparens-mode)
-(add-hook 'cider-repl-mode-hook #'evil-cleverparens-mode)
-(add-hook 'geiser-repl-mode-hook #'evil-cleverparens-mode)
-(add-hook 'racket-repl-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'lisp-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'scheme-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'clojure-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'racket-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'cider-repl-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'geiser-repl-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'racket-repl-mode-hook #'evil-cleverparens-mode)
+
 ;; (add-hook 'org-mode-hook #'evil-cleverparens-mode)
-(add-hook 'org-src-mode-hook #'evil-cleverparens-mode)
+;; (add-hook 'org-src-mode-hook #'evil-cleverparens-mode)
+
 ;; (add-hook 'org-src-mode-hook (lambda () (evil-cleverparens-mode 1)))
 
 
@@ -203,10 +205,10 @@
               (lambda () (interactive) (find-alternate-file "..")))))
 
 
-
-
-
-
+(use-package! symex
+  :config
+  (symex-initialize)
+  (global-set-key (kbd "C-'") 'symex-mode-interface))
 
 
 ;; Here are some additional functions/macros that could help you configure Doom:
