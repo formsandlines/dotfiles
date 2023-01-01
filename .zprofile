@@ -33,9 +33,9 @@ export GUILE_SYSTEM_EXTENSIONS_PATH="/usr/local/lib/guile/3.0/extensions"
 
 # PATH
 export PATH=$JAVA_HOME"/bin:"$PATH
-export PATH="~/.local/share/nvim/plugged/vim-iced/bin:"$PATH
 export PATH="/opt/homebrew/opt/luajit-openresty/bin:"$PATH
-export PATH="~/.emacs.d/bin:"$PATH
+export PATH=$HOME"/.emacs.d/bin:"$PATH
+export PATH=$HOME"/.local/share/nvim/plugged/vim-iced/bin:"$PATH
 
 # Opam configuration (for OCaml)
 # test -r ~/.opam/opam-init/init.zsh && . ~/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
