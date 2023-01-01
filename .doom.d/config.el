@@ -2,6 +2,7 @@
 
 ;; Place your private configuration here! Remember, you do not need to run 'doom
 ;; sync' after modifying this file!
+
 ;; Eager macro-expansion failure: (wrong-number-of-arguments (3 . 4) 2)
 ;; see https://github.com/hlissner/doom-emacs/issues/2213
 ;(load (expand-file-name "~/.roswell/helper.el"))
@@ -56,6 +57,9 @@
 (global-display-line-numbers-mode)
 
 (setq evil-escape-key-sequence "jk")
+
+(setq doom-leader-key "SPC"
+      doom-localleader-key ",")
 
 
 (setq global-evil-mc-mode 1)
@@ -209,6 +213,63 @@
   :config
   (symex-initialize)
   (global-set-key (kbd "C-'") 'symex-mode-interface))
+
+
+;; From insert mode to symex-mode:
+
+(setq evil-symex-state-cursor 'box)
+
+(evil-define-key 'normal symex-mode-map
+  (kbd "<escape>") 'symex-mode-interface)
+
+(evil-define-key 'insert symex-mode-map
+  (kbd "<escape>") 'symex-mode-interface)
+
+;; Prevents Evil from overwriting Ciders keybindings e.g. in debugger
+;; - does not work in symex mode
+;; - https://github.com/emacs-evil/evil-collection/blob/master/modes/cider/evil-collection-cider.el#L92-L109
+;; CRASHES IN ARM
+; (evil-collection-cider-setup)
+
+;; To enter debug mode from symex-mode also:
+;; https://emacs.stackexchange.com/a/20818
+(defun my-cider-debug-toggle-insert-state ()
+  (if cider--debug-mode   ;; Checks if you're entering the debugger
+      (evil-insert-state) ;; If so, turn on evil-insert-state
+    (evil-normal-state))) ;; Otherwise, turn on normal-state
+
+(add-hook 'cider--debug-mode-hook 'my-cider-debug-toggle-insert-state)
+
+
+;; Custom modeline modal state indicator (doesn’t work yet):
+
+;; (defsubst doom-modeline--symex ()
+;;   "The current Symex state. Requires `symex-mode' to be enabled."
+;;   (when (bound-and-true-p symex-mode)
+;;     symmex--indicator))
+
+;; (doom-modeline-def-segment modals
+;;   "Displays modal editing states, including `evil', `overwrite', `god', `ryo'
+;; and `xha-fly-kyes', etc."
+;;   (let* ((evil (doom-modeline--evil))
+;;          (ow (doom-modeline--overwrite))
+;;          (god (doom-modeline--god))
+;;          (ryo (doom-modeline--ryo))
+;;          (xf (doom-modeline--xah-fly-keys))
+;;          (boon (doom-modeline--boon))
+;;          (vsep (doom-modeline-vspc))
+;;          (meow (doom-modeline--meow))
+;;          (symex (doom-modeline--symex))
+;;          (sep (and (or evil ow god ryo xf boon) (doom-modeline-spc))))
+;;     (concat sep
+;;             (and evil (concat evil (and (or ow god ryo xf boon meow) vsep)))
+;;             (and ow (concat ow (and (or god ryo xf boon meow) vsep)))
+;;             (and god (concat god (and (or ryo xf boon meow) vsep)))
+;;             (and ryo (concat ryo (and (or xf boon meow) vsep)))
+;;             (and xf (concat xf (and (or boon meow) vsep)))
+;;             (and boon (concat boon (and meow vsep)))
+;;             meow
+;;             sep)))
 
 
 ;; Here are some additional functions/macros that could help you configure Doom:

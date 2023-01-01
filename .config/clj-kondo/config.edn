@@ -34,4 +34,10 @@
            dom-top.core/loopr clojure.core/loop
            dom-top.core/letr clojure.core/let}
  :hooks {:analyze-call {taoensso.tengen.reagent/def-cmptfn
-                        hooks.tengen/def-cmptfn}}}
+                        hooks.tengen/def-cmptfn
+                        instaparse.core/defparser
+                        hooks.instaparse/defparser
+                        formform.expr-new2/defoperator
+                        hooks.formform/defoperator
+                        quil.core/defsketch
+                        hooks.quil/defsketch}}}

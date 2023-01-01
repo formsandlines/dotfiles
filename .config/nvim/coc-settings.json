@@ -43,6 +43,9 @@
     // config for coc-clojure
     // see https://github.com/NoahTheDuke/coc-clojure
   },
+  "signature.enable": false, // this is so f*cking annoying!
+  "signature.preferShownAbove": false,
+  "signature.hideOnTextChange": true,
   "coc.source.iced.enable": true, // was false?
   "diagnostic.virtualText": false,
   "diagnostic.displayByAle": false,

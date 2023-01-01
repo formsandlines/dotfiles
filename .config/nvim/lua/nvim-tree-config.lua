@@ -8,7 +8,7 @@ require'nvim-tree'.setup {
   -- auto_close          = false, -- feature has been removed
   open_on_tab         = false,
   hijack_cursor       = false,
-  update_cwd          = false,
+  sync_root_with_cwd  = false,
   -- update_to_buf_dir   = {
   --   enable = true,
   --   auto_open = true,
@@ -37,7 +37,7 @@ require'nvim-tree'.setup {
   },
   view = {
     width = 30,
-    height = 30,
+    -- height = 30,
     hide_root_folder = false,
     side = 'left',
     -- auto_resize = false, -- now actions.open_file.resize_window

@@ -57,6 +57,11 @@ set undofile
 inoremap jk <esc>
 nnoremap <C-g> <esc>
 
+" Shift lines up/down
+noremap <C-S-up> :m -2<CR>
+noremap <C-S-down> :m +1<CR>
+" silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
+
 
 " Leader Key: https://tuckerchapman.com/2018/06/16/how-to-use-the-vim-leader-key/
 
@@ -286,6 +291,7 @@ Plug 'simnalamburt/vim-mundo' " lists undo history to retrieve lost changes
 Plug 'vim-scripts/YankRing.vim' " list/cycle clipboard history
 Plug 'michaeljsmith/vim-indent-object' " indentation text object
 Plug 'tpope/vim-repeat' " enables repeating (.) commands after plugin maps
+Plug 'ggandor/leap.nvim' " jumping around in the document
 
 Plug 'p00f/nvim-ts-rainbow' " Rainbow brackets with treesitter support
 " Plug 'junegunn/rainbow_parentheses.vim' " doesn't work??
@@ -331,6 +337,8 @@ Plug 'guns/vim-sexp',    {'for': 'clojure'}
 Plug 'tpope/vim-sexp-mappings-for-regular-people' " because meta-key
 Plug 'liquidz/vim-iced', {'for': 'clojure'} " clojure dev (depends on vim-sexp)
 Plug 'liquidz/vim-iced-coc-source', {'for': 'clojure'} " coc plugin for vim-iced
+Plug 'lambdalisue/fern.vim' " required for vim-iced-fern-debugger
+Plug 'liquidz/vim-iced-fern-debugger', {'for': 'clojure'} " debugger for vim-iced
 
 " Git
 " Plug 'Xuyuanp/nerdtree-git-plugin'
@@ -383,6 +391,15 @@ Plug 'arcticicestudio/nord-vim'
 Plug 'sainnhe/sonokai'
 Plug 'dracula/vim', { 'as': 'dracula' }
 
+Plug 'savq/melange'
+Plug 'AhmedAbdulrahman/vim-aylin'
+" Plug 'mcchrish/zenbones.nvim'
+Plug 'fcpg/vim-farout'
+Plug 'fenetikm/falcon' " could be ok if background color was softer
+" Plug 'danilo-augusto/vim-afterglow'
+Plug 'foxbunny/vim-amber'
+
+
 " Plug 'ryanoasis/vim-devicons' " Developer Icons (--> now nvim-devicons)
 " Plug 'https://github.com/tc50cal/vim-terminal' " Vim Terminal --> needs some
 " Python stuff (?)
@@ -415,13 +432,23 @@ let g:sonokai_enable_italic = 1
 " \    'black': { 'gui': '#242837', "cterm": "0", "cterm16": "0" },
 " \}
 
-colorscheme embark "sonokai palenight embark  nightfox  tokyonight  jellybeans  gruvbox
+" if (g:colors_name == 'farout')
+augroup customFarout
+  au!
+  autocmd ColorScheme * hi IndentBlanklineChar guifg=#41251e
+  autocmd ColorScheme * hi CocUnusedHighlight guibg=#1F1311
+  " autocmd ColorScheme * hi CocUnusedHighlight guibg=None guifg=#993923
+  autocmd ColorScheme * hi MatchParen guibg=#6B4035
+augroup END
+" endif
+
+colorscheme farout "sonokai palenight embark  nightfox  tokyonight  jellybeans  gruvbox
 
 " ------------------------------------------------------------
 " PLUGIN: airline
 
 let g:airline_powerline_fonts = 1
-let g:airline_theme='embark' "sonokai embark
+let g:airline_theme='farout' "sonokai embark
 
 " ------------------------------------------------------------
 " PLUGIN: tagbar
@@ -443,6 +470,16 @@ let g:haskell_enable_pattern_synonyms = 1 " to enable highlighting of `pattern`
 let g:haskell_enable_typeroles = 1        " to enable highlighting of type roles
 let g:haskell_enable_static_pointers = 1  " to enable highlighting of `static`
 let g:haskell_backpack = 1                " to enable highlighting of backpack keywords
+
+" ------------------------------------------------------------
+" PLUGIN: bnf.vim (see syntax/bnf.vim)
+
+au bufreadpre,bufnewfile *.bnf set ft=bnf
+"
+" ------------------------------------------------------------
+" PLUGIN: ebnf.vim (see syntax/bnf.vim)
+
+au bufreadpre,bufnewfile *.ebnf set ft=ebnf
 
 " ------------------------------------------------------------
 " PLUGIN: yankring
@@ -521,6 +558,11 @@ nnoremap <silent> <localleader> :<c-u>WhichKey  ','<CR>
 
 let g:which_key_map =  {}
 let g:which_key_map.w = { 'name' : 'Windows' }
+
+" ------------------------------------------------------------
+" PLUGIN: leap.nvim
+
+lua require('leap').set_default_keymaps()
 
 " ------------------------------------------------------------
 " PLUGIN: nvim-neorg
@@ -609,28 +651,13 @@ vnoremap <leader>/ :Commentary<cr>
 " ------------------------------------------------------------
 " PLUGIN: coc.nvim
 
-" inoremap <silent><expr> <TAB>
-"       \ coc#pum#visible() ? coc#_select_confirm() : "\<Tab>"
-
 inoremap <silent><expr> <TAB>
       \ coc#pum#visible() ? coc#_select_confirm() : "\<Tab>"
 
-" inoremap <silent><expr> <TAB>
-"       \ coc#pum#visible() ? coc#_select_confirm() :
-"       \ CheckBackspace() ? "\<Tab>" :
-"       \ coc#refresh()
-
-" Use tab for trigger completion with characters ahead and navigate.
-" inoremap <silent><expr> <TAB>
-"       \ coc#pum#visible() ? coc#pum#next(1):
-"       \ CheckBackspace() ? "\<Tab>" :
-"       \ coc#refresh()
-" inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
-
 " Make <CR> to accept selected completion item or notify coc.nvim to format
 " <C-g>u breaks current undo, please make your own choice.
-inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
-                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+" inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+"                               \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 " Remap keys for gotos
 nmap <silent> gd <Plug>(coc-definition)
@@ -768,7 +795,7 @@ if exists('g:plugs["vim-iced"]')
   " let g:iced_enable_clj_kondo_local_analysis = v:true
 
   let g:iced#buffer#stdout#mods = 'botright' " 'vertical'
-  let g:iced_enable_auto_indent = v:false
+  let g:iced_enable_auto_indent = v:true
   let g:iced#nrepl#skip_evaluation_when_buffer_size_is_exceeded = v:true
 
   " indent rules for cljfmt (used by vim-iced)
@@ -777,7 +804,7 @@ if exists('g:plugs["vim-iced"]')
   "     \ }
 
   " Tonsky’s formatting rule
-  let g:iced#format#rule = {'#"^\w"': '[[:inner 0]]'}
+  " let g:iced#format#rule = {'#"^\w"': '[[:inner 0]]'}
 
   let g:iced#format#options = {
       \ 'remove-surrounding-whitespace?': v:false,
@@ -832,6 +859,7 @@ if exists('g:plugs["vim-iced"]')
   nmap <localleader>tl <Plug>(iced_test_rerun_last)
   nmap <localleader>ts <Plug>(iced_test_spec_check)
   nmap <localleader>to <Plug>(iced_test_buffer_open)
+  nmap <localleader>tc <Plug>(iced_test_buffer_close)
   nmap <localleader>tn <Plug>(iced_test_ns)
   nmap <localleader>tp <Plug>(iced_test_all)
   nmap <localleader>tr <Plug>(iced_test_redo)
@@ -903,9 +931,14 @@ nmap <Leader>c ysafc
 " ------------------------------------------------------------
 " PLUGIN: auto-pairs
 
+let g:AutoPairs = {'(':')', '[':']', '{':'}'}
+let g:AutoPairsMapCR = 0
+let g:AutoPairsMapSpace = 0
+
 " To disable auto-pairs for specific langs:
 " au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {}
-au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}', '"':'"'}
+" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}', '"':'"'}
+" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}'}
 
 " ------------------------------------------------------------
 " PLUGIN: vim-sexp
@@ -949,6 +982,28 @@ let g:rainbow_active = 0 "set to 0 if you want to enable it later via :RainbowTo
 
 " ------------------------------------------------------------
 " PLUGIN: vim-better-comments
+
+
+" ------------------------------------------------------------
+" ADDONS: Clerk
+
+function! ClerkShow()
+  exe "w"
+  exe "IcedEval (nextjournal.clerk/show! \"" . expand("%:p") . "\")"
+endfunction
+
+function! ClerkClearCache()
+  exe "IcedEval (nextjournal.clerk/clear-cache!)"
+endfunction
+
+function! ClerkShowCleared()
+  exe ClerkClearCache()
+  exe ClerkShow()
+endfunction
+
+nmap <silent> <localleader>cs m`:execute ClerkShow()<CR><c-o>
+nmap <silent> <localleader>cl :execute ClerkClearCache()<CR>
+nmap <silent> <localleader>cc m`:execute ClerkShowCleared()<CR><c-o>
 
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
