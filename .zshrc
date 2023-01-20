@@ -13,6 +13,7 @@ alias ice="iced repl"
 alias icep="iced repl app"
 alias pwdc="pwd | pbcopy" # copy current path
 alias temperature="sudo powermetrics --samplers smc |grep -i 'CPU die temperature'" # monitor temperature of MacBook Pro
+alias tem8="otherjava temurin8"
 
 # function to switch Java version easily
 otherjava() {
