@@ -108,6 +108,24 @@
 
 (setq initial-major-mode 'org-mode)
 
+(setq org-hide-emphasis-markers t)
+
+(add-hook 'org-mode-hook 'org-appear-mode)
+
+;; Fixes org-fill-paragraph in org-indent-mode
+;; Credits to patrick: https://emacs.stackexchange.com/a/74973
+(defun current-fill-column ()
+      "Return the fill-column to use for this line.
+Subtracts right margin and org indentation level from fill-column"
+      (let ((indent-level (if (bound-and-true-p org-indent-mode)
+                              (* org-indent-indentation-per-level
+                                 (org-current-level))
+                            0))
+            (margin (or (get-text-property (point) 'right-margin) 0)))
+        (- fill-column indent-level margin)))
+
+
+
 ;; (persistent-scratch-setup-default)
 
 ;;(setq persistent-scratch--auto-restored t)

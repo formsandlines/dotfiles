@@ -1004,7 +1004,42 @@ endfunction
 nmap <silent> <localleader>cs m`:execute ClerkShow()<CR><c-o>
 nmap <silent> <localleader>cl :execute ClerkClearCache()<CR>
 nmap <silent> <localleader>cc m`:execute ClerkShowCleared()<CR><c-o>
+"
+" ------------------------------------------------------------
+" ADDONS: flow-storm
 
+function! CriteriumRequire()
+  exe "normal gg"
+  sleep 100m
+  exe "IcedEval (require '[criterium.core :as crt])"
+endfunction
+
+nmap <silent> <localleader>crr m`:execute CriteriumRequire()<CR><c-o>
+
+" ------------------------------------------------------------
+" ADDONS: flow-storm
+
+function! FlowStormRequire()
+  exe "IcedEval (require 'flow-storm.api)"
+  " exe "IcedEval (require '[flow-storm.api :as fs-api])"
+endfunction
+
+function! FlowStormConnect()
+  exe "normal gg"
+  sleep 100m
+  call FlowStormRequire()
+  exe "IcedEval (flow-storm.api/local-connect)"
+  " exe "IcedEval (fs-api/local-connect)"
+endfunction
+
+function! FlowStormStop()
+  exe "IcedEval (flow-storm.api/stop)"
+  " exe "IcedEval (fs-api/stop)"
+endfunction
+
+" nmap <silent> <localleader>fcr :execute FlowStormRequire()<CR>
+nmap <silent> <localleader>fsc m`:execute FlowStormConnect()<CR><c-o>
+nmap <silent> <localleader>fss m`:execute FlowStormStop()<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " LUA TEST
