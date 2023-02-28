@@ -16,6 +16,8 @@
 ;; (package! evil-cleverparens)
 (package! evil-cleverparens :disable t)
 (package! symex)
+
+;; https://github.com/awth13/org-appear
 (package! org-appear)
 
 ;; Workaround for https://github.com/hlissner/doom-emacs/issues/5668

@@ -109,8 +109,12 @@
 (setq initial-major-mode 'org-mode)
 
 (setq org-hide-emphasis-markers t)
+(setq org-pretty-entities t)
 
 (add-hook 'org-mode-hook 'org-appear-mode)
+(setq org-appear-autoentities t)
+(setq org-appear-autolinks t)
+(setq org-appear-autosubmarkers t)
 
 ;; Fixes org-fill-paragraph in org-indent-mode
 ;; Credits to patrick: https://emacs.stackexchange.com/a/74973
@@ -217,7 +221,9 @@ Subtracts right margin and org indentation level from fill-column"
 ;; (setq cider-auto-jump-to-error t)
 ;; (setq cider-auto-select-error-buffer t)
 
-(setq geiser-default-implementation 'mit)
+;; (setq geiser-racket-binary "/opt/homebrew/bin/racket")
+(setq geiser-active-implementations '(chicken racket))
+(setq geiser-default-implementation 'chicken) ;; 'mit
 
 
 (put 'dired-find-alternate-file 'disabled nil)
@@ -236,6 +242,7 @@ Subtracts right margin and org indentation level from fill-column"
 ;; From insert mode to symex-mode:
 
 (setq evil-symex-state-cursor 'box)
+(setq symex-highlight-p nil)
 
 (evil-define-key 'normal symex-mode-map
   (kbd "<escape>") 'symex-mode-interface)

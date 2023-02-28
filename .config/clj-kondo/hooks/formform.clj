@@ -7,7 +7,8 @@
     {:node node}
     (let [[key-node args-node intpr-node] (rest (:children node))
 
-          _ (when-not (api/keyword-node? key-node)
+          _ (when-not (or (api/keyword-node? key-node)
+                          (api/token-node? key-node))
               (throw (ex-info "Missing operator keyword!" {})))
 
           _ (when-not (api/vector-node? args-node)

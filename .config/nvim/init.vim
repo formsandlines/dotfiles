@@ -398,6 +398,7 @@ Plug 'fcpg/vim-farout'
 Plug 'fenetikm/falcon' " could be ok if background color was softer
 " Plug 'danilo-augusto/vim-afterglow'
 Plug 'foxbunny/vim-amber'
+Plug 'rose-pine/neovim'
 
 
 " Plug 'ryanoasis/vim-devicons' " Developer Icons (--> now nvim-devicons)
@@ -442,13 +443,13 @@ augroup customFarout
 augroup END
 " endif
 
-colorscheme farout "sonokai palenight embark  nightfox  tokyonight  jellybeans  gruvbox
+colorscheme melange  "embark farout sonokai palenight nightfox  tokyonight  jellybeans  gruvbox
 
 " ------------------------------------------------------------
 " PLUGIN: airline
 
 let g:airline_powerline_fonts = 1
-let g:airline_theme='farout' "sonokai embark
+let g:airline_theme='atomic' "embark farout sonokai 
 
 " ------------------------------------------------------------
 " PLUGIN: tagbar
@@ -712,6 +713,7 @@ lua <<EOF
 require'nvim-treesitter.configs'.setup {
   highlight = {
     enable = true,
+    disable = { 'clojure' }, -- see https://github.com/guns/vim-sexp/issues/31
     custom_captures = {
       -- Highlight the @foo.bar capture group with the "Identifier" highlight group.
       -- ["foo.bar"] = "Identifier",
@@ -723,7 +725,7 @@ require'nvim-treesitter.configs'.setup {
     additional_vim_regex_highlighting = false,
   },
   rainbow = { -- DOESNT WORK FOR SOME REASON!!!
-    enable = true,
+    enable = false,
     -- disable = { "jsx", "cpp" }, list of languages you want to disable the plugin for
     extended_mode = true, -- Also highlight non-bracket delimiters like html tags, boolean or table: lang -> boolean
     max_file_lines = nil, -- Do not enable for files with more than n lines, int
