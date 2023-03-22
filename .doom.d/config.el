@@ -30,6 +30,7 @@
 ;; (global-display-fill-column-indicator-mode)
 
 (setq doom-font (font-spec :family "Iosevka Term" :size 14 :weight 'light))
+;; (setq doom-font (font-spec :family "Berkeley Mono Trial" :size 14 :weight 'Regular))
 ;(setq doom-font (font-spec :family "Iosevka" :size 12 :weight 'semi-light)
 ;      doom-variable-pitch-font (font-spec :family "Fira Sans") ; inherits `doom-font''s :size
 ;      doom-unicode-font (font-spec :family "Input Mono Narrow" :size 12)
@@ -61,6 +62,8 @@
 (setq doom-leader-key "SPC"
       doom-localleader-key ",")
 
+
+(require 'org-link-minor-mode)
 
 (setq global-evil-mc-mode 1)
 (evil-define-key 'visual evil-mc-key-map
@@ -105,11 +108,21 @@
 ;;   "?" magit-mode-map)
 
 
+(defun switch-to-minibuffer ()
+  "Switch to minibuffer window."
+  (interactive)
+  (if (active-minibuffer-window)
+      (select-window (active-minibuffer-window))
+    (error "Minibuffer is not active")))
+
+(global-set-key "\C-co" 'switch-to-minibuffer) ;; Bind to `C-c o'
+
 
 (setq initial-major-mode 'org-mode)
 
 (setq org-hide-emphasis-markers t)
 (setq org-pretty-entities t)
+;; (setq org-startup-with-latex-preview t)
 
 (add-hook 'org-mode-hook 'org-appear-mode)
 (setq org-appear-autoentities t)
@@ -128,6 +141,13 @@ Subtracts right margin and org indentation level from fill-column"
             (margin (or (get-text-property (point) 'right-margin) 0)))
         (- fill-column indent-level margin)))
 
+;; Using links outside Orgmode
+;; see https://stackoverflow.com/a/7048954/1204047
+;; and http://orgmode.org/manual/Using-links-outside-Org.html#Using-links-outside-Org
+(evil-define-key 'insert 'global
+  (kbd "C-c l") #'org-insert-link-global)
+(evil-define-key 'normal 'global
+  (kbd "M-o") #'org-open-at-point-global)
 
 
 ;; (persistent-scratch-setup-default)
@@ -250,6 +270,13 @@ Subtracts right margin and org indentation level from fill-column"
 (evil-define-key 'insert symex-mode-map
   (kbd "<escape>") 'symex-mode-interface)
 
+
+(setq typescript-indent-level 2)
+
+;; (add-hook 'typescript-mode-hook
+;;           (setq))
+
+
 ;; Prevents Evil from overwriting Ciders keybindings e.g. in debugger
 ;; - does not work in symex mode
 ;; - https://github.com/emacs-evil/evil-collection/blob/master/modes/cider/evil-collection-cider.el#L92-L109
@@ -295,7 +322,6 @@ Subtracts right margin and org indentation level from fill-column"
 ;;             (and boon (concat boon (and meow vsep)))
 ;;             meow
 ;;             sep)))
-
 
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;

@@ -14,8 +14,19 @@ alias icep="iced repl app"
 alias pwdc="pwd | pbcopy" # copy current path
 alias temperature="sudo powermetrics --samplers smc |grep -i 'CPU die temperature'" # monitor temperature of MacBook Pro
 alias tem8="otherjava temurin8"
+alias aichat="(cd ~/alpaca.cpp/ ; rlwrap ./chat)"
 alias chicken-home="csi -R chicken.platform -p '(chicken-home)'"
 # alias tetris="bb -Sdeps '{:deps {io.github.borkdude/console-tetris {:git/sha "2d3bee34ea93c84608c7cc5994ae70480b2df54c"}}}' -m tetris.core"
+
+fuzz() { file=$(fzf) && nvim "$file"; }
+# fuzz() {
+#   file=$(fzf)
+#   if [ ${#file} -gt 0 ]; then
+#     nvim "$file"
+#   else
+#     :
+#   fi
+# }
 
 # function to switch Java version easily
 otherjava() {

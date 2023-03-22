@@ -20,6 +20,12 @@
 ;; https://github.com/awth13/org-appear
 (package! org-appear)
 
+;; Major mode for editing typescript
+(package! typescript-mode)
+
+(package! org-link-minor-mode
+  :recipe (:host github :repo "seanohalpin/org-link-minor-mode"))
+
 ;; Workaround for https://github.com/hlissner/doom-emacs/issues/5668
 ;; See https://github.com/hlissner/doom-emacs/issues/5667#issuecomment-948229579
 ;; Should no longer be necessary (delete lines below?)
