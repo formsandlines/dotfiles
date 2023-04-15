@@ -2,8 +2,11 @@
 source ~/.dotfiles-private/aliases.sh
 
 alias typora="open -a typora"
-alias nvini="nvim ~/.dotfiles/.config/nvim/init.vim"
-alias jc="~/j903-user/temp/launch.command ; exit;"
+alias nvini="(cd ~/.dotfiles/.config/nvim/ ; nvim init.vim)"
+alias cljkondc="(cd ~/.dotfiles/.config/clj-kondo/ ; nvim config.edn)"
+# alias jc="~/j903-user/temp/launch.command ; exit;"
+alias jc="/Applications/j9.4/bin/jconsole"
+alias janetrepl="janet -e '(import spork/netrepl) (netrepl/server)'"
 alias swank="ros run -e '(ql:quickload :swank) (swank:create-server)'"
 alias reee="exec "$SHELL # restarts shell env
 alias reeel="exec "$SHELL" -l" # restarts shell env, re-sources .zprofile
@@ -28,6 +31,20 @@ fuzz() { file=$(fzf) && nvim "$file"; }
 #   fi
 # }
 
+commonfiles() {
+  a=$(ls -l "$1" | tail -n +2 | cut -f 9 -w)
+  b=$(ls -l "$2" | tail -n +2 | cut -f 9 -w)
+
+  grep -Ff <(echo "$a") <(echo "$b")
+}
+difffiles() {
+  # output is in diff format (+/- and two extra lines with stats)
+  a=$(ls "$1" | tr '\t' '\n')
+  b=$(ls "$2" | tr '\t' '\n')
+
+  diff -u <(echo "$a") <(echo "$b") | grep -E "^[+-]"
+}
+
 # function to switch Java version easily
 otherjava() {
   if [[ $1 = "graal17" ]]; then
@@ -48,12 +65,14 @@ otherjava() {
     jpath=$TEMURIN_17_HOME
   elif [[ $1 = "temurin18" ]]; then
     jpath=$TEMURIN_18_HOME
+  elif [[ $1 = "temurin20" ]]; then
+    jpath=$TEMURIN_20_HOME
   else
     jpath=$TEMURIN_17_HOME # default
   fi
 
-  export JAVA_HOME=$jpath
-  export PATH=$JAVA_HOME"/bin:"$PATH
+  JAVA_HOME=$jpath
+  PATH=$JAVA_HOME"/bin:"$PATH
 }
 
 # serendipity

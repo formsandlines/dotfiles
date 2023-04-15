@@ -242,8 +242,28 @@ Subtracts right margin and org indentation level from fill-column"
 ;; (setq cider-auto-select-error-buffer t)
 
 ;; (setq geiser-racket-binary "/opt/homebrew/bin/racket")
-(setq geiser-active-implementations '(chicken racket))
-(setq geiser-default-implementation 'chicken) ;; 'mit
+(setq geiser-active-implementations '(racket chicken))
+(setq geiser-default-implementation 'chicken)
+(setq geiser-implementations-alist ;; does this even do something?
+      '(((regexp "\\.scm$") chicken)
+        ((regexp "\\.ss$") racket)
+        ((regexp "\\.rkt$") racket)))
+
+;; (add-to-list 'auto-mode-alist '("\\.rkt\\'" . scheme-mode))
+
+;; Geiser does not correctly recognize the Racket filetype to associate it with
+;; the Racket implementation. How can this be fixed?
+;; It seems like it uses a heuristic to automatically determine the implementation,
+;; but ignores all other specifications in config once it could do that.
+;; See https://www.nongnu.org/geiser/Between-the-parens.html
+
+;; (defun my-geiser-racket-mode ()
+;;   (when (string-equal (file-name-extension buffer-file-name) "rkt")
+;;     ;; (and (string-equal (file-name-extension buffer-file-name) "rkt")
+;;     ;;      (memq geiser-impl--implementation '(guile racket)))
+;;     (geiser-mode 'racket)))
+
+(add-hook 'scheme-mode-hook 'my-geiser-racket-mode)
 
 
 (put 'dired-find-alternate-file 'disabled nil)
@@ -292,6 +312,23 @@ Subtracts right margin and org indentation level from fill-column"
 
 (add-hook 'cider--debug-mode-hook 'my-cider-debug-toggle-insert-state)
 
+
+(use-package! clj2el)
+
+
+(use-package! carp-mode)
+(require 'carp-mode)
+(require 'inf-carp-mode)
+(require 'carp-flycheck)
+
+;; Use carp-mode for .carp files
+(add-to-list 'auto-mode-alist '("\\.carp\\'" . carp-mode))
+
+(add-hook 'carp-mode-hook (lambda () (flycheck-mode 1)))
+
+
+(use-package! janet-mode)
+(require 'janet-mode)
 
 ;; Custom modeline modal state indicator (doesn’t work yet):
 

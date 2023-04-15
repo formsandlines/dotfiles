@@ -1,0 +1,135 @@
+#! /usr/bin/env bash
+
+status_msg() {
+  msg=$1
+  echo $msg
+}
+
+init_yarn() {
+  yarn init
+  yarn set version berry
+  echo 'nodeLinker: node-modules' >> .yarnrc.yml
+}
+
+add_yarn_deps() {
+  yarn add --dev shadow-cljs # use-sync-external-store
+  yarn add react react-refresh react-dom
+}
+
+create_shadow-cljs() {
+  name=$1
+
+  tee "shadow-cljs.edn" <<EOF > /dev/null
+{:source-paths ["src"]
+ :dependencies [[binaryage/devtools "RELEASE"] ;; tested: 1.0.5
+                [com.github.jpmonettas/flow-storm-inst "RELEASE"]
+                [lilactown/helix "RELEASE"]] ;; tested: 0.1.9
+ :builds       {:app {:target     :browser
+                      :output-dir "public/js"
+                      :asset-path "/js"
+                      :modules    {:app {:entries [$name.core]}}
+                      :devtools   {:reload-strategy :full
+                                   :preloads [flow-storm.api $name.dev]
+                                   :after-load $name.core/init!}}}
+ 
+ :dev-http     {3000 {:root "public"}}}
+EOF
+}
+
+create_src() {
+  name=$1
+  nsdir="./src/$(echo $name | tr '-' '_')"
+  mkdir -p $nsdir
+
+  tee "$nsdir/core.cljs" <<EOF > /dev/null
+(ns $name.core
+  (:require
+   [helix.core :refer [defnc fnc $ <>]]
+   [helix.hooks :as hooks]
+   [helix.dom :as d]
+   ["react-dom/client" :as rdom]))
+
+(defnc App
+  []
+  (d/div
+    {:id "App"}
+    (d/h1 "Hello Helix")
+    (d/p "Work in progress…")))
+
+(defonce root
+  (rdom/createRoot (js/document.getElementById "app")))
+
+(defn ^:export init! []
+  (.render root ($ App)))
+EOF
+
+  tee "$nsdir/dev.cljs" <<EOF > /dev/null
+(ns $name.dev
+  "A place to add preloads for developer tools!"
+  (:require [helix.experimental.refresh :as r]))
+
+;; inject-hook! needs to run on application start.
+;; For ease, we run it at the top level.
+;; This function adds the react-refresh runtime to the page
+(r/inject-hook!)
+
+;; shadow-cljs allows us to annotate a function name with \`:dev/after-load\`
+;; to signal that it should be run after any code reload. We call the \`refresh!\`
+;; function, which will tell react to refresh any components which have a
+;; signature created by turning on the \`:fast-refresh\` feature flag.
+(defn ^:dev/after-load refresh []
+  (r/refresh!))
+EOF
+}
+
+create_index() {
+  name=$1
+  mkdir -p public/js
+  # index=$(cat <<EOF
+  tee "public/index.html" <<EOF > /dev/null
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link href="/styles.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div id="app">
+      <h3>ClojureScript has not been compiled!</h3>
+      <p>please run <b>npx shadow-cljs watch app</b> in order to start the compiler</p>
+    </div>
+    <script src="/js/app.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      $(echo $name | tr '-' '_').core.init_BANG_();
+    </script>
+  </body>
+</html>
+EOF
+  # )
+  # echo "$index" > public/index.html
+}
+
+run() {
+  name=$1
+
+  status_msg 'Initializing yarn…'
+  init_yarn
+
+  status_msg 'Adding yarn deps…'
+  add_yarn_deps
+
+  status_msg 'Creating shadow.cljs…'
+  create_shadow-cljs $name
+
+  status_msg 'Creating source files…'
+  create_src $name
+
+  status_msg 'Creating index.html…'
+  create_index $name
+
+  status_msg 'All done, have fun! :)'
+}
+
+run $1
+

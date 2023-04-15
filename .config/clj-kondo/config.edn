@@ -37,8 +37,7 @@
                         hooks.tengen/def-cmptfn
                         instaparse.core/defparser
                         hooks.instaparse/defparser
-                        formform.symexpr.core/defoperator
-                        ; formform.expr/defoperator
+                        formform.expr.symexpr/defoperator
                         hooks.formform/defoperator
                         quil.core/defsketch
                         hooks.quil/defsketch}}}

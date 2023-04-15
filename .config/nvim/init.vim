@@ -277,7 +277,7 @@ Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 " Plug 'kassio/neoterm' " Terminal and REPL
 
 Plug 'preservim/tagbar' " Tagbar for code navigation
-Plug 'liuchengxu/vim-which-key' " port of emacs-which-key
+" Plug 'liuchengxu/vim-which-key' " port of emacs-which-key
 Plug 'vim-airline/vim-airline' " Status bar
 Plug 'vim-airline/vim-airline-themes'
 Plug 'airblade/vim-gitgutter' " see git changes on left gutter
@@ -316,6 +316,8 @@ Plug 'junegunn/fzf.vim'
 
 " Language-specific plugins
 Plug 'rust-lang/rust.vim'
+Plug 'hellerve/carp-vim'
+Plug 'bakpakin/janet.vim'
 Plug 'rescript-lang/vim-rescript'
 Plug 'nkrkv/nvim-treesitter-rescript'
 " Plug 'clojure-vim/clojure.vim' " needed?
@@ -326,14 +328,14 @@ Plug 'datwaft/prolog-syntax-vim'
 " Plug 'guns/vim-clojure-highlight' " requires vim-clojure-static & vim-fireplace
 " --------------------
 Plug 'vlime/vlime', {'rtp': 'vim/'} " Common-Lisp server like Slime in Emacs
-" Plug 'Olical/conjure' " Clojure dev (use vim-iced instead)
+Plug 'Olical/conjure' " Clojure dev (use vim-iced instead)
 " Conjure stuff (backup):
   " Plug 'Olical/aniseed' " Lisp Config (compiles to Lua) for Neovim
   " Jack-in for clojure
   " Plug 'tpope/vim-dispatch'
   " Plug 'clojure-vim/vim-jack-in' " depends on vim-dispatch
   " Plug 'radenling/vim-dispatch-neovim' " (only in Neovim)
-Plug 'guns/vim-sexp',    {'for': 'clojure'}
+Plug 'guns/vim-sexp', {'for': ['clojure', 'janet', 'carp', 'scheme', 'fennel', 'lisp']}
 Plug 'tpope/vim-sexp-mappings-for-regular-people' " because meta-key
 Plug 'liquidz/vim-iced', {'for': 'clojure'} " clojure dev (depends on vim-sexp)
 Plug 'liquidz/vim-iced-coc-source', {'for': 'clojure'} " coc plugin for vim-iced
@@ -359,7 +361,8 @@ Plug 'ap/vim-css-color' " CSS Color Preview
 " -- this can be diabled with:
 "    let g:sexp_enable_insert_mode_mappings = 0
 " Plug 'bhurlow/vim-parinfer'
-Plug 'jiangmiao/auto-pairs' " Automatically set closing parenthesis
+Plug 'gpanders/nvim-parinfer'
+" Plug 'jiangmiao/auto-pairs' " Automatically set closing parenthesis
 " Plug 'editorconfig/editorconfig-vim' " Consistent editor configs: https://editorconfig.org/
 
 " Syntax
@@ -483,6 +486,11 @@ au bufreadpre,bufnewfile *.bnf set ft=bnf
 au bufreadpre,bufnewfile *.ebnf set ft=ebnf
 
 " ------------------------------------------------------------
+" PLUGIN: hellerve/carp-vim
+
+au FileType carp set lisp
+
+" ------------------------------------------------------------
 " PLUGIN: yankring
 
 nnoremap <silent> <Leader>y :YRShow<CR>
@@ -551,14 +559,14 @@ let g:fzf_action = {
 " ------------------------------------------------------------
 " PLUGIN: vim-which-key
 
-call which_key#register('<Space>', "g:which_key_map")
+" call which_key#register('<Space>', "g:which_key_map")
 
-" nnoremap <silent> <leader> :WhichKey '<Space>'<CR>
-nnoremap <silent> <leader>      :<c-u>WhichKey '<Space>'<CR>
-nnoremap <silent> <localleader> :<c-u>WhichKey  ','<CR>
+" " nnoremap <silent> <leader> :WhichKey '<Space>'<CR>
+" nnoremap <silent> <leader>      :<c-u>WhichKey '<Space>'<CR>
+" nnoremap <silent> <localleader> :<c-u>WhichKey  ','<CR>
 
-let g:which_key_map =  {}
-let g:which_key_map.w = { 'name' : 'Windows' }
+" let g:which_key_map =  {}
+" let g:which_key_map.w = { 'name' : 'Windows' }
 
 " ------------------------------------------------------------
 " PLUGIN: leap.nvim
@@ -713,7 +721,7 @@ lua <<EOF
 require'nvim-treesitter.configs'.setup {
   highlight = {
     enable = true,
-    disable = { 'clojure' }, -- see https://github.com/guns/vim-sexp/issues/31
+    disable = { 'clojure', 'janet', 'carp', 'scheme', 'fennel', 'lisp' }, -- see https://github.com/guns/vim-sexp/issues/31
     custom_captures = {
       -- Highlight the @foo.bar capture group with the "Identifier" highlight group.
       -- ["foo.bar"] = "Identifier",
@@ -933,18 +941,19 @@ nmap <Leader>c ysafc
 " ------------------------------------------------------------
 " PLUGIN: auto-pairs
 
-let g:AutoPairs = {'(':')', '[':']', '{':'}'}
-let g:AutoPairsMapCR = 0
-let g:AutoPairsMapSpace = 0
+" let g:AutoPairs = {'(':')', '[':']', '{':'}'}
+" let g:AutoPairsMapCR = 0
+" let g:AutoPairsMapSpace = 0
 
-" To disable auto-pairs for specific langs:
-" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {}
-" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}', '"':'"'}
-" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}'}
+" " To disable auto-pairs for specific langs:
+" " au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {}
+" " au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}', '"':'"'}
+" " au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}'}
 
 " ------------------------------------------------------------
 " PLUGIN: vim-sexp
 
+let g:sexp_filetypes = 'clojure,scheme,lisp,fennel,janet,carp'
 let g:sexp_enable_insert_mode_mappings = 0
 
 " disable default mappings for indent (see vim-iced):
@@ -954,7 +963,7 @@ let g:sexp_mappings = {'sexp_indent': '', 'sexp_indent_top': ''}
 " i.e. key/value binding/expr test/expr
 " from https://github.com/nbardiuk/dotfiles/blob/fc61451baa1df5d03d2e59c1dd3b5151915b760d/nix/.config/nixpkgs/home/init.fnl#L528-L546
 
-autocmd Filetype clojure,scheme,lisp,fennel call SexpAdditions()
+autocmd Filetype clojure,scheme,lisp,fennel,janet,carp call SexpAdditions()
 function SexpAdditions()
   " pair forward
   xmap <buffer> ip <Plug>(sexp_inner_element)<Plug>(sexp_move_to_next_element_tail)
@@ -1042,6 +1051,21 @@ endfunction
 " nmap <silent> <localleader>fcr :execute FlowStormRequire()<CR>
 nmap <silent> <localleader>fsc m`:execute FlowStormConnect()<CR><c-o>
 nmap <silent> <localleader>fss m`:execute FlowStormStop()<CR>
+
+" ------------------------------------------------------------
+" ADDONS: conjure
+
+let g:conjure#filetypes = ['scheme', 'lisp', 'racket', 'fennel', 'janet']
+" To ensure mappings won’t override:
+" let g:conjure#mapping#prefix = '<localleader>c'
+
+" let g:conjure#log#hud#width = 1.0
+" let g:conjure#log#hud#height = 0.3
+" let g:conjure#log#hud#overlap_padding = 0.1
+" let g:conjure#log#hud#anchor = "SE"
+let g:conjure#log#hud#enabled = v:false
+let g:conjure#mapping#log_toggle = "ss"  " like Iced
+let g:conjure#mapping#log_reset_soft = "sl"  " like Iced
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " LUA TEST

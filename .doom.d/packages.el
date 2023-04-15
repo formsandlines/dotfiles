@@ -23,6 +23,13 @@
 ;; Major mode for editing typescript
 (package! typescript-mode)
 
+;; Clojure to Emacs Lisp transpilation
+(package! clj2el :recipe (:host github :repo "borkdude/clj2el" :files ("*.el")))
+(package! carp-mode :recipe (:host github :repo "carp-lang/carp-emacs"
+                             :files ("*.el")))
+(package! janet-mode :recipe (:host github :repo "ALSchwalm/janet-mode"
+                              :files ("*.el")))
+
 (package! org-link-minor-mode
   :recipe (:host github :repo "seanohalpin/org-link-minor-mode"))
 
