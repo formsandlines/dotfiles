@@ -5,11 +5,20 @@
 ;; on the command line, then restart Emacs for the changes to take effect -- or
 ;; use 'M-x doom/reload'.
 
-
 ;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
 ;(package! some-package)
 
+
+;; There is a warning that “Package cl is deprecated” in the minibuffer on
+;; startup that cannot be resolved, since cl is required by the
+;; ‘persistent-soft’ package that appears to be loaded by Doom Emacs from
+;; core/ackages.el -> see https://github.com/doomemacs/doomemacs/pull/2462
+;; Apparently, the package author wanted to fix this, but maybe got stuck:
+;; https://github.com/rolandwalker/persistent-soft/issues/5
+
 ;; (package! linum-relative)
+
+(package! ligature)
 
 (package! persistent-scratch)
 (package! org-roam)
@@ -29,6 +38,13 @@
                              :files ("*.el")))
 (package! janet-mode :recipe (:host github :repo "ALSchwalm/janet-mode"
                               :files ("*.el")))
+
+;; Logo Mode (works kind-of, but with multiple issues)
+;; - see: https://www.emacswiki.org/emacs/LogoMode
+;; - overrides Emacs font face/color configs
+;; (package! logo-mode
+;;   :recipe (:host github :repo "brianharvey/UCBLogo"
+;;            :files ("source/emacs/*" "source/helpfiles/*" "source/docs/*")))
 
 (package! org-link-minor-mode
   :recipe (:host github :repo "seanohalpin/org-link-minor-mode"))

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+app="$1"
+args="${@:2}"
+osascript -e 'tell application "System Events" to set frontmost of process "'$app'" to true' && eval "$args"

@@ -1,8 +1,16 @@
 #! /usr/bin/env bash
 
+# Use like this:
+# $ prj-cljs <project-name>
+
 status_msg() {
-  msg=$1
-  echo $msg
+  msg="$1"
+  echo "$msg"
+}
+
+error_msg() {
+  msg="$1"
+  echo "ERROR: $msg"
 }
 
 init_yarn() {
@@ -12,36 +20,88 @@ init_yarn() {
 }
 
 add_yarn_deps() {
+  framework="$1"
+
+  case $framework in
+    helix)
+      deps_str='react react-refresh react-dom'
+      ;;
+    reagent)
+      deps_str='react react-dom'
+      ;;
+  esac
+
+  deps=($deps_str)
+
   yarn add --dev shadow-cljs # use-sync-external-store
-  yarn add react react-refresh react-dom
+  yarn add "${deps[@]}"
 }
 
 create_shadow-cljs() {
-  name=$1
+  name="$1"
+  framework="$2"
+
+  # last tested with:
+  # - devtools 1.0.5
+  # - reagent 1.2.0
+  # - helix 0.1.10
+
+  case $framework in
+    helix)
+      fw_dep='[lilactown/helix "RELEASE"]'
+      devtools=$(cat <<EOF
+{:reload-strategy :full
+                                                    :preloads [flow-storm.api $name.dev]
+                                                    :after-load $name.core/init!}
+EOF
+)
+      ;;
+    reagent)
+      fw_dep='[reagent "RELEASE"]'
+      devtools=$(cat <<EOF
+{:after-load $name.core/init!}
+EOF
+)
+      ;;
+  esac
 
   tee "shadow-cljs.edn" <<EOF > /dev/null
 {:source-paths ["src"]
- :dependencies [[binaryage/devtools "RELEASE"] ;; tested: 1.0.5
+ :dependencies [[binaryage/devtools "RELEASE"]
                 [com.github.jpmonettas/flow-storm-inst "RELEASE"]
-                [lilactown/helix "RELEASE"]] ;; tested: 0.1.9
+                $fw_dep] 
+ :nrepl        {:port 8777}
  :builds       {:app {:target     :browser
                       :output-dir "public/js"
                       :asset-path "/js"
                       :modules    {:app {:entries [$name.core]}}
-                      :devtools   {:reload-strategy :full
-                                   :preloads [flow-storm.api $name.dev]
-                                   :after-load $name.core/init!}}}
+                      :devtools   $devtools}}
  
  :dev-http     {3000 {:root "public"}}}
 EOF
 }
 
+create_bb-edn() {
+  tee "bb.edn" <<EOF > /dev/null
+{:paths ["src"]
+ :tasks
+ {dev   {:doc "Runs shadow-cljs build & watch with nREPL for vim-iced"
+         :task (shell "iced repl --force-shadow-cljs app")}
+  debug {:doc "Runs flowstorm debugger"
+         :task (shell "clj -Sforce -Sdeps '{:deps {com.github.jpmonettas/flow-storm-dbg {:mvn/version "RELEASE"}}}' -X flow-storm.debugger.main/start-debugger :port 8777 :repl-type :shadow :build-id :app")}}}
+EOF
+}
+
 create_src() {
-  name=$1
+  name="$1"
   nsdir="./src/$(echo $name | tr '-' '_')"
   mkdir -p $nsdir
 
-  tee "$nsdir/core.cljs" <<EOF > /dev/null
+  case $framework in
+    helix)
+      # Basic source files for Helix
+
+      tee "$nsdir/core.cljs" <<EOF > /dev/null
 (ns $name.core
   (:require
    [helix.core :refer [defnc fnc $ <>]]
@@ -63,7 +123,7 @@ create_src() {
   (.render root ($ App)))
 EOF
 
-  tee "$nsdir/dev.cljs" <<EOF > /dev/null
+      tee "$nsdir/dev.cljs" <<EOF > /dev/null
 (ns $name.dev
   "A place to add preloads for developer tools!"
   (:require [helix.experimental.refresh :as r]))
@@ -80,12 +140,38 @@ EOF
 (defn ^:dev/after-load refresh []
   (r/refresh!))
 EOF
+      ;;
+    reagent)
+      # Basic source files for Reagent
+
+      tee "$nsdir/core.cljs" <<EOF > /dev/null
+(ns $name.core
+  (:require
+   [reagent.core :as r]
+   [reagent.dom :as d]))
+
+(defn App
+  []
+  [:div
+    {:id "App"}
+    [:h1 "Hello Reagent"]
+    [:p "Work in progress…"]])
+
+(defn ^:dev/after-load mount-root []
+  (d/render [App]
+            (.getElementById js/document "app")))
+
+(defn ^:export init! []
+  (mount-root))
+EOF
+      ;;
+  esac
+
 }
 
 create_index() {
-  name=$1
+  name="$1"
   mkdir -p public/js
-  # index=$(cat <<EOF
   tee "public/index.html" <<EOF > /dev/null
 <!DOCTYPE html>
 <html>
@@ -106,24 +192,34 @@ create_index() {
   </body>
 </html>
 EOF
-  # )
-  # echo "$index" > public/index.html
 }
 
 run() {
-  name=$1
+  name="$1"
+  framework="$2"
+
+  if [ "$framework" != 'reagent' ] && [ "$framework" != 'helix' ]; then
+    error_msg "Unrecognized front-end framework: $framework"
+    exit 1
+  fi
+
+  mkdir "$1"
+  cd "$1" || exit 1
 
   status_msg 'Initializing yarn…'
   init_yarn
 
   status_msg 'Adding yarn deps…'
-  add_yarn_deps
+  add_yarn_deps $framework
 
   status_msg 'Creating shadow.cljs…'
-  create_shadow-cljs $name
+  create_shadow-cljs $name $framework
+
+  status_msg 'Creating bb.edn…'
+  create_bb-edn
 
   status_msg 'Creating source files…'
-  create_src $name
+  create_src $name $framework
 
   status_msg 'Creating index.html…'
   create_index $name
@@ -131,5 +227,5 @@ run() {
   status_msg 'All done, have fun! :)'
 }
 
-run $1
+run $1 $2
 

@@ -1,3 +1,6 @@
+# private env variables
+source ~/.dotfiles-private/variables.sh
+
 # Set PATH, MANPATH, etc., for Homebrew.
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
@@ -40,15 +43,16 @@ PATH="$PATH:$HOME/.local/share/nvim/plugged/vim-iced/bin"
 PATH="$PATH:$HOME/.emacs.d/bin"
 PATH="$PATH:/opt/homebrew/opt/luajit-openresty/bin"
 PATH="$PATH:$JAVA_HOME/bin"
+PATH="$PATH:$HOME/Library/Application Support/Coursier/bin" # for Scala
 PATH="$PATH:$HOME/.dotfiles/scripts/bin"
 
 # Opam configuration (for OCaml)
 # test -r ~/.opam/opam-init/init.zsh && . ~/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
-# 
-# if type rg &> /dev/null; then
-#   export FZF_DEFAULT_COMMAND='rg --files'
-#   # export FZF_DEFAULT_COMMAND='rg --files --follow --no-ignore-vcs --hidden -g "!{node_modules/*,.git/*}"'
-#   export FZF_DEFAULT_OPTS='-m --height 50% --border'
-# fi
+ 
+if type rg &> /dev/null; then
+  export FZF_DEFAULT_COMMAND='rg --files --no-require-git'
+  # export FZF_DEFAULT_COMMAND='rg --files --follow --no-ignore-vcs --hidden -g "!{node_modules/*,.git/*}"'
+  export FZF_DEFAULT_OPTS='-m --height 50% --border'
+fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

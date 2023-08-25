@@ -29,8 +29,20 @@
 (auto-fill-mode) ; automatically inserts line breaks at char limit
 ;; (global-display-fill-column-indicator-mode)
 
+;; The 'Regular' cut is too thick and contrast to 'Bold' is insufficient
+;; -> will have to wait for v2 release which might include a 'light' cut…
+;; (setq doom-font
+;;       (font-spec :family "Berkeley Mono"
+;;                  :size 14
+;;                  :weight 'Regular))
+;; (setq doom-variable-pitch-font
+;;       (font-spec :family "Berkeley Mono Variable"
+;;                  :size 14))
+
 (setq doom-font (font-spec :family "Iosevka Term" :size 14 :weight 'light))
-;; (setq doom-font (font-spec :family "Berkeley Mono Trial" :size 14 :weight 'Regular))
+
+(setq doom-unicode-font doom-font)
+
 ;(setq doom-font (font-spec :family "Iosevka" :size 12 :weight 'semi-light)
 ;      doom-variable-pitch-font (font-spec :family "Fira Sans") ; inherits `doom-font''s :size
 ;      doom-unicode-font (font-spec :family "Input Mono Narrow" :size 12)
@@ -40,10 +52,54 @@
 ; doom-big-font (font-spec :family "Iosevka Term SS04" :size 36))
 ; doom-variable-pitch-font (font-spec :family "SF Pro Text"))
 
+(setq line-spacing 0.2)
+
+;; Note:
+;; Seems like on Mac, Emacs ignores `--with-harfbuzz' and `-with-cairo' flags
+;; in installation, but ligatures still work, even with `ligatures.el'
+;; - although not all ligatures in fonts seem to be recognized(?)
+;; - see https://github.com/mickeynp/ligature.el/issues/29
+(use-package! ligature
+  :config
+  ;; Enable ligatures in every possible major mode
+  (ligature-set-ligatures
+   't
+   '("www"))
+  ;; Enable ligatures in programming modes
+  (ligature-set-ligatures
+   'prog-mode
+   '(
+                                        ; Berkeley Mono sets
+                                        ; Group A
+     ".." ".=" "..." "..<" "::" ":::" ":=" "::=" ";;" ";;;" "??" "???"
+     ".?" "?." ":?" "?:" "?=" "**" "***" "/*" "*/" "/**"
+                                        ; Group B
+     "<-" "->" "-<" ">-" "<--" "-->" "<<-" "->>" "-<<" ">>-" "<-<" ">->"
+     "<-|" "|->" "-|" "|-" "||-" "<!--" "<#--" "<=" "=>" ">=" "<==" "==>"
+     "<<=" "=>>" "=<<" ">>=" "<=<" ">=>" "<=|" "|=>" "<=>" "<==>" "||="
+     "|=" "//=" "/="
+                                        ; Group C
+     "<<" ">>" "<<<" ">>>" "<>" "<$" "$>" "<$>" "<+" "+>" "<+>" "<:" ":<"
+     "<:<" ">:" ":>" "<~" "~>" "<~>" "<<~" "<~~" "~~>" "~~" "<|" "|>"
+     "<|>" "<||" "||>" "<|||" "|||>" "</" "/>" "</>" "<*" "*>" "<*>" ":?>"
+                                        ; Group D
+     "#(" "#{" "#[" "]#" "#!" "#?" "#=" "#_" "#_(" "##" "###" "####"
+                                        ; Group E
+     "[|" "|]" "[<" ">]" "{!!" "!!}" "{|" "|}" "{{" "}}" "{{--" "--}}"
+     "{!--" "//" "///" "!!"
+                                        ; Group F
+     "www" "@_" "&&" "&&&" "&=" "~@" "++" "+++" "/\\" "\\/" "_|_" "||"
+                                        ; Group G
+     "=:" "=:=" "=!=" "==" "===" "=/=" "=~" "~-" "^=" "__" "!=" "!==" "-~"
+     "--" "---"))
+  ;; Enables ligature checks globally in all buffers. You can also do it
+  ;; per mode with `ligature-mode'.
+  (global-ligature-mode t))
+
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
-(setq doom-theme 'doom-dracula)
+(setq doom-theme 'doom-moonlight) ;; doom-dracula
 
 ;; (setq-default inhibit-startup-screen t)
 ;; (setq inhibit-splash-screen t)
@@ -62,6 +118,9 @@
 (setq doom-leader-key "SPC"
       doom-localleader-key ",")
 
+;; (set-face-attribute 'highlight nil :background "red")
+(custom-set-faces '(; cursor ((t (:background "yellow")))
+                    highlight ((t (:background "#343e5f")))))
 
 (require 'org-link-minor-mode)
 
@@ -71,6 +130,25 @@
   "I" #'evil-mc-make-cursor-in-visual-selection-beg)
 (setq global-evil-surround-mode 1)
 ;; (map! :desc "Rebind {" :i "M-8" )
+
+(defun my-kill-help-buffers ()
+  "Select all help buffers and close them, if they are open."
+  (interactive)
+  (let ((buffers (cl-remove-if-not
+                  (lambda (b) (string-prefix-p "*Help" (buffer-name b) t))
+                  (buffer-list))))
+    (dolist (buf buffers)
+      (when (buffer-live-p buf)
+        (kill-buffer buf)))))
+
+;; to kill all help buffers:
+(evil-define-key 'normal 'global
+  (kbd "C-c q") #'my-kill-help-buffers)
+
+;; because `q` doesn’t close help buffer in evil mode:
+;; - ? obsolete -> use `C-~' to toggle visible popups in doom
+(evil-define-key 'normal 'global
+  (kbd "C-q") #'+popup/close-all)
 
 ; inserts new line (above/below) without entering insert mode
 (evil-define-key 'normal 'global
@@ -257,11 +335,11 @@ Subtracts right margin and org indentation level from fill-column"
 ;; but ignores all other specifications in config once it could do that.
 ;; See https://www.nongnu.org/geiser/Between-the-parens.html
 
-;; (defun my-geiser-racket-mode ()
-;;   (when (string-equal (file-name-extension buffer-file-name) "rkt")
-;;     ;; (and (string-equal (file-name-extension buffer-file-name) "rkt")
-;;     ;;      (memq geiser-impl--implementation '(guile racket)))
-;;     (geiser-mode 'racket)))
+(defun my-geiser-racket-mode ()
+  (when (string-equal (file-name-extension buffer-file-name) "rkt")
+    ;; (and (string-equal (file-name-extension buffer-file-name) "rkt")
+    ;;      (memq geiser-impl--implementation '(guile racket)))
+    (geiser-mode 'racket)))
 
 (add-hook 'scheme-mode-hook 'my-geiser-racket-mode)
 
@@ -281,14 +359,14 @@ Subtracts right margin and org indentation level from fill-column"
 
 ;; From insert mode to symex-mode:
 
-(setq evil-symex-state-cursor 'box)
-(setq symex-highlight-p nil)
+;; (setq evil-symex-state-cursor 'box)
+;; (setq symex-highlight-p nil)
 
 (evil-define-key 'normal symex-mode-map
   (kbd "<escape>") 'symex-mode-interface)
 
-(evil-define-key 'insert symex-mode-map
-  (kbd "<escape>") 'symex-mode-interface)
+;; (evil-define-key 'insert symex-mode-map
+;;   (kbd "<escape>") 'symex-mode-interface)
 
 
 (setq typescript-indent-level 2)
@@ -329,6 +407,14 @@ Subtracts right margin and org indentation level from fill-column"
 
 (use-package! janet-mode)
 (require 'janet-mode)
+
+;; logo-mode (experimental -> see packages.el)
+;; (setq auto-mode-alist (append '(("\\.lgo?$" . logo-mode)) auto-mode-alist))
+;; (setq logo-binary-name "/Applications/UCBLogo.app/Contents/MacOS/UCBLogo")
+;; (setq logo-mode-root (string-replace "logo.el" "" (locate-library "logo")))
+;; (setq logo-tutorial-path logo-mode-root)
+;; (setq logo-help-path logo-mode-root)
+;; (setq logo-info-file (string-join (list logo-mode-root "ucblogo.info") ""))
 
 ;; Custom modeline modal state indicator (doesn’t work yet):
 

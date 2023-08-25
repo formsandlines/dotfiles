@@ -252,12 +252,19 @@ if (empty($TMUX))
   endif
 endif
 
+" ------------------------------------------------------------
+" Snippets "
+
+" Java convenience (!! replace with a plugin)
+iabbrev sout System.out.println()<Left>
+iabbrev psvm public static void main(String[] args)<right>
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " PLUGINS: vim-plug
 "
 
 " disable LSP features in ALE to prevent conflicts with coc.nvim
-let g:ale_disable_lsp = 1 
+" let g:ale_disable_lsp = 1 
 
 " function general#Plugin_loaded(plugin)
 "   return isdirectory(g:plug_home . "/" . a:plugin . ".vim")
@@ -287,13 +294,13 @@ Plug 'farmergreg/vim-lastplace' " saves and restores last line of edit
 Plug 'lukas-reineke/indent-blankline.nvim' " indentation lines (+ on blank lines)
 Plug 'inkarkat/vim-ReplaceWithRegister'
 " Plug 'yuttie/comfortable-motion.vim' " smooth scrolling with u/d
-Plug 'simnalamburt/vim-mundo' " lists undo history to retrieve lost changes
+" Plug 'simnalamburt/vim-mundo' " lists undo history to retrieve lost changes (needs a supported Python version)
 Plug 'vim-scripts/YankRing.vim' " list/cycle clipboard history
 Plug 'michaeljsmith/vim-indent-object' " indentation text object
 Plug 'tpope/vim-repeat' " enables repeating (.) commands after plugin maps
 Plug 'ggandor/leap.nvim' " jumping around in the document
 
-Plug 'p00f/nvim-ts-rainbow' " Rainbow brackets with treesitter support
+" Plug 'p00f/nvim-ts-rainbow' " Rainbow brackets with treesitter support
 " Plug 'junegunn/rainbow_parentheses.vim' " doesn't work??
 " Plug 'luochen1990/rainbow'
 " Plug 'markonm/hlyank.vim'
@@ -305,16 +312,14 @@ Plug 'p00f/nvim-ts-rainbow' " Rainbow brackets with treesitter support
 " Plug 'preservim/nerdtree' " File browser
 Plug 'kyazdani42/nvim-web-devicons' " for file icons
 Plug 'kyazdani42/nvim-tree.lua'
-" Plug 'lambdalisue/fern.vim' " another tree browser
 Plug 'christoomey/vim-tmux-navigator' " navigate between panes using shortcuts
-    " <C-h> to jump to left
-    " <C-l> to jump to right
 " Plug 'ctrlpvim/ctrlp.vim' " fuzzy find files (use fzf instead)
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } } " fuzzyfind
 Plug 'junegunn/fzf.vim'
     " See https://dev.to/iggredible/how-to-search-faster-in-vim-with-fzf-vim-36ko
 
 " Language-specific plugins
+" Plug 'nvim-lua/plenary.nvim' " for Metals (Scala)
 Plug 'rust-lang/rust.vim'
 Plug 'hellerve/carp-vim'
 Plug 'bakpakin/janet.vim'
@@ -335,8 +340,9 @@ Plug 'Olical/conjure' " Clojure dev (use vim-iced instead)
   " Plug 'tpope/vim-dispatch'
   " Plug 'clojure-vim/vim-jack-in' " depends on vim-dispatch
   " Plug 'radenling/vim-dispatch-neovim' " (only in Neovim)
-Plug 'guns/vim-sexp', {'for': ['clojure', 'janet', 'carp', 'scheme', 'fennel', 'lisp']}
+Plug 'guns/vim-sexp', {'for': ['clojure', 'logo', 'janet', 'carp', 'scheme', 'fennel', 'lisp']}
 Plug 'tpope/vim-sexp-mappings-for-regular-people' " because meta-key
+" Plug 'julienvincent/nvim-paredit' " !! BETA !! maybe replacement for vim-sexp (right now only Clojure)
 Plug 'liquidz/vim-iced', {'for': 'clojure'} " clojure dev (depends on vim-sexp)
 Plug 'liquidz/vim-iced-coc-source', {'for': 'clojure'} " coc plugin for vim-iced
 Plug 'lambdalisue/fern.vim' " required for vim-iced-fern-debugger
@@ -361,8 +367,8 @@ Plug 'ap/vim-css-color' " CSS Color Preview
 " -- this can be diabled with:
 "    let g:sexp_enable_insert_mode_mappings = 0
 " Plug 'bhurlow/vim-parinfer'
-Plug 'gpanders/nvim-parinfer'
-" Plug 'jiangmiao/auto-pairs' " Automatically set closing parenthesis
+Plug 'gpanders/nvim-parinfer', {'for': ['janet']}
+Plug 'jiangmiao/auto-pairs' " Automatically set closing parenthesis
 " Plug 'editorconfig/editorconfig-vim' " Consistent editor configs: https://editorconfig.org/
 
 " Syntax
@@ -486,19 +492,24 @@ au bufreadpre,bufnewfile *.bnf set ft=bnf
 au bufreadpre,bufnewfile *.ebnf set ft=ebnf
 
 " ------------------------------------------------------------
+" PLUGIN: logo.vim (see syntax/logo.vim)
+
+au bufreadpre,bufnewfile *.lg,*.logo,*/private/tmp/logo* set ft=logo
+
+" ------------------------------------------------------------
 " PLUGIN: hellerve/carp-vim
 
 au FileType carp set lisp
 
 " ------------------------------------------------------------
-" PLUGIN: yankring
+" PLUGIN: YankRing
 
 nnoremap <silent> <Leader>y :YRShow<CR>
 
 " ------------------------------------------------------------
-" PLUGIN: vim-mundo
+" PLUGIN: vim-mundo (deleted)
 
-nnoremap <silent> <Leader>u :MundoToggle<CR>
+" nnoremap <silent> <Leader>u :MundoToggle<CR>
 
 " ------------------------------------------------------------
 " PLUGIN: fzf
@@ -513,7 +524,21 @@ nnoremap <silent> <Leader>H :Helptags<CR>
 nnoremap <silent> <Leader>hh :History<CR>
 nnoremap <silent> <Leader>h: :History:<CR>
 nnoremap <silent> <Leader>h/ :History/<CR> 
-command! -bang -nargs=* Rg call fzf#vim#grep("rg --no-require-git --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0) " ignore filenames in Rg search
+
+" Default for Files:
+" command! -bang -nargs=? -complete=dir Files call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
+
+" Custom Files:
+command! -bang -nargs=? -complete=dir Files call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
+
+" Default for Rg:
+" command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case -- ".shellescape(<q-args>), 1, fzf#vim#with_preview(), <bang>0)
+
+" Custom Rg:
+" rg ...          <- ripgrep options (see shell command)
+" {'options': …}  <- fzf options (see shell command)
+" --nth 4..       <- matches from 4th column (ignores filenames, etc.)
+command! -bang -nargs=* Rg call fzf#vim#grep("rg --no-require-git --column --line-number --no-heading --color=always --smart-case -- ".shellescape(<q-args>), 1, {'options': '--nth 4..'}, <bang>0)
 
 " fzf in :Buffers context (?)
     " see https://github.com/junegunn/fzf.vim/pull/733
@@ -522,11 +547,6 @@ let g:fzf_action = {
   \ 'ctrl-t': 'tab split',
   \ 'ctrl-x': 'split',
   \ 'ctrl-v': 'vsplit' }
-
-" command! -bang -nargs=* Rg
-"   \ call fzf#vim#grep(
-"   \   "rg -g '!.git' -g '!node_modules' --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1,
-"   \   fzf#vim#with_preview({'options': '--exact --delimiter : --nth 4..'}), <bang>0)
 
 " Do not display the file content preview window
 " let g:fzf_preview_window = []
@@ -557,7 +577,7 @@ let g:fzf_action = {
 "   \ 'header':  ['fg', 'Comment'] }
 
 " ------------------------------------------------------------
-" PLUGIN: vim-which-key
+" PLUGIN: vim-which-key (uninstalled)
 
 " call which_key#register('<Space>', "g:which_key_map")
 
@@ -574,7 +594,7 @@ let g:fzf_action = {
 lua require('leap').set_default_keymaps()
 
 " ------------------------------------------------------------
-" PLUGIN: nvim-neorg
+" PLUGIN: nvim-neorg (disabled)
 
 " lua << EOF
 "     require('neorg').setup {
@@ -614,7 +634,7 @@ highlight NvimTreeFolderIcon guibg=blue
 lua require('nvim-tree-config')
 
 " ------------------------------------------------------------
-" PLUGIN: comfortable-motion
+" PLUGIN: comfortable-motion (disabled)
 
 " let g:comfortable_motion_scroll_down_key = "j"
 " let g:comfortable_motion_scroll_up_key = "k"
@@ -627,7 +647,7 @@ nnoremap <leader>/ :Commentary<cr>
 vnoremap <leader>/ :Commentary<cr>
 
 " ------------------------------------------------------------
-" PLUGIN: nerdtree (-> obsolete?)
+" PLUGIN: nerdtree (disabled -> obsolete?)
 
 " nnoremap <C-f> :NERDTreeFocus<CR>
 " nnoremap <C-t> :NERDTree<CR> " C-n already used by multiple-cursors
@@ -653,7 +673,7 @@ vnoremap <leader>/ :Commentary<cr>
 " "     \ } 
 
 " ------------------------------------------------------------
-" PLUGIN: ctrlp
+" PLUGIN: ctrlp (disabled)
 
 " let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
 
@@ -671,8 +691,11 @@ inoremap <silent><expr> <TAB>
 " Remap keys for gotos
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gy <Plug>(coc-type-definition)
-nmap <silent> gI <Plug>(coc-implementation)
-nmap <silent> gr <Plug>(coc-references)
+nmap <silent> <localleader>gI <Plug>(coc-implementation)
+nmap <silent> <localleader>gr <Plug>(coc-references)
+nmap <silent> <localleader>ci :call CocAction('showIncomingCalls')<CR>
+nmap <silent> <localleader>co :call CocAction('showOutgoingCalls')<CR>
+nmap <silent> <localleader>cr <Plug>(coc-rename)
 
 " Use gh to show documentation in preview window
 nnoremap <silent> gh :call <SID>show_documentation()<CR>
@@ -721,7 +744,7 @@ lua <<EOF
 require'nvim-treesitter.configs'.setup {
   highlight = {
     enable = true,
-    disable = { 'clojure', 'janet', 'carp', 'scheme', 'fennel', 'lisp' }, -- see https://github.com/guns/vim-sexp/issues/31
+    disable = { 'clojure', 'logo', 'janet', 'carp', 'scheme', 'fennel', 'lisp' }, -- see https://github.com/guns/vim-sexp/issues/31
     custom_captures = {
       -- Highlight the @foo.bar capture group with the "Identifier" highlight group.
       -- ["foo.bar"] = "Identifier",
@@ -733,6 +756,7 @@ require'nvim-treesitter.configs'.setup {
     additional_vim_regex_highlighting = false,
   },
   rainbow = { -- DOESNT WORK FOR SOME REASON!!!
+  -- see also p00f/nvim-ts-rainbow
     enable = false,
     -- disable = { "jsx", "cpp" }, list of languages you want to disable the plugin for
     extended_mode = true, -- Also highlight non-bracket delimiters like html tags, boolean or table: lang -> boolean
@@ -753,30 +777,30 @@ require'nvim-treesitter.configs'.setup {
 EOF
 
 " ------------------------------------------------------------
-" PLUGIN: Neoterm
+" PLUGIN: Neoterm (uninstalled)
 
 "alt + v, like in Idea
-vnoremap <localleader>v :<c-u>exec v:count.'TREPLSendSelection'<cr>
-" nnoremap <localleader>L :<c-u>exec v:count.'TREPLSendLine'<cr>
-" nnoremap <localleader>B :<c-u>exec v:count.'TREPLSendFile'<cr>
+" vnoremap <localleader>v :<c-u>exec v:count.'TREPLSendSelection'<cr>
+" " nnoremap <localleader>L :<c-u>exec v:count.'TREPLSendLine'<cr>
+" " nnoremap <localleader>B :<c-u>exec v:count.'TREPLSendFile'<cr>
 
 
 " ------------------------------------------------------------
-" PLUGIN: ale
+" PLUGIN: ale (uninstalled)
 
-let g:ale_linters = {'clojure': ['clj-kondo']}
+" let g:ale_linters = {'clojure': ['clj-kondo']}
 
-" NOTE regarding upgrade borkdude/brew/clj-kondo (2022.03.09) < 2022.04.08:
-" strange namespace error...
-" disable linter in ~/.config/clj-kondo/config.edn :
-" {:linters {:namespace-name-mismatch {:level :off}}}
+" " NOTE regarding upgrade borkdude/brew/clj-kondo (2022.03.09) < 2022.04.08:
+" " strange namespace error...
+" " disable linter in ~/.config/clj-kondo/config.edn :
+" " {:linters {:namespace-name-mismatch {:level :off}}}
 
-nnoremap <silent> <localleader>§ :ALEToggleBuffer<CR>
+" nnoremap <silent> <localleader>§ :ALEToggleBuffer<CR>
 
 " ------------------------------------------------------------
-" PLUGIN: clojure.vim
+" PLUGIN: clojure.vim (uninstalled)
 
-let g:clojure_maxlines = 100
+" let g:clojure_maxlines = 100
 
 " ------------------------------------------------------------
 " PLUGIN: vim-iced
@@ -941,19 +965,20 @@ nmap <Leader>c ysafc
 " ------------------------------------------------------------
 " PLUGIN: auto-pairs
 
-" let g:AutoPairs = {'(':')', '[':']', '{':'}'}
-" let g:AutoPairsMapCR = 0
-" let g:AutoPairsMapSpace = 0
+let g:AutoPairs = {'(':')', '[':']', '{':'}'}
+let g:AutoPairsMapCR = 1
+let g:AutoPairsMapSpace = 0
 
-" " To disable auto-pairs for specific langs:
-" " au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {}
-" " au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}', '"':'"'}
-" " au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}'}
+" To disable auto-pairs for specific langs:
+au Filetype janet let b:AutoPairs = {}
+" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {}
+" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}', '"':'"'}
+" au Filetype clojure,scheme,lisp,fennel let b:AutoPairs = {'(':')', '[':']', '{':'}'}
 
 " ------------------------------------------------------------
 " PLUGIN: vim-sexp
 
-let g:sexp_filetypes = 'clojure,scheme,lisp,fennel,janet,carp'
+let g:sexp_filetypes = 'clojure,scheme,lisp,fennel,logo,janet,carp'
 let g:sexp_enable_insert_mode_mappings = 0
 
 " disable default mappings for indent (see vim-iced):
@@ -963,7 +988,7 @@ let g:sexp_mappings = {'sexp_indent': '', 'sexp_indent_top': ''}
 " i.e. key/value binding/expr test/expr
 " from https://github.com/nbardiuk/dotfiles/blob/fc61451baa1df5d03d2e59c1dd3b5151915b760d/nix/.config/nixpkgs/home/init.fnl#L528-L546
 
-autocmd Filetype clojure,scheme,lisp,fennel,janet,carp call SexpAdditions()
+autocmd Filetype clojure,scheme,lisp,fennel,logo,janet,carp call SexpAdditions()
 function SexpAdditions()
   " pair forward
   xmap <buffer> ip <Plug>(sexp_inner_element)<Plug>(sexp_move_to_next_element_tail)
@@ -987,12 +1012,56 @@ endfunction
   nmap <localleader>cdl vie<m-e>y:IcedEval (def <c-r>")<cr>
 
 " ------------------------------------------------------------
+" PLUGIN: nvim-paredit
+
+"lua << EOF
+"require("nvim-paredit").setup({
+"  -- should plugin use default keybindings? (default = true)
+"  use_default_keys = true,
+"  -- sometimes user wants to restrict plugin to certain file types only
+"  -- defaults to all supported file types including custom lang
+"  -- extensions (see next section)
+"  filetypes = { "clojure" },
+"  cursor_behaviour = "auto", -- remain, follow, auto
+"  -- list of default keybindings
+"  keys = {
+"    [">)"] = { paredit.api.slurp_forwards, "Slurp forwards" },
+"    [">("] = { paredit.api.slurp_backwards, "Slurp backwards" },
+
+"    ["<)"] = { paredit.api.barf_forwards, "Barf forwards" },
+"    ["<("] = { paredit.api.barf_backwards, "Barf backwards" },
+
+"    [">e"] = { paredit.api.drag_element_forwards, "Drag element right" },
+"    ["<e"] = { paredit.api.drag_element_backwards, "Drag element left" },
+
+"    [">f"] = { paredit.api.drag_form_forwards, "Drag form right" },
+"    ["<f"] = { paredit.api.drag_form_backwards, "Drag form left" },
+
+"    ["<localleader>o"] = { paredit.api.raise_form, "Raise form" },
+"    ["<localleader>O"] = { paredit.api.raise_element, "Raise element" },
+
+"    ["E"] = { 
+"      paredit.api.move_to_next_element,
+"      "Jump to next element tail",
+"      -- by default all keybindings are dot repeatable
+"      repeatable = false 
+"    },
+"    ["B"] = {
+"      paredit.api.move_to_prev_element, 
+"      "Jump to previous element head",
+"      repeatable = false
+"    },
+"  }
+"})
+"EOF
+
+" ------------------------------------------------------------
 " PLUGIN: rainbow
 
 let g:rainbow_active = 0 "set to 0 if you want to enable it later via :RainbowToggle
 
 " ------------------------------------------------------------
-" PLUGIN: vim-better-comments
+" PLUGIN: vim-better-comments (removed)
 
 
 " ------------------------------------------------------------
