@@ -25,6 +25,10 @@ alias ucblogo="/Applications/UCBLogo.app/Contents/MacOS/UCBLogo $logoini"
 # alias tetris="bb -Sdeps '{:deps {io.github.borkdude/console-tetris {:git/sha "2d3bee34ea93c84608c7cc5994ae70480b2df54c"}}}' -m tetris.core"
 alias usesc2="cs install scala:2.12.18 scalac:2.12.18"
 alias usesc3="cs install scala scalac"
+alias clemacs="bash -c 'exec emacs -nw -q -l ~/.emacs.d.learn/init.el'"
+alias xemacs='open -a /Applications/Emacs.app'
+alias lemacs='open -n -a /Applications/Emacs.app --args --init-directory "~/.emacs.d.learn"'
+# alias lemacs='open -n -a /Applications/Emacs.app --args --no-desktop -q -l ~/.emacs.d.learn/init.el'
 
 focusApp() {
   app="$1"

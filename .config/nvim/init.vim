@@ -54,7 +54,7 @@ set undofile
 " Key mappings "
 
 " Remap esc-key to jk
-inoremap jk <esc>
+" inoremap jk <esc>
 nnoremap <C-g> <esc>
 
 " Shift lines up/down
@@ -319,6 +319,10 @@ Plug 'junegunn/fzf.vim'
     " See https://dev.to/iggredible/how-to-search-faster-in-vim-with-fzf-vim-36ko
 
 " Language-specific plugins
+Plug 'godlygeek/tabular'  " for vim-markdown
+Plug 'preservim/vim-markdown' " Markdown features
+" Plug 'hkupty/timeshift.vim' " edit Markdown code blocks in separate buffer
+Plug 'vitalk/vim-fancy'
 " Plug 'nvim-lua/plenary.nvim' " for Metals (Scala)
 Plug 'rust-lang/rust.vim'
 Plug 'hellerve/carp-vim'
@@ -742,9 +746,10 @@ set completeopt+=preview
 
 lua <<EOF
 require'nvim-treesitter.configs'.setup {
+  ensure_installed = 'all',
   highlight = {
-    enable = true,
-    disable = { 'clojure', 'logo', 'janet', 'carp', 'scheme', 'fennel', 'lisp' }, -- see https://github.com/guns/vim-sexp/issues/31
+    -- enable = true,
+    disable = { 'clojure', 'logo', 'carp', 'janet', 'scheme', 'fennel', 'lisp' }, -- see https://github.com/guns/vim-sexp/issues/31
     custom_captures = {
       -- Highlight the @foo.bar capture group with the "Identifier" highlight group.
       -- ["foo.bar"] = "Identifier",
@@ -1065,6 +1070,13 @@ let g:rainbow_active = 0 "set to 0 if you want to enable it later via :RainbowTo
 
 
 " ------------------------------------------------------------
+" PLUGIN: vim-markdown
+
+let g:vim_markdown_folding_disabled = 1
+
+let g:vim_markdown_fenced_languages = ['clojure']
+
+" ------------------------------------------------------------
 " ADDONS: Clerk
 
 function! ClerkShow()
@@ -1135,6 +1147,12 @@ let g:conjure#filetypes = ['scheme', 'lisp', 'racket', 'fennel', 'janet']
 let g:conjure#log#hud#enabled = v:false
 let g:conjure#mapping#log_toggle = "ss"  " like Iced
 let g:conjure#mapping#log_reset_soft = "sl"  " like Iced
+
+" ------------------------------------------------------------
+" ADDONS: timeshift (fork from https://github.com/hkupty/timeshift.vim)
+
+let config_path = expand('<sfile>:p:h')
+exec 'source' config_path . '/timeshift.vim/plugin/timeshift.vim'
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " LUA TEST

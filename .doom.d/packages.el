@@ -18,6 +18,10 @@
 
 ;; (package! linum-relative)
 
+;; Fix OrgMode to 9.6.6 (default in Emacs)
+;; -> could be upgraded again since issue was not resolved by downgrade
+(package! org :pin "1760867")
+
 (package! ligature)
 
 (package! persistent-scratch)

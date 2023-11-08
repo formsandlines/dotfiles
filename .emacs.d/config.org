@@ -1,0 +1,881 @@
+#+TITLE: GNU Emacs Config
+#+AUTHOR: Peter Hofmann
+#+DESCRIPTION: Peter’s personal Emacs config.
+#+STARTUP: showeverything
+#+OPTIONS: toc:2
+
+To test config, uncomment:
+#+begin_src elisp
+;; (set-background-color "cornflower blue")
+#+end_src
+
+* IMPORTANT PROGRAMS TO LOAD FIRST
+** Custom File
+
+#+begin_src elisp
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(when (file-exists-p custom-file)
+  (load custom-file))
+#+end_src
+
+** Package Manager
+
+#+begin_src elisp
+(setq package-archives 
+      '(("melpa" . "https://melpa.org/packages/")
+        ("elpa" . "https://elpa.gnu.org/packages/")))
+
+;;; Bootstrap use-package:
+;; (package-initialize)                ; ? still needed
+;; (setq use-package-always-pin "nongnu") ; ? is this important
+(setq use-package-always-ensure t)
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(eval-when-compile (require 'use-package)) ; ? needed
+#+end_src
+
+*use-package autoremove fix*
+
+Custom ~package-autoremove~ that only removes packages not ~:ensure~'d in
+~use-package~ declarations by building a custom list that overrides
+~package-selected-packages~.
+
+Normally, ~use-package~ should add (via ~:ensure~) auto-installed packages to
+~package-selected-packages~, but it seems like they are added only as
+dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
+- may be fixed properly in the future (hopefully?), then this snippet can be
+  removed
+- [[https://github.com/jwiegley/use-package/issues/870#issuecomment-771881305][Source]] (GitHub)
+#+begin_src elisp
+(defvar use-package-selected-packages '(use-package)
+  "Packages pulled in by use-package.")
+(defun use-package-autoremove ()
+  "Autoremove packages not used by use-package."
+  (interactive)
+  (let ((package-selected-packages use-package-selected-packages))
+    (package-autoremove)))
+
+(eval-and-compile
+  (define-advice use-package-handler/:ensure (:around (fn name-symbol keyword args rest state) select)
+    (let ((items (funcall fn name-symbol keyword args rest state)))
+      (dolist (ensure args items)
+        (let ((package
+               (or (and (eq ensure t) (use-package-as-symbol name-symbol))
+                   ensure)))
+          (when package
+            (when (consp package)
+              (setq package (car package)))
+            (push `(add-to-list 'use-package-selected-packages ',package) items))))))
+  (define-advice use-package-handler/:quelpa (:around (fn name-symbol keyword args rest state) select)
+    (let ((package (pcase (car args)
+                     ((pred symbolp) (car args))
+                     ((pred listp) (car (car args))))))
+      (cons `(add-to-list 'use-package-selected-packages ',package)
+            (funcall fn name-symbol keyword args rest state)))))
+#+end_src
+
+** Includes
+
+#+begin_src elisp
+(require 'org-tempo)
+#+end_src
+
+* Personal information
+#+begin_src elisp
+(setq user-full-name "Peter Hofmann"
+      user-mail-address "peter.hofmann@formsandlines.eu")
+#+end_src
+
+* Packages
+** use-package add-ons
+Enable ~:diminish~ to hide modeline display of some minor modes:
+#+begin_src elisp
+(use-package diminish)
+#+end_src
+
+** Vim emulation
+
+Vim style undo not needed for emacs 28
+#+begin_src elisp
+;; (use-package undo-fu)
+#+end_src
+
+Vim bindings
+#+begin_src elisp
+(use-package evil
+  :ensure t
+  :demand t
+  :bind (("<escape>" . keyboard-escape-quit))
+  :init
+  ;;; allows for using cgn
+  ;; (setq evil-search-module 'evil-search)
+  (setq evil-want-keybinding nil)
+  (setq evil-want-Y-yank-to-eol t)
+  (setq evil-vsplit-window-right t)
+  (setq evil-split-window-below t)
+  (setq evil-undo-system 'undo-redo)
+  ;; (setq evil-want-C-u-scroll t) ; use ‘\ C-u’ instead for ‘universal-argument’
+  ;;; no vim insert bindings
+  ;; (setq evil-undo-system 'undo-fu)
+  :config
+  (evil-mode 1)
+  (define-key evil-normal-state-map (kbd "C-b") #'evil-scroll-up)
+  (define-key evil-normal-state-map (kbd "C-f") #'evil-scroll-down)
+  (define-key evil-normal-state-map (kbd "M-b") #'evil-scroll-page-up)
+  (define-key evil-normal-state-map (kbd "M-f") #'evil-scroll-page-down)
+  (define-key evil-normal-state-map (kbd "§") #'evil-ex-nohighlight))
+
+;;; Compile warnings:
+;; Warning (bytecomp): ‘evil-member-recursive-if’ is an obsolete function (as of 1.15.0).
+;; Warning (bytecomp): ‘evil-want-visual-char-semi-exclusive’ is an obsolete variable (as of 1.15.0); Semi-exclusivity prevents selecting text + 1st char of next line,
+;; without having to introduce new niche functionality.
+;; Prefer to set ‘evil-v$-excludes-newline’ to non-nil.
+#+end_src
+
+TODO Evil:
+- [ ] set evil-scroll-up keybinding
+- [ ] Vim window switching commands?
+- [ ] how does transpose work
+- [ ] visible yanking
+- [ ] counting up/down with C-a / C-x?
+- [ ] how to get (/) to jump around parens?
+- [ ] fix paste in insert-mode
+- [ ] enter in table cell should edit
+
+Leader key functionality?
+- [ ] ~space+[/]~ instead of C-[ C-] to insert lines
+- [ ] space+b instead of C-x b to switch buffer
+
+Vim Bindings Everywhere else
+#+begin_src elisp
+(use-package evil-collection
+  :ensure t
+  :after evil
+  :config
+  (setq evil-want-integration t)
+  (evil-collection-init))
+
+(use-package evil-org
+  :ensure t
+  :after (evil org)
+  :hook (org-mode . evil-org-mode)
+  :config
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys))
+
+;;; Compiler warnings:
+;; Warning (bytecomp): the function ‘evil-org-org-insert-todo-subheading-below’ is not known to be defined.
+;; Warning (bytecomp): the function ‘evil-org-org-insert-todo-heading-below’ is not known to be defined.
+;; Warning (bytecomp): the function ‘evil-org-org-insert-todo-heading-respect-content-below’ is not known to be defined.
+;; Warning (bytecomp): the function ‘evil-org-org-insert-heading-respect-content-below’ is not known to be defined.
+#+end_src
+
+surround.vim emulation:
+#+begin_src elisp
+(use-package evil-surround
+  :ensure t
+  :after evil
+  :config
+  (global-evil-surround-mode 1))
+#+end_src
+** Keybinding helper
+General keybindings /(thanks to DistroTube for sharing!)/
+
+#+begin_src elisp
+(use-package general
+  :ensure t
+  :config
+  (general-evil-setup)
+
+  ;; set up 'SPC' as the global leader key
+  (general-create-definer ph/leader-keys
+                          :states '(normal insert visual emacs)
+                          :keymaps 'override
+                          :prefix "SPC" ;; set leader
+                          :global-prefix "M-SPC") ;; access leader in insert mode
+
+  (ph/leader-keys
+    "." '(find-file :wk "Find file")
+    "TAB TAB" '(comment-line :wk "Comment lines")
+    "q q" '(fill-paragraph-org-indent-mode-aware :wk "Correct line wrap")
+    "[" '(newline-empty-above :wk "Insert newline above")
+    "]" '(newline-empty-below :wk "Insert newline below"))
+
+  (ph/leader-keys
+    "f" '(:ignore t :wk "file")
+    "f c" '(visit-init :wk "Edit Emacs config")
+    "f b" '(recentf-open-files :wk "Recent files buffer")
+    "f r" '(recentf-open :wk "Recent files"))
+
+  (ph/leader-keys
+    "b" '(:ignore t :wk "buffer")
+    "b b" '(switch-to-buffer :wk "Switch buffer")
+    "b i" '(ibuffer :wk "Ibuffer")
+    "b k" '(kill-this-buffer :wk "Kill this buffer")
+    "b n" '(next-buffer :wk "Next buffer")
+    "b p" '(previous-buffer :wk "Previous buffer")
+    ;; "b r" '(revert-buffer :wk "reload buffer")
+    )
+
+  (ph/leader-keys
+    "e" '(:ignore t :wk "Evaluate")    
+    "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
+    "e d" '(eval-defun :wk "Evaluate defun containing or after point")
+    "e e" '(eval-expression :wk "Evaluate and elisp expression")
+    "e l" '(eval-last-sexp :wk "Evaluate elisp expression before point")
+    "e r" '(eval-region :wk "Evaluate elisp in region")) 
+
+   (ph/leader-keys
+    "h" '(:ignore t :wk "Help")
+    "h f" '(describe-function :wk "Describe function")
+    "h v" '(describe-variable :wk "Describe variable")
+    "h r r" '((lambda () (interactive) (load-file user-init-file)) :wk "Reload emacs config")) ;; may need to call it twice because of some issue
+
+   (ph/leader-keys
+    "w" '(:ignore t :wk "Windows")
+    ;; Window splits
+    "w c" '(evil-window-delete :wk "Close window")
+    "w n" '(evil-window-new :wk "New window")
+    "w s" '(evil-window-split :wk "Horizontal split window")
+    "w v" '(evil-window-vsplit :wk "Vertical split window")
+    ;; Window motions
+    "w h" '(evil-window-left :wk "Window left")
+    "w j" '(evil-window-down :wk "Window down")
+    "w k" '(evil-window-up :wk "Window up")
+    "w l" '(evil-window-right :wk "Window right")
+    "w w" '(evil-window-next :wk "Goto next window")
+    ;; Move Windows
+    "w H" '(buf-move-left :wk "Buffer move left")
+    "w J" '(buf-move-down :wk "Buffer move down")
+    "w K" '(buf-move-up :wk "Buffer move up")
+    "w L" '(buf-move-right :wk "Buffer move right"))
+
+   (ph/leader-keys
+    "t" '(:ignore t :wk "Toggle")
+    "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
+    "t t" '(visual-line-mode :wk "Toggle truncated lines")))
+#+end_src
+
+which-key
+#+begin_src elisp
+(use-package which-key
+  :ensure t
+  :init
+  (which-key-mode 1)
+  :config
+  ;; (setq which-key-side-window-location 'bottom)
+  ;; (setq which-key-sort-order #'which-key-key-order-alpha)
+  ;; (setq which-key-sort-uppercase-first nil)
+  ;; (setq which-key-add-column-padding 1)
+  ;; (setq which-key-max-display-columns nil)
+  ;; (setq which-key-min-display-lines 6)
+  ;; (setq which-key-side-window-slot -10)
+  ;; (setq which-key-side-window-max-height 0.25)
+  ;; (setq which-key-idle-delay 0.8)
+  ;; (setq which-key-max-description-length 25)
+  ;; (setq which-key-allow-imprecise-window-fit t)
+  ;; (setq which-key-separator " → ")
+  )
+#+end_src
+
+** OrgMode extensions
+#+begin_src elisp
+(use-package org-appear
+  :ensure t
+  :diminish
+  :after org
+  :hook org-mode
+  :config
+  (setq org-appear-autoentities t)
+  (setq org-appear-autolinks t)
+  (setq org-appear-autosubmarkers t))
+#+end_src
+
+** Snippets
+#+begin_src elisp
+(use-package yasnippet
+  :ensure t
+  :diminish
+  :config
+  (yas-global-mode 1))
+#+end_src
+
+** Appearance
+#+begin_src elisp
+(use-package rainbow-mode
+  :diminish
+  :hook org-mode prog-mode)
+#+end_src
+
+#+begin_src elisp
+;; (use-package gruvbox-theme
+;;   :config
+;;   (load-theme 'gruvbox))
+
+;;; good theme for customization
+;; (load-theme 'modus-vivendi)
+#+end_src
+
+** Programming
+
+*dumb-jump* (jump to definition, etc. (file searchers for xref)
+#+begin_src elisp
+(use-package dumb-jump
+  :ensure t
+  :diminish
+  :init (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
+
+;;; Compiler Warnings:
+;; Warning (bytecomp): ‘point-at-bol’ is an obsolete function (as of 29.1); use ‘line-beginning-position’ or ‘pos-bol’ instead.
+;; Warning (bytecomp): the function ‘xref-make-file-location’ is not known to be defined.
+;; Warning (bytecomp): the function ‘xref-make’ is not known to be defined.
+;; Warning (bytecomp): the function ‘first’ is not known to be defined.
+;; Warning (bytecomp): the function ‘tramp-dissect-file-name’ is not known to be defined.
+;; Warning (bytecomp): the function ‘tramp-file-name-localname’ is not known to be defined.
+;; Warning (bytecomp): the function ‘helm-make-source’ is not known to be defined.
+;; Warning (bytecomp): the function ‘ivy-read’ is not known to be defined.
+#+end_src
+
+*Flycheck* (linter)
+#+begin_src elisp
+(use-package flycheck
+  :ensure t
+  :defer t
+  :diminish
+  :init (global-flycheck-mode))
+
+(use-package flycheck-clj-kondo
+  :ensure t
+  :after flycheck
+  :diminish)
+#+end_src
+
+*Company* (text completion)
+#+begin_src elisp
+(use-package company
+  :ensure t
+  :defer t
+  :diminish
+  :init (add-hook 'after-init-hook 'global-company-mode))
+
+;;; ? needed
+;; (use-package company-box
+;;   :after company
+;;   :diminish
+;;   :hook (company-mode . company-box-mode))
+#+end_src
+
+** Language support
+#+begin_src elisp
+(use-package haskell-mode
+  :ensure t)
+
+(use-package lua-mode
+  :ensure t)
+
+
+(use-package cider
+  :ensure t
+  :config
+  (require 'flycheck-clj-kondo)
+  ;; for better editing in camelCase (Java names):
+  (add-hook 'cider-repl-mode-hook #'subword-mode))
+
+;;; CIDER Warnings:
+;; evil-collection-cider.el:31:11: Warning: Package cl is deprecated
+;; ../../../cider-1.11.0/cider-mode.el: Warning: Missing format argument
+;; Warning (evil-collection): Make sure to set `evil-want-keybinding' to nil before loading evil or evil-collection.
+
+(use-package clj-refactor
+  :ensure t
+  :after cider
+  :config
+  ;;; Hook function from https://github.com/clojure-emacs/clj-refactor.el
+  (add-hook 'clojure-mode-hook
+	    (lambda ()
+	      (clj-refactor-mode 1)
+	      (yas-minor-mode 1) ; for adding require/use/import statements
+	      ;; This choice of keybinding leaves cider-macroexpand-1 unbound
+	      (cljr-add-keybindings-with-prefix "C-c C-m"))))
+
+#+end_src
+
+* GUI tweaks
+#+begin_src elisp
+(setq inhibit-startup-message t)
+
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+#+end_src
+
+* Basic config
+#+begin_src elisp
+;;; Display relative line numbers
+(setq display-line-numbers-type 'relative)
+(global-display-line-numbers-mode 1)
+
+;;; Display column number in modeline
+(column-number-mode 1)
+
+;;; Completion for Minibuffer
+(fido-mode 1)
+
+;;; Highlight current line
+(hl-line-mode 1)
+
+;;; Disable tab insertion for indentation
+(setq indent-tabs-mode nil)
+
+;;; Set max char count for automatic line breaks
+(setq-default fill-column 80) ; ! FIXME: still 70?
+;;; Display vertical line at char limit
+(global-display-fill-column-indicator-mode 1)
+(setq display-fill-column-indicator-character 9474)
+;;; Automatically insert line breaks at char limit
+;; (auto-fill-mode 1)
+
+(setq repeat-mode t)
+(setq repeat-exit-key "<return>")
+
+(setq sentence-end-double-space nil)
+
+(setq next-screen-context-lines 4) ;; was 2
+
+(setq blink-cursor-mode nil)
+
+;;; Remember and get back to recently opened files
+(recentf-mode 1)
+
+;;; Remember history of minibuffer prompts
+(setq history-length 25)
+(savehist-mode 1)
+
+;;; Remember and restore the last cursor location of opened files
+(save-place-mode 1)
+;;; Save and restore the state of Emacs from one session to another
+(desktop-save-mode 1)
+
+;;; Don’t pop up UI dialogs when prompting
+(setq use-dialog-box nil)
+
+;;; Revert buffers when the underlying file has changed
+(global-auto-revert-mode 1)
+;;; Revert Dired and other buffers
+(setq global-auto-revert-non-file-buffers t)
+
+;;; Disabled by default, but I find them useful and not confusing:
+(put 'upcase-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
+
+;;; No backup files (foo.txt~):
+(setq make-backup-files nil)
+
+;;; Follow symlinks for version control:
+(setq vc-follow-symlinks t)
+#+end_src
+
+* Buffer move
+Creating some functions to allow us to easily move windows (splits) around. The
+following block of code was taken from =buffer-move.el= found on the EmacsWiki:
+- https://www.emacswiki.org/emacs/buffer-move.el
+- [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org][Source (DistroTube)]]
+
+#+begin_src elisp
+;;;###autoload
+(defun buf-move-up ()
+  "Swap the current buffer and the buffer above the split.
+If there is no split, ie now window above the current one, an
+error is signaled."
+;;  "Switches between the current buffer, and the buffer above the
+;;  split, if possible."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'up))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No window above this one")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun buf-move-down ()
+"Swap the current buffer and the buffer under the split.
+If there is no split, ie now window under the current one, an
+error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'down))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (or (null other-win) 
+            (string-match "^ \\*Minibuf" (buffer-name (window-buffer other-win))))
+        (error "No window under this one")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun buf-move-left ()
+"Swap the current buffer and the buffer on the left of the split.
+If there is no split, ie now window on the left of the current
+one, an error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'left))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No left split")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun buf-move-right ()
+"Swap the current buffer and the buffer on the right of the split.
+If there is no split, ie now window on the right of the current
+one, an error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'right))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No right split")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+#+end_src
+
+* Customization
+** Some keyboard shortcuts
+#+begin_src elisp
+;; (global-set-key (kbd "C-c C-r") 'recentf-open-files)
+;; (global-set-key (kbd "C-c r") 'recentf-open)
+
+
+;;; because M-x is hard to reach on my keyboard:
+(global-set-key (kbd "C-\\") 'execute-extended-command)
+(global-set-key (kbd "C-|") 'execute-extended-command-for-buffer)
+(global-set-key (kbd "M-+") 'toggle-input-method) ;; replacement for C-\
+
+(global-set-key [remap list-buffers] 'ibuffer)
+
+
+;;; because C-M-d activates the dictionary in MacOS (hard to change):
+(global-set-key (kbd "C-M-'") 'down-list) 
+
+
+;; (defun my-org/insert-heading-above ()
+;;   "Insert a heading above the current one and activate Evil insert mode."
+;;   (interactive)
+;;   (if (org-at-heading-p)
+;;       (evil-first-non-blank)
+;;     (org-up-element))
+;;   (org-insert-heading)
+;;   (evil-insert-state))
+
+;; (evil-define-key 'normal org-mode-map (kbd "C-S-<return>")
+;;  'my-org/insert-heading-above)
+
+#+end_src
+
+** Visit config file
+#+begin_src elisp
+(defun visit-init ()
+  "Opens the init.el file."
+  (interactive)
+  (find-file (locate-user-emacs-file "config.org")))
+
+(global-set-key (kbd "C-x c") 'visit-init)
+#+end_src
+
+** OrgMode config
+
+#+begin_src elisp
+;;; Hide emphasis marker characters
+(setq org-use-speed-commands t)
+
+;;; Enable org-indent-mode on startup
+(setq org-startup-indented t)
+
+(setq org-hide-emphasis-markers t)
+;;; Show entities as UTF8 characters
+(setq org-pretty-entities t)
+
+;; (setq org-startup-with-latex-preview t)
+
+;; (setq org-edit-src-content-indentation 0)
+(setq org-src-preserve-indentation t)
+#+end_src
+
+
+Fix for org-fill-paragraph in org-indent-mode (Not sure if necessary).
+
+TODO:
+- [ ] scope to org-mode and org-indent-mode
+
+#+begin_src elisp
+;; Credits to patrick: https://emacs.stackexchange.com/a/74973
+(defun current-fill-column ()
+      "Return the fill-column to use for this line.
+Subtracts right margin and org indentation level from fill-column"
+      (let ((indent-level (if (bound-and-true-p org-indent-mode)
+                              (* org-indent-indentation-per-level
+                                 (org-current-level))
+                            0))
+            (margin (or (get-text-property (point) 'right-margin) 0)))
+        (- fill-column indent-level margin)))
+
+(defun fill-paragraph-org-indent-mode-aware ()
+  (interactive)
+  (let ((prev-fill-column fill-column))
+    (setq fill-column (current-fill-column))
+    (fill-paragraph)
+    (setq fill-column prev-fill-column)))
+
+;; (global-set-key (kbd "M-q") 'fill-paragraph-org-indent-mode-aware)
+(global-set-key (kbd "M-q") 'fill-paragraph)
+
+#+end_src
+
+** Line creating and joining/breaking
+#+begin_src elisp
+(defun newline-empty-below ()
+  "Creates a newline below the point that is always empty."
+  (interactive)
+  (let ((beg (point)))
+    (move-end-of-line nil)
+    (open-line 1)
+    (goto-char beg)))
+
+(defun newline-empty-above ()
+  "Creates a newline above the point that is always empty."
+  (interactive)
+  (let ((beg (point)))
+    (back-to-indentation)
+    (open-line 1)
+    (goto-char beg)))
+
+(global-set-key (kbd "C-}") 'newline-empty-below)
+
+(global-set-key (kbd "C-{") 'newline-empty-above)
+
+
+(defun join-with-next-line ()
+  "Join the current line with the line after it."
+  (interactive)
+  (join-line -1))
+
+;;; Feels more like Vims S-j to me and I use this very often:
+;;; (note: C-j gets overwritten in Lisp Interactive mode)
+(global-set-key (kbd "C-M-j") 'delete-indentation) ;; M-^ is weird to type
+(global-set-key (kbd "C-S-j") 'join-with-next-line) ; ? or C-c j
+
+;;; I don’t use these often enough for their prominent keybindings:
+(global-set-key (kbd "M-o") 'default-indent-new-line) ;; was C-M-j / M-j
+(global-set-key (kbd "M-j") 'electric-newline-and-maybe-indent) ;; was C-j
+
+#+end_src
+
+** Shells & Terminals
+shell-mode:
+#+begin_src elisp
+;;; TODO: bind to local key
+(defun comint-kill-output ()
+  "In shell-mode, kills output instead of deleting, as in
+comint-delete-output by default (C-c C-o)."
+  (interactive)
+  (comint-delete-output t))
+#+end_src
+
+eshell:
+#+begin_src elisp
+(setq eshell-history-size 5000
+      eshell-buffer-maximum-lines 5000
+      ; eshell-hist-ignoredups t
+      eshell-scroll-to-bottom-on-input t
+      ; eshell-destroy-buffer-when-process-dies t  ;; WARNING: see variable info
+      ; eshell-visual-commands'("bash" "htop" "ssh" "top" "zsh")
+      )
+#+end_src
+
+** Popup windows & Help buffers
+#+begin_src elisp
+(defun ph/close-all-popups ()
+  "Closes all open popup windows."
+  (interactive)
+  (dolist (window (window-list))
+    (when (window-parameter window 'popup)
+      (delete-window window))))
+
+(defun ph/kill-all-help-buffers ()
+  "Closes all open help buffers."
+  (interactive)
+  (let ((buffers (cl-remove-if-not
+                  (lambda (b) (string-prefix-p "*Help" (buffer-name b) t))
+                  (buffer-list))))
+    (dolist (buf buffers)
+      (when (buffer-live-p buf)
+        (when (get-buffer-window buf)
+          ;; Delete window if more than one window is open
+          (when (> (length (window-list)) 1)
+            (delete-window (get-buffer-window buf))))
+        (kill-buffer buf)))))
+
+(global-set-key (kbd "C-`") 'ph/kill-all-help-buffers)
+#+end_src
+
+** Colors
+
+Find nearest color
+Source: https://www.masteringemacs.org/article/find-nearest-colors-emacs-24
+#+begin_src elisp
+(defun find-nearest-color (color &optional use-hsv)
+  "Finds the nearest color by RGB distance to COLOR.
+
+If called with a universal argument (or if USE-HSV is set) use HSV instead of RGB.
+Runs \\[list-colors-display] after setting `list-colors-sort'"
+  (interactive "sColor: \nP")
+  (let ((list-colors-sort `(,(if (or use-hsv current-prefix-arg)
+                                 'hsv-dist
+                               'rgb-dist) . ,color)))
+    (if (color-defined-p color)
+        (list-colors-display)
+      (error "The color \"%s\" does not exist." color))))
+
+(defun find-nearest-color-at-point (pt)
+  "Finds the nearest color at point PT.
+
+If called interactively, PT is the value immediately under `point'."
+  (interactive "d")
+  (find-nearest-color (with-syntax-table (copy-syntax-table (syntax-table))
+                        ;; turn `#' into a word constituent to help
+                        ;; `thing-at-point' find HTML color codes.
+                        (modify-syntax-entry ?# "w")
+                        (thing-at-point 'word))))
+#+end_src
+
+* Appearance
+** Fonts
+#+begin_src elisp
+(set-face-attribute 'default nil
+                    :font "Berkeley Mono"
+                    :height 120 ;; 12 pt
+                    :weight 'regular)
+
+(set-face-attribute 'variable-pitch nil
+                    :font "Cambria"
+                    :height 110
+                    :weight 'regular)
+
+(set-face-attribute 'fixed-pitch nil
+                    :font "Berkeley Mono"
+                    :height 120
+                    :weight 'regular)
+
+(set-face-attribute 'font-lock-comment-face nil
+                    :slant 'italic)
+
+(set-face-attribute 'font-lock-keyword-face nil
+                    :slant 'normal)
+
+(setq-default line-spacing 0.12)
+#+end_src
+
+** Theme
+#+begin_src elisp
+(add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
+(load-theme 'pmacs t)
+#+end_src
+
+* TODO
+
+To practice:
+- [ ] OrgMode bindings (+ Evil ones)
+- [ ] leader-key bindings
+
+To learn:
+- [ ] learn keybinding in general
+- [ ] then learn how to use general.el
+- [ ] how to use localleader with general.el
+- [ ] how does Yasnippet work and is it useful?
+- [ ] CIDER
+
+Packages to try:
+- [ ] Ivy for completion instead of FIDO?
+  - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#ivy-counsel][DistroTube]] for config
+- [ ] all-the-icons and all-the-icons-nerd-fonts
+  - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#all-the-icons][DistroTube]] for config
+- [ ] sudo-edit if need arises to use sudo to open files
+- [ ] consider vterm instead of ~M-x shell~
+  - seems to be compiled instead of elisp -> faster
+  - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#vterm][DistroTube]] for config
+  - also install vterm-toggle
+- [ ] does dump-jump (installed) work?
+
+  
+* Eshell alias file
+This doesn’t work somehow if I put it in =eshell/alias=!
+
+#+begin_src shell
+# Credits to DistroTube for config inspiration:
+# https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/eshell/aliases?ref_type=heads
+
+# Aliases for emacs commands
+alias ff find-file $1
+
+# Aliasing standard shell commands to better emacs alternatives
+alias less view-file $1
+
+# Changing "ls" to "exa"
+alias ls exa -al --color=always --group-directories-first $*  # my preferred listing
+alias la exa -a --color=always --group-directories-first $*   # all files and dirs
+alias ll exa -l --color=always --group-directories-first $*   # long format
+alias lt exa -aT --color=always --group-directories-first $*  # tree listing
+alias l. exa -a1 $* | grep "^\."                              # list hidden files
+
+# Merge Xresources (what is this?)
+# alias merge xrdb -merge ~/.Xresources
+
+# Confirm before overwriting something
+alias cp cp -i $1
+alias mv mv -i $1
+alias rm rm -i $1
+
+# Bare git repo alias for dotfiles (not sure if I want this yet)
+# alias config /usr/bin/git --git-dir=$HOME/dotfiles --work-tree=$HOME $*
+#+end_src
+
+* Test
+
+If I write something here, it may not really go beyond the line and bla bla
+and what should I do and so on whatever it means dude I don’t know what else
+you seem fine.
+
+** nest
+If I write something here, it may not really go beyond the line and bla bla
+and what should I do and so on whatever it means dude I don’t know what else
+you seem fine.
+
+*** nest 2
+If I write something here, it may not really go beyond the line and bla
+bla and what should I do and so on whatever it means dude I don’t know
+what else you seem fine.
+
+**** nest 3
+If I write something here, it may not really go beyond the line and bla
+bla and what should I do and so on whatever it means dude I don’t know
+what else you seem fine.
+
+***** nest 4
+
+If I write something here, it may not really go beyond the line and
+bla bla and what should I do and so on whatever it means dude I don’t
+know what else you seem fine.
+
+Test

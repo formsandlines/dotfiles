@@ -12,6 +12,10 @@
 (setq user-full-name "Peter Hofmann"
       user-mail-address "peter.hofmann@formsandlines.eu")
 
+;; To test configuration:
+;; (set-background-color "cornflower blue")
+
+
 (desktop-save-mode)
 ;; doom exposes five (optional) variables for controlling fonts in Doom. Here
 ;; are the three important ones:
@@ -42,6 +46,9 @@
 (setq doom-font (font-spec :family "Iosevka Term" :size 14 :weight 'light))
 
 (setq doom-unicode-font doom-font)
+
+;; To resolve problems with modeline icons, see:
+;; - https://github.com/doomemacs/doomemacs/issues/7368#issuecomment-1713109316
 
 ;(setq doom-font (font-spec :family "Iosevka" :size 12 :weight 'semi-light)
 ;      doom-variable-pitch-font (font-spec :family "Fira Sans") ; inherits `doom-font''s :size
@@ -131,24 +138,24 @@
 (setq global-evil-surround-mode 1)
 ;; (map! :desc "Rebind {" :i "M-8" )
 
-(defun my-kill-help-buffers ()
-  "Select all help buffers and close them, if they are open."
-  (interactive)
-  (let ((buffers (cl-remove-if-not
-                  (lambda (b) (string-prefix-p "*Help" (buffer-name b) t))
-                  (buffer-list))))
-    (dolist (buf buffers)
-      (when (buffer-live-p buf)
-        (kill-buffer buf)))))
+;; (defun my-kill-help-buffers ()
+;;   "Select all help buffers and close them, if they are open."
+;;   (interactive)
+;;   (let ((buffers (cl-remove-if-not
+;;                   (lambda (b) (string-prefix-p "*Help" (buffer-name b) t))
+;;                   (buffer-list))))
+;;     (dolist (buf buffers)
+;;       (when (buffer-live-p buf)
+;;         (kill-buffer buf)))))
 
 ;; to kill all help buffers:
-(evil-define-key 'normal 'global
-  (kbd "C-c q") #'my-kill-help-buffers)
+;; (evil-define-key 'normal 'global
+;;   (kbd "C-c q") #'my-kill-help-buffers)
 
 ;; because `q` doesn’t close help buffer in evil mode:
 ;; - ? obsolete -> use `C-~' to toggle visible popups in doom
-(evil-define-key 'normal 'global
-  (kbd "C-q") #'+popup/close-all)
+;; (evil-define-key 'normal 'global
+;;   (kbd "C-q") #'+popup/close-all)
 
 ; inserts new line (above/below) without entering insert mode
 (evil-define-key 'normal 'global
@@ -207,17 +214,37 @@
 (setq org-appear-autolinks t)
 (setq org-appear-autosubmarkers t)
 
-;; Fixes org-fill-paragraph in org-indent-mode
+
+
+;; -Fix 'org-fill-paragraph' in 'org-indent-mode'-
+;; === OBSOLETE - BUT SOMEHOW NOT IN DOOM??? ===
+
+;;;; issue seems to be with 'org-adaptive-fill-function' in 'org.el', which is
+;;;; very different between version 9.7pre (that Doom uses) and 9.6.6 (my bare
+;;;; Emacs config, where it works)
+;; --> THIS IS PROVED NOT TO BE THE ISSUE!
+
 ;; Credits to patrick: https://emacs.stackexchange.com/a/74973
-(defun current-fill-column ()
-      "Return the fill-column to use for this line.
-Subtracts right margin and org indentation level from fill-column"
-      (let ((indent-level (if (bound-and-true-p org-indent-mode)
-                              (* org-indent-indentation-per-level
-                                 (org-current-level))
-                            0))
-            (margin (or (get-text-property (point) 'right-margin) 0)))
-        (- fill-column indent-level margin)))
+;; (defun current-fill-column ()
+;;       "Return the fill-column to use for this line.
+;; Subtracts right margin and org indentation level from fill-column"
+;;       (let ((indent-level (if (bound-and-true-p org-indent-mode)
+;;                               (* org-indent-indentation-per-level
+;;                                  (org-current-level))
+;;                             0))
+;;             (margin (or (get-text-property (point) 'right-margin) 0)))
+;;         (- fill-column indent-level margin)))
+
+;; (defun fill-paragraph-org-indent-mode-aware ()
+;;   (interactive)
+;;   (let ((prev-fill-column fill-column))
+;;     (setq fill-column (current-fill-column))
+;;     (fill-paragraph)
+;;     (setq fill-column prev-fill-column)))
+
+;; (global-set-key (kbd "M-q") 'fill-paragraph-org-indent-mode-aware)
+;; (global-set-key (kbd "M-q") 'fill-paragraph)
+;; =======================================
 
 ;; Using links outside Orgmode
 ;; see https://stackoverflow.com/a/7048954/1204047

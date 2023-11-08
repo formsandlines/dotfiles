@@ -3,8 +3,6 @@
 require'nvim-tree'.setup {
   disable_netrw       = true,
   hijack_netrw        = true,
-  open_on_setup       = false,
-  ignore_ft_on_setup  = {},
   -- auto_close          = false, -- feature has been removed
   open_on_tab         = false,
   hijack_cursor       = false,
@@ -41,10 +39,10 @@ require'nvim-tree'.setup {
     hide_root_folder = false,
     side = 'left',
     -- auto_resize = false, -- now actions.open_file.resize_window
-    mappings = {
-      custom_only = false,
-      list = {}
-    }
+    -- mappings = {
+    --   custom_only = false,
+    --   list = {}
+    -- }
   },
   actions = {
     open_file = {

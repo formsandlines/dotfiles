@@ -16,7 +16,7 @@
 
           new-node (api/list-node
                      (list (api/token-node 'defmethod)
-                           (api/token-node 'formform.expr/interpret-op)
+                           (api/token-node 'formform.expr.symexpr/interpret-op)
                            key-node
                            args-node
                            intpr-node))]
