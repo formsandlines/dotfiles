@@ -4,11 +4,6 @@
 #+STARTUP: showeverything
 #+OPTIONS: toc:2
 
-To test config, uncomment:
-#+begin_src elisp
-;; (set-background-color "cornflower blue")
-#+end_src
-
 * IMPORTANT PROGRAMS TO LOAD FIRST
 ** Custom File
 
@@ -851,31 +846,3 @@ alias rm rm -i $1
 # alias config /usr/bin/git --git-dir=$HOME/dotfiles --work-tree=$HOME $*
 #+end_src
 
-* Test
-
-If I write something here, it may not really go beyond the line and bla bla
-and what should I do and so on whatever it means dude I don’t know what else
-you seem fine.
-
-** nest
-If I write something here, it may not really go beyond the line and bla bla
-and what should I do and so on whatever it means dude I don’t know what else
-you seem fine.
-
-*** nest 2
-If I write something here, it may not really go beyond the line and bla
-bla and what should I do and so on whatever it means dude I don’t know
-what else you seem fine.
-
-**** nest 3
-If I write something here, it may not really go beyond the line and bla
-bla and what should I do and so on whatever it means dude I don’t know
-what else you seem fine.
-
-***** nest 4
-
-If I write something here, it may not really go beyond the line and
-bla bla and what should I do and so on whatever it means dude I don’t
-know what else you seem fine.
-
-Test

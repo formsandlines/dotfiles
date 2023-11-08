@@ -3,3 +3,4 @@
 .private
 .clj-kondo
 .lsp
+.config/nvim/timeshift.vim/
