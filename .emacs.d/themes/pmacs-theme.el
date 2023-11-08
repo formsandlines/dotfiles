@@ -253,7 +253,7 @@
        `(show-paren-match-face ((,class (:background ,warning))))) ;; obsoleted in 22.1, removed 2016
     (custom-theme-set-faces
      'pmacs
-     `(show-paren-match ((,class (:foreground ,bg1 :background ,str))))
+     `(show-paren-match ((,class (:underline ,str))))
      `(show-paren-mismatch ((,class (:foreground ,bg1 :background ,warning))))))
   ;; emacs >= 26.1
   (when (>= emacs-major-version 26)
