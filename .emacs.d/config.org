@@ -175,6 +175,16 @@ surround.vim emulation:
   (global-evil-surround-mode 1))
 #+end_src
 
+Comments with ~gcc~ / ~gc~:
+#+begin_src elisp
+(use-package evil-commentary
+  :ensure t
+  :diminish
+  :after evil
+  :config
+  (evil-commentary-mode))
+#+end_src
+
 ** Version control
 #+begin_src elisp
 (use-package magit
@@ -212,7 +222,7 @@ General keybindings /(thanks to DistroTube for sharing!)/
   (ph/leader-keys
     "." '(find-file :wk "Find file")
     "TAB TAB" '(comment-line :wk "Comment lines")
-    "q q" '(fill-paragraph-org-indent-mode-aware :wk "Correct line wrap")
+    "SPC" '(org-fill-paragraph :wk "Correct line wrap")
     "[" '(newline-empty-above :wk "Insert newline above")
     "]" '(newline-empty-below :wk "Insert newline below"))
 
@@ -628,13 +638,12 @@ one, an error is signaled."
 #+end_src
 
 
-Fix for org-fill-paragraph in org-indent-mode (Not sure if necessary).
-
-TODO:
-- [ ] scope to org-mode and org-indent-mode
+Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate the
+indentation. Overrides ~current-fill-column~ to ensure the correct
+calculation.
+- credits to patrick: https://emacs.stackexchange.com/a/74973
 
 #+begin_src elisp
-;; Credits to patrick: https://emacs.stackexchange.com/a/74973
 (defun current-fill-column ()
       "Return the fill-column to use for this line.
 Subtracts right margin and org indentation level from fill-column"
@@ -644,17 +653,6 @@ Subtracts right margin and org indentation level from fill-column"
                             0))
             (margin (or (get-text-property (point) 'right-margin) 0)))
         (- fill-column indent-level margin)))
-
-(defun fill-paragraph-org-indent-mode-aware ()
-  (interactive)
-  (let ((prev-fill-column fill-column))
-    (setq fill-column (current-fill-column))
-    (fill-paragraph)
-    (setq fill-column prev-fill-column)))
-
-;; (global-set-key (kbd "M-q") 'fill-paragraph-org-indent-mode-aware)
-(global-set-key (kbd "M-q") 'fill-paragraph)
-
 #+end_src
 
 ** Line creating and joining/breaking
