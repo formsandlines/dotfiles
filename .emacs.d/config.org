@@ -180,7 +180,17 @@ surround.vim emulation:
 (use-package magit
   :ensure t)
 
-;; (global-diff-hl-mode)
+(use-package diff-hl
+  :after (magit dired)
+  :ensure t
+  :diminish
+  :init
+  (add-hook 'magit-pre-refresh-hook 'diff-hl-magit-pre-refresh)
+  (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+  :config
+  (global-diff-hl-mode)
+  (add-hook 'dired-mode-hook 'diff-hl-dired-mode))
+
 #+end_src
 
 ** Keybinding helper
