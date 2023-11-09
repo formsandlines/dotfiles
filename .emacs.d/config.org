@@ -278,6 +278,7 @@ General keybindings /(thanks to DistroTube for sharing!)/
    (ph/leader-keys
     "t" '(:ignore t :wk "Toggle")
     "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
+    "t h" '(hl-line-mode :wk "Toggle line highlighting")
     "t t" '(visual-line-mode :wk "Toggle truncated lines")))
 #+end_src
 
