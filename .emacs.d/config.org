@@ -88,8 +88,135 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 #+begin_src elisp
 (use-package diminish)
 #+end_src
+** meow (test)
 
-** Vim emulation
+#+begin_src elisp
+(use-package meow
+  :ensure t
+  :demand t
+  :config
+  (meow-global-mode 1)
+  (meow-setup-indicator)
+
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+
+  (meow-define-keys 'insert
+    '("ESC" . meow-insert-exit))
+
+  (meow-motion-overwrite-define-key
+   '("j" . meow-next)
+   '("k" . meow-prev)
+   '("<escape>" . ignore))
+  (meow-leader-define-key
+   ;; SPC j/k will run the original command in MOTION state.
+   '("j" . "H-j")
+   '("k" . "H-k")
+   ;; Use SPC (0-9) for digit arguments.
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
+  (meow-normal-define-key
+   '("0" . meow-expand-0)
+   '("9" . meow-expand-9)
+   '("8" . meow-expand-8)
+   '("7" . meow-expand-7)
+   '("6" . meow-expand-6)
+   '("5" . meow-expand-5)
+   '("4" . meow-expand-4)
+   '("3" . meow-expand-3)
+   '("2" . meow-expand-2)
+   '("1" . meow-expand-1)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+   '("a" . my-meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-next)
+   '("J" . meow-next-expand)
+   '("k" . meow-prev)
+   '("K" . meow-prev-expand)
+   '("l" . meow-right)
+   '("L" . meow-right-expand)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("q" . meow-quit)
+   '("Q" . meow-goto-line)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("t" . meow-till)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-mark-word)
+   '("W" . meow-mark-symbol)
+   '("x" . meow-line)
+   '("X" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . ignore))
+
+  ;; Sentence movement
+  ;; https://github.com/meow-edit/meow/discussions/476#discussioncomment-6401921
+  (add-to-list 'meow-char-thing-table
+               '(?{ . sentence))
+  (add-to-list 'meow-char-thing-table
+               '(?} . sentence))
+  (define-key meow-normal-state-keymap (kbd "{") 'backward-sentence)
+  (define-key meow-normal-state-keymap (kbd "}") 'forward-sentence))
+#+end_src
+
+Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
+- [[https://github.com/meow-edit/meow/discussions/497#discussioncomment-6713192][Source]]
+#+begin_src elisp
+(defun my-meow-append ()
+  "Move to the end of selection, switch to INSERT state."
+  (interactive)
+  (if meow--temp-normal
+      (progn
+        (message "Quit temporary normal mode")
+        (meow--switch-state 'motion))
+    (if (not (region-active-p))
+        (when (and (not (use-region-p))
+                   (< (point) (point-max)))
+          (forward-char 1))
+      (meow--direction-forward)
+      (meow--cancel-selection))
+    (meow--switch-state 'insert)))
+#+end_src
+
+** COMMENT Evil
 
 Vim style undo not needed for emacs 28
 #+begin_src elisp
@@ -204,7 +331,8 @@ Comments with ~gcc~ / ~gc~:
 #+end_src
 
 ** Keybinding helper
-General keybindings /(thanks to DistroTube for sharing!)/
+*** COMMENT General keybindings
+/(thanks to DistroTube for sharing!)/
 
 #+begin_src elisp
 (use-package general
@@ -282,7 +410,7 @@ General keybindings /(thanks to DistroTube for sharing!)/
     "t t" '(visual-line-mode :wk "Toggle truncated lines")))
 #+end_src
 
-which-key
+*** which-key
 #+begin_src elisp
 (use-package which-key
   :ensure t
@@ -427,6 +555,30 @@ which-key
 ;;   :after company
 ;;   :diminish
 ;;   :hook (company-mode . company-box-mode))
+#+end_src
+
+** Structural editing
+*** lispy
+#+begin_src elisp
+(use-package lispy
+  :ensure t
+  :hook ((emacs-lisp-mode clojure-mode lisp-mode) . lispy-mode))
+#+end_src
+*** COMMENT lispyville
+#+begin_src elisp
+(use-package lispyville
+  :ensure t
+  :demand t
+  :after (lispy evil)
+  :hook (lispy-mode . lispyville-mode)
+  :config
+  (lispyville-set-key-theme
+   '(operators
+     text-objects
+     additional-motions
+     c-w
+     slurp/barf-lispy
+     additional)))
 #+end_src
 
 ** Language support
@@ -625,6 +777,19 @@ one, an error is signaled."
 ;;; because C-M-d activates the dictionary in MacOS (hard to change):
 (global-set-key (kbd "C-M-'") 'down-list) 
 
+;;; I like to scroll line-by-line
+(defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
+(defun ph/scroll-one-line-down () (interactive) (scroll-down 1))
+
+(global-set-key (kbd "C-j") 'ph/scroll-one-line-up)
+(global-set-key (kbd "C-k") 'ph/scroll-one-line-down)
+
+(add-hook 'org-mode-hook
+	  (lambda ()
+	    (define-key org-mode-map (kbd "C-j") 'ph/scroll-one-line-up)))
+(add-hook 'org-mode-hook
+	  (lambda ()
+	    (define-key org-mode-map (kbd "C-k") 'ph/scroll-one-line-down)))
 
 ;; (defun my-org/insert-heading-above ()
 ;;   "Insert a heading above the current one and activate Evil insert mode."
@@ -744,7 +909,6 @@ Subtracts right margin and org indentation level from fill-column"
     (goto-char beg)))
 
 (global-set-key (kbd "C-}") 'newline-empty-below)
-
 (global-set-key (kbd "C-{") 'newline-empty-above)
 
 
