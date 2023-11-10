@@ -342,6 +342,44 @@ which-key
 ;; (load-theme 'modus-vivendi)
 #+end_src
 
+** Completion
+#+begin_src elisp
+;; Enable rich annotations using the Marginalia package
+(use-package marginalia
+  ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
+  ;; available in the *Completions* buffer, add it to the
+  ;; `completion-list-mode-map'.
+  :bind (:map minibuffer-local-map
+	      ("M-A" . marginalia-cycle))
+
+  ;; The :init section is always executed.
+  :init
+
+  ;; Marginalia must be activated in the :init section of use-package such that
+  ;; the mode gets enabled right away. Note that this forces loading the
+  ;; package.
+  (marginalia-mode)
+
+  :config
+  (setq marginalia-field-width 80) ; 43 in Doom
+  
+  (add-hook 'icomplete-minibuffer-setup-hook
+	    (lambda () (setq truncate-lines t)))
+  
+  (add-hook 'completion-list-mode-hook
+	    (lambda () (setq truncate-lines t)))
+
+  ;;; Disable Marginalia in *completions* buffer for non-one-column formats
+  ;; -> doesn’t work
+  ;; - https://github.com/minad/marginalia/issues/129
+  ;; (defun disable-marginalia ()
+  ;;   (when (and (equal t fido-mode)
+  ;; 	       (not (eq completions-format 'one-column)))
+  ;;     (setq-local marginalia-annotator-registry nil)))
+  ;; (add-hook 'completion-list-mode-hook #'disable-marginalia)
+  )
+#+end_src
+
 ** Programming
 
 *dumb-jump* (jump to definition, etc. (file searchers for xref)
@@ -444,9 +482,6 @@ which-key
 ;;; Display column number in modeline
 (column-number-mode 1)
 
-;;; Completion for Minibuffer
-(fido-mode 1)
-
 ;;; Highlight current line
 (hl-line-mode 1)
 
@@ -472,10 +507,6 @@ which-key
 
 ;;; Remember and get back to recently opened files
 (recentf-mode 1)
-
-;;; Remember history of minibuffer prompts
-(setq history-length 25)
-(savehist-mode 1)
 
 ;;; Remember and restore the last cursor location of opened files
 (save-place-mode 1)
@@ -607,6 +638,44 @@ one, an error is signaled."
 ;; (evil-define-key 'normal org-mode-map (kbd "C-S-<return>")
 ;;  'my-org/insert-heading-above)
 
+
+(defun describe-keybinding (keybinding)
+  (interactive "sEnter keybinding: ")
+  (describe-key (kbd keybinding)))
+
+;;; Use if a keybinding in minibuffer is not accessible from the system:
+;; (setq enable-recursive-minibuffers t)  ; <-- set to nil after use!
+;; (define-key minibuffer-mode-map (kbd "C-M-k") 'describe-keybinding)
+
+#+end_src
+
+** Minibuffer / Completion
+#+begin_src elisp
+;;; Remember history of minibuffer prompts
+(setq history-length 25)
+(savehist-mode 1)
+
+(setq completions-format 'horizontal)
+(setq completion-auto-wrap t) ;; wraps around when navigating completions
+(setq completion-auto-help t)
+(setq completion-auto-select 'second-tab)
+(setq completion-show-help nil) ;; hides help message
+
+(define-key minibuffer-mode-map (kbd "C-n") 'minibuffer-next-completion)
+(define-key minibuffer-mode-map (kbd "C-p") 'minibuffer-previous-completion)
+
+(define-key completion-in-region-mode-map (kbd "C-n")
+	    'minibuffer-next-completion)
+(define-key completion-in-region-mode-map (kbd "C-p")
+	    'minibuffer-previous-completion)
+ 
+;;; Completion system
+(fido-mode 1)
+;; (fido-vertical-mode 1)
+
+;; because M-x <up> is awkward:
+(define-key icomplete-fido-mode-map (kbd "C-r")
+	    #'minibuffer-complete-history)
 #+end_src
 
 ** Visit config file
@@ -778,17 +847,17 @@ If called interactively, PT is the value immediately under `point'."
 #+begin_src elisp
 (set-face-attribute 'default nil
                     :font "Berkeley Mono"
-                    :height 120 ;; 12 pt
+                    :height 130 ;; 12 pt
                     :weight 'regular)
 
 (set-face-attribute 'variable-pitch nil
                     :font "Cambria"
-                    :height 110
+                    :height 120
                     :weight 'regular)
 
 (set-face-attribute 'fixed-pitch nil
                     :font "Berkeley Mono"
-                    :height 120
+                    :height 130
                     :weight 'regular)
 
 (set-face-attribute 'font-lock-comment-face nil

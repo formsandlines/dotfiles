@@ -14,7 +14,7 @@
 
 ;; To test configuration:
 ;; (set-background-color "cornflower blue")
-
+(global-set-key (kbd "C-\\") 'execute-extended-command)
 
 (desktop-save-mode)
 ;; doom exposes five (optional) variables for controlling fonts in Doom. Here
@@ -215,36 +215,20 @@
 (setq org-appear-autosubmarkers t)
 
 
+;; Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate the
+;; indentation. Overrides ~current-fill-column~ to ensure the correct
+;; calculation.
+;; - credits to patrick: https://emacs.stackexchange.com/a/74973
+(defun current-fill-column ()
+      "Return the fill-column to use for this line.
+Subtracts right margin and org indentation level from fill-column"
+      (let ((indent-level (if (bound-and-true-p org-indent-mode)
+                              (* org-indent-indentation-per-level
+                                 (org-current-level))
+                            0))
+            (margin (or (get-text-property (point) 'right-margin) 0)))
+        (- fill-column indent-level margin)))
 
-;; -Fix 'org-fill-paragraph' in 'org-indent-mode'-
-;; === OBSOLETE - BUT SOMEHOW NOT IN DOOM??? ===
-
-;;;; issue seems to be with 'org-adaptive-fill-function' in 'org.el', which is
-;;;; very different between version 9.7pre (that Doom uses) and 9.6.6 (my bare
-;;;; Emacs config, where it works)
-;; --> THIS IS PROVED NOT TO BE THE ISSUE!
-
-;; Credits to patrick: https://emacs.stackexchange.com/a/74973
-;; (defun current-fill-column ()
-;;       "Return the fill-column to use for this line.
-;; Subtracts right margin and org indentation level from fill-column"
-;;       (let ((indent-level (if (bound-and-true-p org-indent-mode)
-;;                               (* org-indent-indentation-per-level
-;;                                  (org-current-level))
-;;                             0))
-;;             (margin (or (get-text-property (point) 'right-margin) 0)))
-;;         (- fill-column indent-level margin)))
-
-;; (defun fill-paragraph-org-indent-mode-aware ()
-;;   (interactive)
-;;   (let ((prev-fill-column fill-column))
-;;     (setq fill-column (current-fill-column))
-;;     (fill-paragraph)
-;;     (setq fill-column prev-fill-column)))
-
-;; (global-set-key (kbd "M-q") 'fill-paragraph-org-indent-mode-aware)
-;; (global-set-key (kbd "M-q") 'fill-paragraph)
-;; =======================================
 
 ;; Using links outside Orgmode
 ;; see https://stackoverflow.com/a/7048954/1204047
@@ -273,6 +257,10 @@
 ;;   "C-c n l" #'org-roam-buffer-toggle
 ;;   "C-c n f" #'org-roam-node-find
 ;;   "C-c n i" #'org-roam-node-insert)
+
+(map! :leader
+      :mode 'org-mode
+      ("SPC" #'fill-paragraph))
 
 (map! :leader
       :mode 'org-roam ; not really local -> ?

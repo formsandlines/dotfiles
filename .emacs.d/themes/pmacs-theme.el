@@ -72,7 +72,7 @@
    `(highlight ((,class (:foreground ,fg3 :background ,bg3))))
    `(hl-line ((,class (:background  ,bg2))))
    `(fringe ((,class (:foreground ,bg3))))
-   `(shadow ((,class (:foreground ,bg3))))
+   `(shadow ((,class (:foreground ,bg4))))
    `(cursor ((,class (:background ,fg4))))
    `(isearch ((,class (:bold t :foreground ,warning :background ,bg3))))
    `(mode-line ((,class (:box (:line-width 1 :color nil) :bold t :foreground ,fg4 :background ,bg2))))
