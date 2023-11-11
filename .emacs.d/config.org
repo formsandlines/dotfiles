@@ -146,8 +146,8 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
    '("b" . meow-back-word)
    '("B" . meow-back-symbol)
    '("c" . meow-change)
-   '("d" . meow-delete)
-   '("D" . meow-backward-delete)
+   '("x" . meow-delete)
+   '("X" . meow-backward-delete)
    '("e" . meow-next-word)
    '("E" . meow-next-symbol)
    '("f" . meow-find)
@@ -172,15 +172,15 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
    '("Q" . meow-goto-line)
    '("r" . meow-replace)
    '("R" . meow-swap-grab)
-   '("s" . meow-kill)
+   '("d" . meow-kill)
    '("t" . meow-till)
    '("u" . meow-undo)
    '("U" . meow-undo-in-selection)
-   '("v" . meow-visit)
+   '("s" . meow-visit)
    '("w" . meow-mark-word)
    '("W" . meow-mark-symbol)
-   '("x" . meow-line)
-   '("X" . meow-goto-line)
+   '("v" . meow-line)
+   '("V" . meow-goto-line)
    '("y" . meow-save)
    '("Y" . meow-sync-grab)
    '("z" . meow-pop-selection)
@@ -562,7 +562,12 @@ Comments with ~gcc~ / ~gc~:
 #+begin_src elisp
 (use-package lispy
   :ensure t
-  :hook ((emacs-lisp-mode clojure-mode lisp-mode) . lispy-mode))
+  :hook ((emacs-lisp-mode clojure-mode lisp-mode) . lispy-mode)
+  ;; :config
+  ;; (eval-after-load "lispy"
+  ;;   `(progn
+  ;;      (lispy-define-key lispy-mode-map "S" 'special-lispy-visit)))
+  )
 #+end_src
 *** COMMENT lispyville
 #+begin_src elisp
@@ -760,6 +765,17 @@ one, an error is signaled."
 #+end_src
 
 * Customization
+** Modifier keys
+#+begin_src elisp
+(setq mac-command-modifier 'meta)          ;; left cmd = right cmd
+(setq mac-right-command-modifier 'left)
+(setq mac-option-modifier nil)             ;; keeps Umlauts, etc. accessible
+(setq mac-right-option-modifier 'left)
+(setq mac-control-modifier 'hyper)         ;; in case hyper is needed
+(setq mac-right-control-modifier 'control) ;; also works for caps-lock as ctrl
+
+#+end_src
+
 ** Some keyboard shortcuts
 #+begin_src elisp
 ;; (global-set-key (kbd "C-c C-r") 'recentf-open-files)
@@ -781,15 +797,16 @@ one, an error is signaled."
 (defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
 (defun ph/scroll-one-line-down () (interactive) (scroll-down 1))
 
-(global-set-key (kbd "C-j") 'ph/scroll-one-line-up)
-(global-set-key (kbd "C-k") 'ph/scroll-one-line-down)
+;;; For some reason these conflict with meow-kill:
+;; (global-set-key (kbd "C-j") 'ph/scroll-one-line-up)
+;; (global-set-key (kbd "C-k") 'ph/scroll-one-line-down)
 
-(add-hook 'org-mode-hook
-	  (lambda ()
-	    (define-key org-mode-map (kbd "C-j") 'ph/scroll-one-line-up)))
-(add-hook 'org-mode-hook
-	  (lambda ()
-	    (define-key org-mode-map (kbd "C-k") 'ph/scroll-one-line-down)))
+;; (add-hook 'org-mode-hook
+;; 	  (lambda ()
+;; 	    (define-key org-mode-map (kbd "C-j") 'ph/scroll-one-line-up)))
+;; (add-hook 'org-mode-hook
+;; 	  (lambda ()
+;; 	    (define-key org-mode-map (kbd "C-k") 'ph/scroll-one-line-down)))
 
 ;; (defun my-org/insert-heading-above ()
 ;;   "Insert a heading above the current one and activate Evil insert mode."
@@ -813,7 +830,6 @@ one, an error is signaled."
 ;; (define-key minibuffer-mode-map (kbd "C-M-k") 'describe-keybinding)
 
 #+end_src
-
 ** Minibuffer / Completion
 #+begin_src elisp
 ;;; Remember history of minibuffer prompts

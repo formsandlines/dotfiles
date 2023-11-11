@@ -175,6 +175,8 @@
 (setq mac-right-command-modifier 'meta)
 (setq mac-right-option-modifier nil)
 (setq mac-option-modifier nil)
+(setq mac-control-modifier 'hyper) ;; left control
+(setq mac-right-control-modifier 'control) ;; also works for caps-lock as ctrl
 
 ;; System-like Copy, Paste & Cut (M-x needed, how to scope?)
 (evil-define-key 'insert 'global
