@@ -93,7 +93,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
 - [[https://github.com/meow-edit/meow/discussions/497#discussioncomment-6713192][Source]]
 #+begin_src elisp
-(defun my-meow-append ()
+(defun ph/meow-append ()
   "Move to the end of selection, switch to INSERT state."
   (interactive)
   (if meow--temp-normal
@@ -107,6 +107,19 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
       (meow--direction-forward)
       (meow--cancel-selection))
     (meow--switch-state 'insert)))
+
+(defun ph/meow-line-append ()
+  "Appends to the end of the current line."
+  (interactive)
+  (meow-end-of-thing (meow-line 1))
+  (meow-append))
+
+(defun ph/meow-line-insert ()
+  "Inserts at the beginning (indentation) of the current line."
+  (interactive)
+  (meow-beginning-of-thing (meow-line 1))
+  (meow-insert))
+
 #+end_src
 
 *** Base config:
@@ -133,6 +146,11 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
    '("ws" . split-window-below)   ;; C-x 2
    '("wv" . split-window-right)   ;; C-x 3
    '("ww" . other-window)	      ;; C-x o
+    ;; Move Windows
+   '("w H" . buf-move-left)
+   '("w J" . buf-move-down)
+   '("w K" . buf-move-up)
+   '("w L" . buf-move-right)
 
    ;; Use SPC (0-9) for digit arguments.
    '("1" . meow-digit-argument)
@@ -349,6 +367,7 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
                        '(pair ("<") (">"))
                        '(pair ("<") (">")))
 
+
   (setq meow-char-thing-table
 	'((?f . round)
           (?d . square)
@@ -381,6 +400,10 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
    '("l" . "H-l")
    '("i" . "H-i")
    )
+
+  (meow-define-keys 'beacon
+    '("nm" . meow-beacon-start)
+    '("ne" . meow-beacon-apply-kmacro))
 
   ;; -------------------- ;;
   ;;       MAPPINGS       ;;
@@ -424,10 +447,11 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
     '("w" . meow-mark-word)		; a -> w
     '("W" . meow-mark-symbol)		; A -> W
     '("e" . meow-line)			; s -> e
-    '("E" . meow-goto-line)		; S -> E
+    '("E" . ph/meow-line-append)
     '("q" . meow-block)			; w -> q
     '("Q" . meow-to-block)
     '("a" . meow-join)			; q -> a
+    '("A" . ph/meow-line-insert)
     '("g" . meow-grab)			; g -> h (see undo) -> g
     '("G" . meow-pop-grab)		; G -> H -> G
     '("m" . meow-swap-grab)
@@ -435,6 +459,7 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
     '("H" . meow-cancel-selection)	; p -> [ -> t -> h -> H
     '("h" . meow-pop-selection)		; P -> { -> T -> H -> h
     '("t" . meow-transpose-sexp)
+    '("T" . transpose-lines)
 
     '("F" . meow-till)			; x -> t -> F
     '("f" . meow-find)			; z -> f
@@ -443,6 +468,9 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
     '("]" . meow-end-of-thing)		; . -> ]
     '("," . meow-inner-of-thing)	; < -> ,
     '("." . meow-bounds-of-thing)	; > -> .
+
+    '("{" . backward-paragraph)
+    '("}" . forward-paragraph)
 
 					; editing
     '("d" . meow-kill)
@@ -455,7 +483,7 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
 
     '("s" . meow-insert)		; e -> s
     '("S" . meow-open-below)		; E -> S
-    '("r" . my-meow-append)		; Vi-style append
+    '("r" . ph/meow-append)		; Vi-style append
     '("R" . meow-open-above)		; S -> R
 
     '("z" . undo-only)			; h -> g -> z (because Vi habits)
@@ -477,6 +505,9 @@ Let ~a~ in ~normal~ mode behave like ~a~ in Vi:
     '("n`" . kill-ring-save)
     '("np" . yank)
     '("ns" . meow-visit)	        ; / -> ? -> / -> ns
+    '("n+" . ph/increment-number-at-point)
+    '("n-" . ph/decrement-number-at-point)
+    '("ng" . meow-goto-line)		; S -> E -> ng
     ;; ...etc
 
 					; prefix ; -> \
@@ -1007,6 +1038,9 @@ Comments with ~gcc~ / ~gc~:
 ;;; Display relative line numbers
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
+(setq display-line-numbers-widen t)
+(setq display-line-numbers-width-start t)
+(setq display-line-numbers-width 3)
 
 ;;; Display column number in modeline
 (column-number-mode 1)
@@ -1413,6 +1447,34 @@ If called interactively, PT is the value immediately under `point'."
 ;; (defun window-full ()
 ;;   (interactive)
 ;;   (enlarge-window 1))
+#+end_src
+
+** Misc
+Increment/decrement numbers like in Vim:
+- see https://www.emacswiki.org/emacs/IncrementNumber
+#+begin_src elisp
+(defun ph/change-number-at-point (change increment)
+  (let ((number (number-at-point))
+        (point (point)))
+    (when number
+      (progn
+        (forward-word)
+        (search-backward (number-to-string number))
+        (replace-match (number-to-string (funcall change number increment)))
+        (goto-char point)))))
+
+(defun ph/increment-number-at-point (&optional increment)
+  "Increment number at point like vim's C-a"
+  (interactive "p")
+  (ph/change-number-at-point '+ (or increment 1)))
+
+(defun ph/decrement-number-at-point (&optional increment)
+  "Decrement number at point like vim's C-x"
+  (interactive "p")
+  (ph/change-number-at-point '- (or increment 1)))
+
+(global-set-key (kbd "C-c +") 'ph/increment-number-at-point)
+(global-set-key (kbd "C-c -") 'ph/decrement-number-at-point)
 #+end_src
 
 * Appearance
