@@ -88,7 +88,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 #+begin_src elisp
 (use-package diminish)
 #+end_src
-** meow (test)
+** meow
 *** Custom meow commands
 #+begin_src elisp
 ;; Let 'a' in 'normal' mode behave like 'a' in Vi:
@@ -311,15 +311,18 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 
 					; prefix n
     '("nc" . meow-comment)		; nf -> nc
-    '("nn" . meow-start-kmacro-or-insert-counter)
+    '("nM" . meow-start-kmacro-or-insert-counter)
     '("nm" . meow-start-kmacro)
-    '("ne" . meow-end-or-call-kmacro)
+    '("nn" . meow-end-or-call-kmacro)
     '("n`" . kill-ring-save)
     '("np" . yank)
     '("ns" . meow-visit)	        ; / -> ? -> / -> ns
     '("n+" . ph/increment-number-at-point)
     '("n-" . ph/decrement-number-at-point)
     '("ng" . meow-goto-line)		; S -> E -> ng
+    '("ne" . meow-eval-last-exp)
+    '("nb" . cider-eval-buffer)
+    '("nd" . cider-eval-defun-at-point)
     ;; '("nj" . ph/meow-join-with)
     ;; '("nk" . ph/meow-split-at)
     ;; ...etc
@@ -336,8 +339,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
     '("N" . meow-paren-mode)
 
 					; ignore escape
-    '("<escape>" . ignore))
-)
+    '("<escape>" . ignore)))
 #+end_src
 
 *** My meow paren state:
@@ -814,7 +816,9 @@ Comments with ~gcc~ / ~gc~:
   :config
   (require 'flycheck-clj-kondo)
   ;; for better editing in camelCase (Java names):
-  (add-hook 'cider-repl-mode-hook #'subword-mode))
+  (add-hook 'cider-repl-mode-hook #'subword-mode)
+  ;; C-[ gets stuck because of Ciders ESC-key prefix, so let’s disable it:
+  (define-key cider-mode-map (kbd "ESC") nil))
 
 ;;; CIDER Warnings:
 ;; evil-collection-cider.el:31:11: Warning: Package cl is deprecated
