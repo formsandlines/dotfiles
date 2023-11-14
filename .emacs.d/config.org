@@ -265,14 +265,14 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
     '("E" . ph/meow-line-append)
     '("q" . meow-block)			; w -> q
     '("Q" . meow-to-block)
-    '("a" . meow-join)			; q -> a
-    '("A" . ph/meow-line-insert)
+    '("h" . meow-join)			; q -> a -> h
+    '("H" . ph/meow-line-insert)
     '("g" . meow-grab)			; g -> h (see undo) -> g
     '("G" . meow-pop-grab)		; G -> H -> G
     '("m" . meow-swap-grab)
     '("M" . meow-sync-grab)
-    '("H" . meow-cancel-selection)	; p -> [ -> t -> h -> H
-    '("h" . meow-pop-selection)		; P -> { -> T -> H -> h
+    '("~" . meow-cancel-selection)	; p -> [ -> t -> h -> H -> ~
+    '("`" . meow-pop-selection)		; P -> { -> T -> H -> h -> `
     '("t" . meow-transpose-sexp)
     '("T" . transpose-lines)
 
@@ -290,17 +290,17 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 					; editing
     '("d" . meow-kill)
     '("D" . meow-kill-whole-line)
-    '("c" . meow-change)		; f -> c
-    '("C" . meow-replace)
+    '("r" . meow-change)		; f -> c -> r
+    '("R" . meow-replace)
     '("x" . meow-delete)		; t -> x
-    '("`" . meow-save)			; c -> y -> t -> `
+    '("c" . meow-save)			; c -> y -> t -> ` -> c
     '("p" . meow-yank)			; v -> p
     '("P" . meow-yank-pop)		; V -> P
 
-    '("s" . meow-insert)		; e -> s
-    '("S" . meow-open-below)		; E -> S
-    '("r" . ph/meow-append)		; Vi-style append
-    '("R" . meow-open-above)		; S -> R
+    '("a" . meow-insert)		; e -> s -> a
+    '("A" . meow-open-below)		; E -> S -> A
+    '("s" . ph/meow-append)		; Vi-style append
+    '("S" . meow-open-above)		; S -> R -> S
 
     '("z" . undo-only)			; h -> g -> z (because Vi habits)
     '("Z" . undo-redo)			; H -> G -> Z
