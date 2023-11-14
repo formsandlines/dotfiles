@@ -131,6 +131,10 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
   (interactive)
   (electric-newline-and-maybe-indent))
 
+;; (defun ph/meow-search-backwards ()
+;;   "Searches backwards."
+;;   (interactive)
+;;   (meow-search (negative-argument -1)))
 #+end_src
 
 *** My meow things
@@ -160,7 +164,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 (defun ph/meow-bindings ()
   
   (meow-define-keys 'insert
-    '("ESC" . meow-insert-exit)
+    '("C-g" . meow-insert-exit)
     '("C-p" . meow-yank))
   
   (meow-motion-overwrite-define-key
@@ -212,8 +216,9 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
    '("}" . "H-}"))
 
   (meow-define-keys 'beacon
-    '("nm" . meow-beacon-start)
-    '("ne" . meow-beacon-apply-kmacro))
+    '("/m" . meow-beacon-start)
+    '("/e" . meow-beacon-apply-kmacro)  
+    '("<escape>" . ignore))
 
   ;; -------------------- ;;
   ;;       MAPPINGS       ;;
@@ -241,7 +246,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
     '("v" . ph/scroll-up-half)
     '("V" . ph/scroll-down-half)
 
-    '("/" . meow-search)		; y -> / -> ` -> /
+    '("n" . meow-search)		; y -> / -> ` -> / -> n
 
 					; expansion
     '("I" . meow-prev-expand)
@@ -310,19 +315,19 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
     ;; '("]" . indent-rigidly-right-to-tab-stop)
 
 					; prefix n
-    '("nc" . meow-comment)		; nf -> nc
-    '("nM" . meow-start-kmacro-or-insert-counter)
-    '("nm" . meow-start-kmacro)
-    '("nn" . meow-end-or-call-kmacro)
-    '("n`" . kill-ring-save)
-    '("np" . yank)
-    '("ns" . meow-visit)	        ; / -> ? -> / -> ns
-    '("n+" . ph/increment-number-at-point)
-    '("n-" . ph/decrement-number-at-point)
-    '("ng" . meow-goto-line)		; S -> E -> ng
-    '("ne" . meow-eval-last-exp)
-    '("nb" . cider-eval-buffer)
-    '("nd" . cider-eval-defun-at-point)
+    '("/c" . meow-comment)		; nf -> nc -> /g
+    '("/M" . meow-start-kmacro-or-insert-counter)
+    '("/m" . meow-start-kmacro)
+    '("/n" . meow-end-or-call-kmacro)
+    '("/`" . kill-ring-save)
+    '("/p" . yank)
+    '("/s" . meow-visit)	        ; / -> ? -> / -> ns -> /s
+    '("/+" . ph/increment-number-at-point)
+    '("/-" . ph/decrement-number-at-point)
+    '("/g" . meow-goto-line)		; S -> E -> ng -> /g
+    '("/e" . meow-eval-last-exp)
+    '("/b" . cider-eval-buffer)
+    '("/d" . cider-eval-defun-at-point)
     ;; '("nj" . ph/meow-join-with)
     ;; '("nk" . ph/meow-split-at)
     ;; ...etc
@@ -336,7 +341,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
     					; special
     '("-" . negative-argument)
     '("'" . repeat)
-    '("N" . meow-paren-mode)
+    '("?" . meow-paren-mode)
 
 					; ignore escape
     '("<escape>" . ignore)))
@@ -417,6 +422,12 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
   (meow-setup-indicator)
 
   (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+
+  ;; To prevent C-[ triggering ESC prefix-keymaps:
+  ;; see:
+  ;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
+  (define-key input-decode-map [?\C-\[] [C-\[])
+  (define-key global-map [C-\[] [?\C-g])
 
   (ph/meow-things)
   (ph/meow-paren-setup)
@@ -818,7 +829,8 @@ Comments with ~gcc~ / ~gc~:
   ;; for better editing in camelCase (Java names):
   (add-hook 'cider-repl-mode-hook #'subword-mode)
   ;; C-[ gets stuck because of Ciders ESC-key prefix, so let’s disable it:
-  (define-key cider-mode-map (kbd "ESC") nil))
+  ;; (define-key cider-mode-map (kbd "ESC") nil)
+  )
 
 ;;; CIDER Warnings:
 ;; evil-collection-cider.el:31:11: Warning: Package cl is deprecated
