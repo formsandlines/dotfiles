@@ -1141,15 +1141,14 @@ one, an error is signaled."
 
 
 ;;; because M-x is hard to reach on my keyboard:
-(global-set-key (kbd "C-\\") 'execute-extended-command)
-(global-set-key (kbd "C-|") 'execute-extended-command-for-buffer)
-(global-set-key (kbd "M-+") 'toggle-input-method) ;; replacement for C-\
+(keymap-global-set "C-\\" 'execute-extended-command)
+(keymap-global-set "C-|" 'execute-extended-command-for-buffer)
+(keymap-global-set "M-+" 'toggle-input-method) ;; replacement for C-\
 
 (global-set-key [remap list-buffers] 'ibuffer)
 
-
 ;;; because C-M-d activates the dictionary in MacOS (hard to change):
-(global-set-key (kbd "C-M-'") 'down-list) 
+(keymap-global-set "C-M-'" 'down-list) 
 
 ;;; I like to scroll line-by-line
 (defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
@@ -1214,20 +1213,26 @@ one, an error is signaled."
 (setq completion-auto-select 'second-tab)
 (setq completion-show-help nil) ;; hides help message
 
-(define-key minibuffer-mode-map (kbd "C-n") 'minibuffer-next-completion)
-(define-key minibuffer-mode-map (kbd "C-p") 'minibuffer-previous-completion)
+(add-hook 'minibuffer-mode-hook
+	  (lambda ()
+	    (keymap-set minibuffer-mode-map "C-n"
+			#'minibuffer-next-completion)
+	    (keymap-set minibuffer-mode-map "C-p"
+			#'minibuffer-previous-completion)))
 
-(define-key completion-in-region-mode-map (kbd "C-n")
-	    'minibuffer-next-completion)
-(define-key completion-in-region-mode-map (kbd "C-p")
-	    'minibuffer-previous-completion)
+(add-hook 'completion-in-region-mode-hook
+	  (lambda ()
+	    (keymap-set completion-in-region-mode-map "C-n"
+			#'minibuffer-next-completion)
+	    (keymap-set completion-in-region-mode-map "C-p"
+			#'minibuffer-previous-completion)))
  
 ;;; Completion system
 (fido-mode 1)
 ;; (fido-vertical-mode 1)
 
 ;; because M-x <up> is awkward:
-(define-key icomplete-fido-mode-map (kbd "C-r")
+(keymap-set icomplete-fido-mode-map "C-r"
 	    #'minibuffer-complete-history)
 #+end_src
 
@@ -1238,7 +1243,7 @@ one, an error is signaled."
   (interactive)
   (find-file (locate-user-emacs-file "config.org")))
 
-(global-set-key (kbd "C-x c") 'visit-init)
+;; (keymap-global-set "C-x c" 'visit-init)
 #+end_src
 
 ** OrgMode config
@@ -1296,8 +1301,8 @@ Subtracts right margin and org indentation level from fill-column"
     (open-line 1)
     (goto-char beg)))
 
-(global-set-key (kbd "C-}") 'newline-empty-below)
-(global-set-key (kbd "C-{") 'newline-empty-above)
+(keymap-global-set "C-}" 'newline-empty-below)
+(keymap-global-set "C-{" 'newline-empty-above)
 
 
 (defun join-with-next-line ()
@@ -1307,12 +1312,12 @@ Subtracts right margin and org indentation level from fill-column"
 
 ;;; Feels more like Vims S-j to me and I use this very often:
 ;;; (note: C-j gets overwritten in Lisp Interactive mode)
-(global-set-key (kbd "C-M-j") 'delete-indentation) ;; M-^ is weird to type
-(global-set-key (kbd "C-S-j") 'join-with-next-line) ; ? or C-c j
+(keymap-global-set "C-M-j" 'delete-indentation) ;; M-^ is weird to type
+(keymap-global-set "C-S-j" 'join-with-next-line) ; ? or C-c j
 
 ;;; I don’t use these often enough for their prominent keybindings:
-(global-set-key (kbd "M-o") 'default-indent-new-line) ;; was C-M-j / M-j
-(global-set-key (kbd "M-j") 'electric-newline-and-maybe-indent) ;; was C-j
+(keymap-global-set "M-o" 'default-indent-new-line) ;; was C-M-j / M-j
+(keymap-global-set "M-j" 'electric-newline-and-maybe-indent) ;; was C-j
 
 #+end_src
 
@@ -1373,7 +1378,7 @@ eshell:
             (delete-window (get-buffer-window buf))))
         (kill-buffer buf)))))
 
-(global-set-key (kbd "C-`") 'ph/kill-all-help-buffers)
+(keymap-global-set "C-`" 'ph/kill-all-help-buffers)
 #+end_src
 
 ** Colors
@@ -1437,8 +1442,8 @@ Increment/decrement numbers like in Vim:
   (interactive "p")
   (ph/change-number-at-point '- (or increment 1)))
 
-(global-set-key (kbd "C-c +") 'ph/increment-number-at-point)
-(global-set-key (kbd "C-c -") 'ph/decrement-number-at-point)
+(keymap-global-set "C-c +" 'ph/increment-number-at-point)
+(keymap-global-set "C-c -" 'ph/decrement-number-at-point)
 #+end_src
 
 * Appearance
