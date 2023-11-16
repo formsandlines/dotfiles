@@ -93,6 +93,8 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 #+begin_src elisp
 ;; Let 'a' in 'normal' mode behave like 'a' in Vi:
 ;; - https://github.com/meow-edit/meow/discussions/497#discussioncomment-6713192
+;; - unused for now, since it somehow doesn’t work with my clj-refactor
+;;   hook to disable 'cljr-slash'
 (defun ph/meow-append ()
   "Move to the end of selection, switch to INSERT state."
   (interactive)
@@ -135,6 +137,29 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 ;;   "Searches backwards."
 ;;   (interactive)
 ;;   (meow-search (negative-argument -1)))
+
+(defun ph/meow-insert-exit ()
+  "Switch to previous state."
+  (interactive)
+  (cond
+   ((meow-keypad-mode-p)
+    (meow--exit-keypad-state))
+   ((and (meow-insert-mode-p)
+         (eq meow--beacon-defining-kbd-macro 'quick))
+    (setq meow--beacon-defining-kbd-macro nil)
+    (meow-beacon-insert-exit))
+   ((meow-insert-mode-p)
+    (when overwrite-mode
+      (overwrite-mode -1))
+    (meow--switch-state 'normal))))
+
+(defun ph/meow-eval-buffer (&optional buffer undef-all)
+  "Conditionally evokes eval-buffer commands specific to the active
+major mode or the general command if none applies."
+  (interactive (list (current-buffer) (equal current-prefix-arg '(4))))
+  (if (eq major-mode 'clojure-mode)
+      (cider-eval-buffer buffer nil undef-all)
+    (eval-buffer buffer)))
 #+end_src
 
 *** My meow things
@@ -158,6 +183,49 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
           (?e . line)
           (?q . buffer))))
 #+end_src
+
+*** My meow prefix bindings
+#+begin_src elisp
+;; prefix /
+(defconst ph/meow-prefix-slash
+  (list
+   '("//" . meow-comment)		; nf -> nc -> /g
+   '("/M" . meow-start-kmacro-or-insert-counter)
+   '("/m" . meow-start-kmacro)
+   '("/n" . meow-end-or-call-kmacro)
+   
+   '("/c" . kill-ring-save)
+   '("/p" . yank)
+   
+   '("/f" . xref-find-definitions)
+   '("/F" . xref-go-back)
+   '("/r" . xref-find-references)
+   '("/R" . xref-find-apropos)
+
+   '("/u" . upcase-dwim)
+   '("/l" . downcase-dwim)
+   '("/+" . ph/increment-number-at-point)
+   '("/-" . ph/decrement-number-at-point)
+   '("/w" . ph/wrap-with-char)
+
+   '("/s" . meow-visit)	        ; / -> ? -> / -> ns -> /s
+   '("/g" . meow-goto-line)		; S -> E -> ng -> /g
+   '("/e" . meow-eval-last-exp)  ; just C-x C-e
+   '("/b" . ph/meow-eval-buffer)
+   '("/d" . "C-M-x")  ; = eval-defun & friends
+   ;; '("/j" . ph/meow-join-with)
+   ;; '("/k" . ph/meow-split-at)
+   ))
+
+;; prefix ; -> \
+(defconst ph/meow-prefix-backslash
+  (list
+   '("\\q" . meow-quit)
+   '("\\w" . save-buffer)		; ;f -> ;w -> \w
+   '("\\W" . save-some-buffers)	; ;F -> ;W -> \W
+   '("\\d" . meow-query-replace-regexp) ; ;d -> \d
+   ))
+#+end_src
 *** My meow bindings
 - modified from [[https://github.com/meow-edit/meow/issues/506#issuecomment-1730789625][Source]] (Final final version (22. Sept.))
 #+begin_src elisp
@@ -165,7 +233,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
   
   (meow-define-keys 'insert
     '("C-g" . meow-insert-exit)
-    '("C-p" . meow-yank))
+    '("C-y" . meow-yank))
   
   (meow-motion-overwrite-define-key
    '("i" . meow-prev)
@@ -185,7 +253,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
    '("ws" . split-window-below)   ;; C-x 2
    '("wv" . split-window-right)   ;; C-x 3
    '("ww" . other-window)	  ;; C-x o
-    ;; Move Windows
+   ;; Move Windows
    '("w J" . buf-move-left)
    '("w K" . buf-move-down)
    '("w I" . buf-move-up)
@@ -214,6 +282,9 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
    '("V" . "H-V")
    '("{" . "H-{")
    '("}" . "H-}"))
+
+  (apply 'meow-define-keys 'normal ph/meow-prefix-slash)
+  (apply 'meow-define-keys 'normal ph/meow-prefix-backslash)
 
   (meow-define-keys 'beacon
     '("/m" . meow-beacon-start)
@@ -298,9 +369,9 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
     '("P" . meow-yank-pop)		; V -> P
 
     '("a" . meow-insert)		; e -> s -> a
-    '("A" . meow-open-below)		; E -> S -> A
-    '("s" . ph/meow-append)		; Vi-style append
-    '("S" . meow-open-above)		; S -> R -> S
+    '("A" . meow-open-above)		; S -> R -> S
+    '("s" . meow-append)		; Vi-style append -> normal append
+    '("S" . meow-open-below)		; E -> S -> A
 
     '("z" . undo-only)			; h -> g -> z (because Vi habits)
     '("Z" . undo-redo)			; H -> G -> Z
@@ -314,29 +385,6 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
     ;; '("[" . indent-rigidly-left-to-tab-stop)
     ;; '("]" . indent-rigidly-right-to-tab-stop)
 
-					; prefix n
-    '("/c" . meow-comment)		; nf -> nc -> /g
-    '("/M" . meow-start-kmacro-or-insert-counter)
-    '("/m" . meow-start-kmacro)
-    '("/n" . meow-end-or-call-kmacro)
-    '("/`" . kill-ring-save)
-    '("/p" . yank)
-    '("/s" . meow-visit)	        ; / -> ? -> / -> ns -> /s
-    '("/+" . ph/increment-number-at-point)
-    '("/-" . ph/decrement-number-at-point)
-    '("/g" . meow-goto-line)		; S -> E -> ng -> /g
-    '("/e" . meow-eval-last-exp)
-    '("/b" . cider-eval-buffer)
-    '("/d" . cider-eval-defun-at-point)
-    ;; '("nj" . ph/meow-join-with)
-    ;; '("nk" . ph/meow-split-at)
-    ;; ...etc
-
-					; prefix ; -> \
-    '("\\w" . save-buffer)		; ;f -> ;w -> \w
-    '("\\W" . save-some-buffers)	; ;F -> ;W -> \W
-    '("\\d" . meow-query-replace-regexp) ; ;d -> \d
-    ;; ... etc
 
     					; special
     '("-" . negative-argument)
@@ -345,6 +393,7 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 
 					; ignore escape
     '("<escape>" . ignore)))
+
 #+end_src
 
 *** My meow paren state:
@@ -359,64 +408,111 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
   ;; meow-define-state creates the variable
   (setq meow-cursor-type-paren 'hollow)
 
-  (meow-define-keys 'paren
-    '("ESC" . meow-normal-mode)
-    '("<backspace>" . sp-backward-unwrap-sexp)
+  (apply 'meow-define-keys 'paren ph/meow-prefix-slash)  
+  (apply 'meow-define-keys 'paren ph/meow-prefix-backslash)  
 
-    '("e" . sp-end-of-sexp)
-    '("a" . sp-beginning-of-sexp)
-    '("z" . meow-undo)
-    '("t" . meow-save)
+  (meow-define-keys 'paren
+    ;; general meow keys:
+    '("C-g" . meow-normal-mode)
+
+    '("p" . meow-yank)
+    '("P" . meow-yank-pop)
+    '("z" . undo-only)
+    '("Z" . undo-redo)
+    ;; '("c" . meow-save)
     
+    '("v" . ph/scroll-up-half)
+    '("V" . ph/scroll-down-half)
+
+    '("-" . negative-argument)
+    '("'" . repeat)
+    '("~" . meow-cancel-selection)
+    '("`" . meow-pop-selection)
+    '(";" . meow-reverse)
+    
+    '("a" . meow-insert)
+    '("A" . meow-open-above)
+    '("s" . meow-append)
+    '("S" . meow-open-below)
+    
+    '("r" . meow-change)
+    '("R" . meow-replace)
+    
+    '("d" . meow-kill)
+
+    '("n" . meow-search)
+    '("F" . meow-till)
+    '("f" . meow-find)
+
+    ;; '("=" . meow-indent)
+
+    ;; paren specific:
+
+    '("<backspace>" . sp-backward-unwrap-sexp)
+    '("<escape>" . ignore)
+    '("c" . sp-copy-sexp)
+    ;; '("r" . sp-change-inner)
+
+    '("h" . sp-beginning-of-sexp)
+    '("e" . sp-end-of-sexp)
+    '("%" . ph/sp-top)
+
     '("j" . sp-backward-sexp)
     '("J" . sp-backward-symbol)
-    '("k" . sp-down-sexp)
-    '("i" . sp-up-sexp)
     '("l" . sp-forward-sexp)
     '("L" . sp-forward-symbol)
     
+    '("k" . sp-down-sexp)
     '("K" . sp-backward-down-sexp)
+    '("i" . sp-up-sexp)
     '("I" . sp-backward-up-sexp)
     
-    '("d" . sp-kill-sexp)
-    '("D" . sp-kill-hybrid-sexp)
+    '("D" . sp-kill-sexp)
+    ;; '("D" . sp-kill-hybrid-sexp)
+    
+    '("w" . sp-mark-sexp)
 
-    '("r" . sp-raise-sexp)
+    '("m" . sp-raise-sexp)
+    '("M" . sp-splice-sexp)
+    
     '("t" . sp-transpose-sexp)
-    '("c" . sp-convolute-sexp)
-    '("s" . sp-splice-sexp)
-    '("S" . sp-split-sexp)
-    '("o" . sp-join-sexp)
-    '("=" . sp-indent-defun)
-    '("/" . sp-comment)
-    '(";" . repeat)
-
+    '("T" . sp-convolute-sexp)
+    '("x" . sp-split-sexp)
+    '("X" . sp-join-sexp)
+    
     '("O" . sp-next-sexp)
     '("o" . sp-select-next-thing)
     '("U" . sp-previous-sexp)
     '("u" . sp-select-previous-thing)
 
-    '("p" . meow-yank)
-    '("a" . meow-append)
     '("." . sp-forward-slurp-sexp)
     '(">" . sp-forward-barf-sexp)
     '("<" . sp-backward-barf-sexp)
     '("," . sp-backward-slurp-sexp)
-    '("g" . meow-cancel-selection)
 
-    '("`" . sp-unwrap-sexp)
-    ;; use prefix instead? e.g. "s r" for wrap round
-    ;; or use leader key to make available everywhere?
-    '("[" . (lambda () (interactive) (sp-wrap-with-pair "[")))
-    '("{" . (lambda () (interactive) (sp-wrap-with-pair "{")))
-    '("(" . (lambda () (interactive) (sp-wrap-with-pair "("))))
-)
+    '("q" . sp-unwrap-sexp)
+    '("Q" . sp-backward-unwrap-sexp)
+
+    '("[" . sp-select-previous-thing)
+    '("{" . sp-select-previous-thing-exchange)
+    '("]" . sp-select-next-thing)
+    '("}" . sp-select-next-thing-exchange)
+
+    '("=" . sp-indent-defun)
+
+    '("/c" . sp-comment)
+    '("/d" . (lambda () (interactive) (sp-wrap-with-pair "[")))
+    '("/s" . (lambda () (interactive) (sp-wrap-with-pair "{")))
+    '("/f" . (lambda () (interactive) (sp-wrap-with-pair "(")))))
+
+
 #+end_src
 *** Meow package
 #+begin_src elisp
 (use-package meow
   :ensure t
   :demand t
+  :after clj-refactor
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
@@ -431,7 +527,14 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
 
   (ph/meow-things)
   (ph/meow-paren-setup)
-  (ph/meow-bindings))
+  (ph/meow-bindings)
+
+  (add-hook 'meow-paren-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-normal-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-insert-mode-hook
+	    (lambda () (keymap-set clj-refactor-map "/" 'cljr-slash))))
 #+end_src
 ** COMMENT Evil
 
@@ -687,6 +790,14 @@ Comments with ~gcc~ / ~gc~:
 ;; (load-theme 'modus-vivendi)
 #+end_src
 
+** Popup windows
+#+begin_src elisp
+(use-package popwin
+  :diminish
+  :config
+  (popwin-mode 1))
+#+end_src
+
 ** Completion
 #+begin_src elisp
 ;; Enable rich annotations using the Marginalia package
@@ -756,7 +867,11 @@ Comments with ~gcc~ / ~gc~:
 (use-package flycheck-clj-kondo
   :ensure t
   :after flycheck
-  :diminish)
+  :diminish
+  :config
+  ;; ? how to disable elisp undefined warnings
+  )
+
 #+end_src
 
 *Company* (text completion)
@@ -784,6 +899,16 @@ Comments with ~gcc~ / ~gc~:
   (smartparens-global-mode t) ;; These options can be t or nil.
   (show-smartparens-global-mode t)
   (setq sp-show-pair-from-inside t))
+#+end_src
+
+Custom commands:
+#+begin_src elisp
+(defun ph/sp-top ()
+  "Moves outside to top-level sexp."
+  (interactive)
+  (let ((res (sp-up-sexp)))
+    (while res
+      (setq res (sp-up-sexp)))))
 #+end_src
 *** COMMENT lispy
 #+begin_src elisp
@@ -1191,6 +1316,18 @@ Subtracts right margin and org indentation level from fill-column"
 
 #+end_src
 
+** Wrap with char
+#+begin_src elisp
+(defun ph/wrap-with-char (start end)
+  "Wraps a region with an input character."
+  (interactive "r")
+  (let ((char (string-to-char (read-string "Enter character: "))))
+    (save-excursion
+      (goto-char end)
+      (insert-char char)
+      (goto-char start)
+      (insert-char char))))
+#+end_src
 ** Shells & Terminals
 shell-mode:
 #+begin_src elisp
