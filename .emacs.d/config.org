@@ -939,6 +939,7 @@ Custom commands:
 #+end_src
 
 ** Language support
+*** Various
 #+begin_src elisp
 (use-package haskell-mode
   :ensure t)
@@ -946,7 +947,10 @@ Custom commands:
 (use-package lua-mode
   :ensure t)
 
+#+end_src
 
+*** Clojure
+#+begin_src elisp
 (use-package cider
   :ensure t
   :config
@@ -976,6 +980,53 @@ Custom commands:
 
 #+end_src
 
+Clerk
+#+begin_src elisp
+(defun clerk-show ()
+  (interactive)
+  (when-let
+      ((filename
+        (buffer-file-name)))
+    (save-buffer)
+    (cider-interactive-eval
+     (concat "(nextjournal.clerk/show! \"" filename "\")"))))
+
+(define-key clojure-mode-map (kbd "<M-return>") 'clerk-show)
+#+end_src
+
+*** markdown
+#+begin_src elisp
+(use-package markdown-mode
+  :ensure t
+  :mode ("README\\.md\\'" . gfm-mode)
+  :init (setq markdown-command "pandoc")
+  :bind (:map markdown-mode-map
+              ("C-c C-e" . markdown-do)))
+#+end_src
+
+#+begin_src elisp
+(use-package separedit
+  :ensure t
+  :after markdown-mode
+  :init
+  ;; Default major-mode for edit buffer
+  ;; can also be other mode e.g. ‘org-mode’.
+  (setq separedit-default-mode 'markdown-mode)
+  :config
+  ;; Key binding for modes you want edit
+  ;; or simply bind ‘global-map’ for all.
+  (define-key prog-mode-map        (kbd "C-c '") #'separedit)
+  (define-key minibuffer-local-map (kbd "C-c '") #'separedit)
+  (define-key help-mode-map        (kbd "C-c '") #'separedit)
+  (define-key helpful-mode-map     (kbd "C-c '") #'separedit)
+
+  ;; Feature options
+  ;; (setq separedit-preserve-string-indentation t)
+  ;; (setq separedit-continue-fill-column t)
+  ;; (setq separedit-write-file-when-execute-save t)
+  ;; (setq separedit-remove-trailing-spaces-in-comment t)
+  )
+#+end_src
 * GUI tweaks
 #+begin_src elisp
 (setq inhibit-startup-message t)
@@ -1416,6 +1467,29 @@ If called interactively, PT is the value immediately under `point'."
 ;; (defun window-full ()
 ;;   (interactive)
 ;;   (enlarge-window 1))
+#+end_src
+
+** xwidget-webkit
+#+begin_src elisp
+(add-hook 'xwidget-webkit-mode-hook
+	  (lambda ()
+	    (display-line-numbers-mode 0)))
+
+(defun ph/browse-url-in-split-window (url)
+  (interactive "sEnter URL: ")
+  (let ((buffer (generate-new-buffer "+xwidget-webkit*")))
+    (set-frame-size nil 186 (frame-height))
+    (split-window-right)
+    (other-window 1)
+    (let* ((pixel-size 800)
+	   (desired-char-width (/ pixel-size (frame-char-width)))
+	   (delta (- desired-char-width (window-total-width))))
+      (when (> delta 0)
+	(window-resize nil delta t))
+      (switch-to-buffer buffer)
+      (setq window-size-fixed 'width)
+      (xwidget-webkit-browse-url url))))
+
 #+end_src
 
 ** Misc
