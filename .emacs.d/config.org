@@ -221,10 +221,30 @@ major mode or the general command if none applies."
 (defconst ph/meow-prefix-backslash
   (list
    '("\\q" . meow-quit)
-   '("\\w" . save-buffer)		; ;f -> ;w -> \w
-   '("\\W" . save-some-buffers)	; ;F -> ;W -> \W
-   '("\\d" . meow-query-replace-regexp) ; ;d -> \d
-   ))
+   '("\\w" . save-buffer)
+   '("\\W" . save-some-buffers)
+   '("\\r" . meow-query-replace-regexp)
+   
+   '("\\f" . project-find-file)
+   '("\\b" . project-switch-to-buffer)
+   '("\\p" . project-switch-project)
+   '("\\d" . project-find-dir)
+   '("\\k" . project-kill-buffers)
+   ;; '("\\g" . project-find-regexp)
+   ;; '("\\r" . project-query-replace-regexp)
+   '("\\/" . project-shell)
+   '("\\g" . magit-status)))
+#+end_src
+
+*** My meow common bindings
+#+begin_src elisp
+(defconst ph/meow-common
+  (list
+   '("C-J" . shrink-window-horizontally)
+   '("C-L" . enlarge-window-horizontally)
+   '("C-<S-i>" . enlarge-window) ;; C-S-i must be separated from TAB first
+   '("C-K" . shrink-window)))
+
 #+end_src
 *** My meow bindings
 - modified from [[https://github.com/meow-edit/meow/issues/506#issuecomment-1730789625][Source]] (Final final version (22. Sept.))
@@ -235,6 +255,7 @@ major mode or the general command if none applies."
     '("C-g" . meow-insert-exit)
     '("C-y" . meow-yank))
   
+
   (meow-motion-overwrite-define-key
    '("i" . meow-prev)
    '("k" . meow-next)
@@ -245,6 +266,9 @@ major mode or the general command if none applies."
    '("{" . backward-paragraph)
    '("}" . forward-paragraph)
    '("<escape>" . ignore))
+  
+  (apply 'meow-motion-overwrite-define-key ph/meow-common)
+
 
   (meow-leader-define-key
    ;; Window commands
@@ -283,17 +307,17 @@ major mode or the general command if none applies."
    '("{" . "H-{")
    '("}" . "H-}"))
 
-  (apply 'meow-define-keys 'normal ph/meow-prefix-slash)
-  (apply 'meow-define-keys 'normal ph/meow-prefix-backslash)
 
   (meow-define-keys 'beacon
     '("/m" . meow-beacon-start)
     '("/e" . meow-beacon-apply-kmacro)  
     '("<escape>" . ignore))
 
-  ;; -------------------- ;;
-  ;;       MAPPINGS       ;;
-  ;; -------------------- ;;
+  
+  (apply 'meow-define-keys 'normal ph/meow-prefix-slash)
+  (apply 'meow-define-keys 'normal ph/meow-prefix-backslash)
+  (apply 'meow-define-keys 'normal ph/meow-common)
+  
   (meow-define-keys 'normal
 					; expansion
     '("0" . meow-expand-0)
@@ -411,6 +435,7 @@ major mode or the general command if none applies."
 
   (apply 'meow-define-keys 'paren ph/meow-prefix-slash)  
   (apply 'meow-define-keys 'paren ph/meow-prefix-backslash)  
+  (apply 'meow-define-keys 'paren ph/meow-common)
 
   (meow-define-keys 'paren
     ;; general meow keys:
@@ -520,11 +545,16 @@ major mode or the general command if none applies."
 
   (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
 
-  ;; To prevent C-[ triggering ESC prefix-keymaps:
+  ;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
   ;; see:
   ;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
   (define-key input-decode-map [?\C-\[] [C-\[])
   (define-key global-map [C-\[] [?\C-g])
+  
+  ;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
+  (define-key input-decode-map [?\C-i] [C-i])
+  (define-key input-decode-map [?\C-\S-i] [C-S-i])
+  ;; (define-key input-decode-map [?\C-I] [C-I])
 
   (ph/meow-things)
   (ph/meow-paren-setup)
@@ -537,102 +567,6 @@ major mode or the general command if none applies."
   (add-hook 'meow-insert-mode-hook
 	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash))))
 #+end_src
-** COMMENT Evil
-
-Vim style undo not needed for emacs 28
-#+begin_src elisp
-;; (use-package undo-fu)
-#+end_src
-
-Vim bindings
-#+begin_src elisp
-(use-package evil
-  :ensure t
-  :demand t
-  :bind (("<escape>" . keyboard-escape-quit))
-  :init
-  ;;; allows for using cgn
-  ;; (setq evil-search-module 'evil-search)
-  (setq evil-want-keybinding nil)
-  (setq evil-want-Y-yank-to-eol t)
-  (setq evil-vsplit-window-right t)
-  (setq evil-split-window-below t)
-  (setq evil-undo-system 'undo-redo)
-  ;; (setq evil-want-C-u-scroll t) ; use ‘\ C-u’ instead for ‘universal-argument’
-  ;;; no vim insert bindings
-  ;; (setq evil-undo-system 'undo-fu)
-  :config
-  (evil-mode 1)
-  (define-key evil-normal-state-map (kbd "C-b") #'evil-scroll-up)
-  (define-key evil-normal-state-map (kbd "C-f") #'evil-scroll-down)
-  (define-key evil-normal-state-map (kbd "M-b") #'evil-scroll-page-up)
-  (define-key evil-normal-state-map (kbd "M-f") #'evil-scroll-page-down)
-  (define-key evil-normal-state-map (kbd "§") #'evil-ex-nohighlight))
-
-;;; Compile warnings:
-;; Warning (bytecomp): ‘evil-member-recursive-if’ is an obsolete function (as of 1.15.0).
-;; Warning (bytecomp): ‘evil-want-visual-char-semi-exclusive’ is an obsolete variable (as of 1.15.0); Semi-exclusivity prevents selecting text + 1st char of next line,
-;; without having to introduce new niche functionality.
-;; Prefer to set ‘evil-v$-excludes-newline’ to non-nil.
-#+end_src
-
-TODO Evil:
-- [ ] set evil-scroll-up keybinding
-- [ ] Vim window switching commands?
-- [ ] how does transpose work
-- [ ] visible yanking
-- [ ] counting up/down with C-a / C-x?
-- [ ] how to get (/) to jump around parens?
-- [ ] fix paste in insert-mode
-- [ ] enter in table cell should edit
-
-Leader key functionality?
-- [ ] ~space+[/]~ instead of C-[ C-] to insert lines
-- [ ] space+b instead of C-x b to switch buffer
-
-Vim Bindings Everywhere else
-#+begin_src elisp
-(use-package evil-collection
-  :ensure t
-  :after evil
-  :init (evil-collection-init)
-  :config
-  (setq evil-want-integration t))
-
-(use-package evil-org
-  :ensure t
-  :after (evil org)
-  :hook (org-mode . evil-org-mode)
-  :config
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
-
-;;; Compiler warnings:
-;; Warning (bytecomp): the function ‘evil-org-org-insert-todo-subheading-below’ is not known to be defined.
-;; Warning (bytecomp): the function ‘evil-org-org-insert-todo-heading-below’ is not known to be defined.
-;; Warning (bytecomp): the function ‘evil-org-org-insert-todo-heading-respect-content-below’ is not known to be defined.
-;; Warning (bytecomp): the function ‘evil-org-org-insert-heading-respect-content-below’ is not known to be defined.
-#+end_src
-
-surround.vim emulation:
-#+begin_src elisp
-(use-package evil-surround
-  :ensure t
-  :after evil
-  :config
-  (global-evil-surround-mode 1))
-#+end_src
-
-Comments with ~gcc~ / ~gc~:
-#+begin_src elisp
-(use-package evil-commentary
-  :ensure t
-  :diminish
-  :after evil
-  :config
-  (evil-commentary-mode))
-#+end_src
-
 ** Version control
 #+begin_src elisp
 (use-package magit
@@ -959,23 +893,6 @@ Custom commands:
   ;;      (lispy-define-key lispy-mode-map "S" 'special-lispy-visit)))
   )
 #+end_src
-*** COMMENT lispyville
-#+begin_src elisp
-(use-package lispyville
-  :ensure t
-  :demand t
-  :after (lispy evil)
-  :hook (lispy-mode . lispyville-mode)
-  :config
-  (lispyville-set-key-theme
-   '(operators
-     text-objects
-     additional-motions
-     c-w
-     slurp/barf-lispy
-     additional)))
-#+end_src
-
 ** Language support
 *** Various
 #+begin_src elisp
@@ -1498,14 +1415,17 @@ Subtracts right margin and org indentation level from fill-column"
   (interactive)
   (join-line -1))
 
+
+;;; UPDATE: I don’t use the following bindings anymore, because of meow
+
 ;;; Feels more like Vims S-j to me and I use this very often:
 ;;; (note: C-j gets overwritten in Lisp Interactive mode)
-(keymap-global-set "C-M-j" #'delete-indentation) ;; M-^ is weird to type
-(keymap-global-set "C-S-j" #'join-with-next-line) ; ? or C-c j
+;; (keymap-global-set "C-M-j" #'delete-indentation) ;; M-^ is weird to type
+;; (keymap-global-set "C-S-j" #'join-with-next-line) ; ? or C-c j
 
 ;;; I don’t use these often enough for their prominent keybindings:
-(keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
-(keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
+;; (keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
+;; (keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
 
 #+end_src
 
@@ -1543,33 +1463,6 @@ eshell:
       )
 #+end_src
 
-** Popup windows & Help buffers
-? not needed anymore due to popwin, maybe delete
-#+begin_src elisp
-(defun ph/close-all-popups ()
-  "Closes all open popup windows."
-  (interactive)
-  (dolist (window (window-list))
-    (when (window-parameter window 'popup)
-      (delete-window window))))
-
-(defun ph/kill-all-help-buffers ()
-  "Closes all open help buffers."
-  (interactive)
-  (let ((buffers (cl-remove-if-not
-                  (lambda (b) (string-prefix-p "*Help" (buffer-name b) t))
-                  (buffer-list))))
-    (dolist (buf buffers)
-      (when (buffer-live-p buf)
-        (when (get-buffer-window buf)
-          ;; Delete window if more than one window is open
-          (when (> (length (window-list)) 1)
-            (delete-window (get-buffer-window buf))))
-        (kill-buffer buf)))))
-
-;; (keymap-global-set "C-`" #'ph/kill-all-help-buffers)
-#+end_src
-
 ** Colors
 
 Find nearest color
@@ -1605,6 +1498,41 @@ If called interactively, PT is the value immediately under `point'."
 ;; (defun window-full ()
 ;;   (interactive)
 ;;   (enlarge-window 1))
+
+;;; inspired from https://www.masteringemacs.org/article/my-emacs-keybindings
+(keymap-global-set "M-o" #'other-window)
+
+;; (keymap-global-set "C-J" #'shrink-window-horizontally)
+;; (keymap-global-set "C-L" #'enlarge-window-horizontally)
+;; (keymap-global-set "C-I" #'enlarge-window)
+;; (keymap-global-set "C-K" #'shrink-window)
+#+end_src
+
+** Popup windows & Help buffers
+? not needed anymore due to popwin, maybe delete
+#+begin_src elisp
+(defun ph/close-all-popups ()
+  "Closes all open popup windows."
+  (interactive)
+  (dolist (window (window-list))
+    (when (window-parameter window 'popup)
+      (delete-window window))))
+
+(defun ph/kill-all-help-buffers ()
+  "Closes all open help buffers."
+  (interactive)
+  (let ((buffers (cl-remove-if-not
+                  (lambda (b) (string-prefix-p "*Help" (buffer-name b) t))
+                  (buffer-list))))
+    (dolist (buf buffers)
+      (when (buffer-live-p buf)
+        (when (get-buffer-window buf)
+          ;; Delete window if more than one window is open
+          (when (> (length (window-list)) 1)
+            (delete-window (get-buffer-window buf))))
+        (kill-buffer buf)))))
+
+;; (keymap-global-set "C-`" #'ph/kill-all-help-buffers)
 #+end_src
 
 ** xwidget-webkit
