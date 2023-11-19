@@ -389,6 +389,7 @@ major mode or the general command if none applies."
     					; special
     '("-" . negative-argument)
     '("'" . repeat)
+    '("\"" . meow-end-or-call-kmacro)    
     '("?" . meow-paren-mode)
 
 					; ignore escape
@@ -534,7 +535,7 @@ major mode or the general command if none applies."
   (add-hook 'meow-normal-mode-hook
 	    (lambda () (keymap-unset clj-refactor-map "/")))
   (add-hook 'meow-insert-mode-hook
-	    (lambda () (keymap-set clj-refactor-map "/" 'cljr-slash))))
+	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash))))
 #+end_src
 ** COMMENT Evil
 
@@ -765,6 +766,21 @@ Comments with ~gcc~ / ~gc~:
   (setq org-appear-autosubmarkers t))
 #+end_src
 
+** Repeat like Vi
+? is this useful -> does not work well with meow
+#+begin_src elisp
+(use-package dot-mode
+  :ensure t
+  :demand t
+  :diminish
+  :config
+  (global-dot-mode t))
+
+;; Compiler Warnings:
+;; ⛔ Warning (comp): dot-mode.el:454:20: Warning: Use keywords rather than deprecated positional arguments to `define-minor-mode'
+;; ⛔ Warning (comp): dot-mode.el:509:27: Warning: defcustom for `global-dot-mode' fails to specify containing group
+
+#+end_src
 ** Snippets
 #+begin_src elisp
 (use-package yasnippet
@@ -795,7 +811,29 @@ Comments with ~gcc~ / ~gc~:
 (use-package popwin
   :diminish
   :config
-  (popwin-mode 1))
+  (popwin-mode 1)
+  
+  ;; Issue: calling popup help window replaces popup with a regular window.
+  ;; Thanks to user 'rakete' for this workaround:
+  ;; - https://github.com/emacsorphanage/popwin/issues/131#issuecomment-239221901
+  (defadvice display-buffer (around display-buffer-prevent-popwin-split last activate)
+    (let* ((buffer (ad-get-arg 0)))
+      (if (and (string-equal (buffer-name buffer) "*Help*")
+               (get-buffer-window buffer))
+          (let ((display-buffer-alist nil))
+            ad-do-it)
+	ad-do-it)))
+
+  (defun ph/popwin-toggle-popup ()
+    (interactive)
+    (if (popwin:popup-window-live-p)
+	(popwin:close-popup-window)
+      (popwin:popup-last-buffer)))
+
+  ;; (push '("*anything*" :height 20) popwin:special-display-config)
+  (setq popwin:popup-window-height 25)
+  (global-set-key (kbd "C-z") popwin:keymap)
+  (keymap-global-set "C-`" #'ph/popwin-toggle-popup))
 #+end_src
 
 ** Completion
@@ -866,7 +904,7 @@ Comments with ~gcc~ / ~gc~:
 
 (use-package flycheck-clj-kondo
   :ensure t
-  :after flycheck
+  :after (flycheck clojure-mode)
   :diminish
   :config
   ;; ? how to disable elisp undefined warnings
@@ -951,47 +989,140 @@ Custom commands:
 
 *** Clojure
 #+begin_src elisp
-(use-package cider
-  :ensure t
-  :config
-  (require 'flycheck-clj-kondo)
-  ;; for better editing in camelCase (Java names):
-  (add-hook 'cider-repl-mode-hook #'subword-mode)
-  ;; C-[ gets stuck because of Ciders ESC-key prefix, so let’s disable it:
-  ;; (define-key cider-mode-map (kbd "ESC") nil)
-  )
+  (use-package cider
+    :ensure t
+    :config
+    (require 'flycheck-clj-kondo)
 
-;;; CIDER Warnings:
-;; evil-collection-cider.el:31:11: Warning: Package cl is deprecated
-;; ../../../cider-1.11.0/cider-mode.el: Warning: Missing format argument
-;; Warning (evil-collection): Make sure to set `evil-want-keybinding' to nil before loading evil or evil-collection.
+    ;;; For better editing in camelCase (Java names):
+    (add-hook 'cider-repl-mode-hook #'subword-mode)
 
-(use-package clj-refactor
-  :ensure t
-  :after cider
-  :config
-  ;;; Hook function from https://github.com/clojure-emacs/clj-refactor.el
-  (add-hook 'clojure-mode-hook
-	    (lambda ()
-	      (clj-refactor-mode 1)
-	      (yas-minor-mode 1) ; for adding require/use/import statements
-	      ;; This choice of keybinding leaves cider-macroexpand-1 unbound
-	      (cljr-add-keybindings-with-prefix "C-c C-m"))))
+    ;;; C-[ gets stuck because of Ciders ESC-key prefix, so let’s disable it:
+  
+    ;;; (define-key cider-mode-map (kbd "ESC") nil)
+    (setq cider-preferred-build-tool 'clojure-cli)
+
+    ;;; Use enrich-classpath for better Java lib completions/docs
+    (setq cider-enrich-classpath t)  
+  
+    (setq cider-eval-spinner-type 'moon)
+  
+    (setq cider-repl-history-size 2000)
+
+    ;;; Don't show cider help text in repl after jack-in
+    (setq cider-repl-display-help-banner nil)
+
+    ;;; Show error as overlay instead of the buffer (buffer is generated anyway in
+    ;;; case it's needed)
+    (setq cider-show-error-buffer 'except-in-repl)
+    ;;; If we set `cider-show-error-buffer' to non-nil, don't focus error buffer
+    ;;; when error is thrown
+    (setq cider-auto-select-error-buffer nil)
+
+    ;; Don't pop to the REPL buffer on connect
+    ;; Create and display the buffer, but don't focus it.
+    (setq cider-repl-pop-to-buffer-on-connect 'display-only)
+
+    ;;; skip host question on connect
+    (defun cider--completing-read-host (hosts)
+      '("localhost")))
+
+  ;;; CIDER Warnings:
+  ;; evil-collection-cider.el:31:11: Warning: Package cl is deprecated
+  ;; ../../../cider-1.11.0/cider-mode.el: Warning: Missing format argument
+  ;; Warning (evil-collection): Make sure to set `evil-want-keybinding' to nil before loading evil or evil-collection.
+
+  (use-package clj-refactor
+    :ensure t
+    :after cider
+    :config
+    ;;; Hook function from https://github.com/clojure-emacs/clj-refactor.el
+    (add-hook 'clojure-mode-hook
+	      (lambda ()
+		(clj-refactor-mode 1)
+		(yas-minor-mode 1) ; for adding require/use/import statements
+		;; This choice of keybinding leaves cider-macroexpand-1 unbound
+		(cljr-add-keybindings-with-prefix "C-c C-m")))
+
+    (dolist (magic-require '(("clerk"    . "nextjournal.clerk")
+			     ("csv"      . "clojure.data.csv")
+			     ("edn"      . "clojure.edn")
+			     ("pprint"   . "clojure.pprint")
+			     ("reagent"  . "reagent.core")
+			     ("re-frame" . "re-frame.core")))
+      (add-to-list 'cljr-magic-require-namespaces magic-require)))
 
 #+end_src
 
 Clerk
 #+begin_src elisp
-(defun clerk-show ()
+;; (defun clerk-show ()
+;;   (interactive)
+;;   (when-let
+;;       ((filename
+;;         (buffer-file-name)))
+;;     (save-buffer)
+;;     (cider-interactive-eval
+;;      (concat "(nextjournal.clerk/show! \"" filename "\")"))))
+
+;; (define-key clojure-mode-map (kbd "<M-return>") 'clerk-show)
+
+
+;; Thanks to user 'dakra' for sharing this config:
+;; - https://github.com/nextjournal/clerk/issues/170#issuecomment-1257013793
+
+;; Shortcut for clerk/show
+(defun clerk-serve ()
+  "Serve clerk notebooks."
   (interactive)
-  (when-let
-      ((filename
-        (buffer-file-name)))
-    (save-buffer)
+  (cider-interactive-eval "(nextjournal.clerk/serve! {:browse? true})"))
+
+(defun clerk-build ()
+  "Build static html for the current clerk notebook."
+  (interactive)
+  (message "Building static page")
+  (when-let ((filename (buffer-file-name)))
+    (let ((root (project-root (project-current t))))
+      (cider-interactive-eval
+       (concat "(nextjournal.clerk/build! {:paths [\""
+               (file-relative-name filename root) "\"]})")))))
+
+(defun clerk-show ()
+  "Show buffer in clerk."
+  (interactive)
+  (message "Show buffer in clerk.")
+  (when-let ((filename (buffer-file-name)))
     (cider-interactive-eval
      (concat "(nextjournal.clerk/show! \"" filename "\")"))))
 
-(define-key clojure-mode-map (kbd "<M-return>") 'clerk-show)
+(defun clerk-save-and-show ()
+  "Save buffer and show in clerk."
+  (interactive)
+  (save-buffer)
+  (clerk-show))
+
+(define-minor-mode clerk-mode
+  "A mode that just binds `<M-return>' to `clerk-show'."
+  :lighter " clerk"
+  :keymap `((,(kbd "<M-return>") . clerk-save-and-show))
+  (if clerk-mode
+      (add-hook 'after-save-hook #'clerk-show 100 t)
+    (remove-hook 'after-save-hook #'clerk-show t)))
+
+
+(defun ph/buffer-file-parent-dir-name ()
+  (interactive)
+  (file-name-nondirectory
+   (directory-file-name (file-name-directory buffer-file-name))))
+
+(defun activate-hook-for-dir (mode dir-name)
+  "Activate `mode` if the directory in which the file resides has `dir-name`."
+  (when (string-match-p dir-name (ph/buffer-file-parent-dir-name))
+    (funcall mode)))
+
+(add-hook 'find-file-hook
+	  (lambda ()
+	    (activate-hook-for-dir 'clerk-mode "notebooks")))
 #+end_src
 
 *** markdown
@@ -1001,7 +1132,13 @@ Clerk
   :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "pandoc")
   :bind (:map markdown-mode-map
-              ("C-c C-e" . markdown-do)))
+              ("C-c C-e" . markdown-do))
+  :config
+  (setq markdown-fontify-code-blocks-natively t)
+  (dolist (x '(("clj" . clojure-mode)
+               ("cljs" . clojure-mode)
+               ("cljc" . clojure-mode)))
+    (add-to-list 'markdown-code-lang-modes x)))
 #+end_src
 
 #+begin_src elisp
@@ -1192,14 +1329,14 @@ one, an error is signaled."
 
 
 ;;; because M-x is hard to reach on my keyboard:
-(keymap-global-set "C-\\" 'execute-extended-command)
-(keymap-global-set "C-|" 'execute-extended-command-for-buffer)
-(keymap-global-set "M-+" 'toggle-input-method) ;; replacement for C-\
+(keymap-global-set "C-\\" #'execute-extended-command)
+(keymap-global-set "C-|" #'execute-extended-command-for-buffer)
+(keymap-global-set "M-+" #'toggle-input-method) ;; replacement for C-\
 
 (global-set-key [remap list-buffers] 'ibuffer)
 
 ;;; because C-M-d activates the dictionary in MacOS (hard to change):
-(keymap-global-set "C-M-'" 'down-list) 
+(keymap-global-set "C-M-'" #'down-list) 
 
 ;;; I like to scroll line-by-line
 (defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
@@ -1352,8 +1489,8 @@ Subtracts right margin and org indentation level from fill-column"
     (open-line 1)
     (goto-char beg)))
 
-(keymap-global-set "C-}" 'newline-empty-below)
-(keymap-global-set "C-{" 'newline-empty-above)
+(keymap-global-set "C-}" #'newline-empty-below)
+(keymap-global-set "C-{" #'newline-empty-above)
 
 
 (defun join-with-next-line ()
@@ -1363,12 +1500,12 @@ Subtracts right margin and org indentation level from fill-column"
 
 ;;; Feels more like Vims S-j to me and I use this very often:
 ;;; (note: C-j gets overwritten in Lisp Interactive mode)
-(keymap-global-set "C-M-j" 'delete-indentation) ;; M-^ is weird to type
-(keymap-global-set "C-S-j" 'join-with-next-line) ; ? or C-c j
+(keymap-global-set "C-M-j" #'delete-indentation) ;; M-^ is weird to type
+(keymap-global-set "C-S-j" #'join-with-next-line) ; ? or C-c j
 
 ;;; I don’t use these often enough for their prominent keybindings:
-(keymap-global-set "M-o" 'default-indent-new-line) ;; was C-M-j / M-j
-(keymap-global-set "M-j" 'electric-newline-and-maybe-indent) ;; was C-j
+(keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
+(keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
 
 #+end_src
 
@@ -1407,6 +1544,7 @@ eshell:
 #+end_src
 
 ** Popup windows & Help buffers
+? not needed anymore due to popwin, maybe delete
 #+begin_src elisp
 (defun ph/close-all-popups ()
   "Closes all open popup windows."
@@ -1429,7 +1567,7 @@ eshell:
             (delete-window (get-buffer-window buf))))
         (kill-buffer buf)))))
 
-(keymap-global-set "C-`" 'ph/kill-all-help-buffers)
+;; (keymap-global-set "C-`" #'ph/kill-all-help-buffers)
 #+end_src
 
 ** Colors
@@ -1478,17 +1616,22 @@ If called interactively, PT is the value immediately under `point'."
 (defun ph/browse-url-in-split-window (url)
   (interactive "sEnter URL: ")
   (let ((buffer (generate-new-buffer "+xwidget-webkit*")))
-    (set-frame-size nil 186 (frame-height))
+    (set-frame-size nil 210 (frame-height))
     (split-window-right)
     (other-window 1)
-    (let* ((pixel-size 800)
+    (let* ((pixel-size 980)
 	   (desired-char-width (/ pixel-size (frame-char-width)))
 	   (delta (- desired-char-width (window-total-width))))
       (when (> delta 0)
 	(window-resize nil delta t))
       (switch-to-buffer buffer)
-      (setq window-size-fixed 'width)
+      ;; (setq window-size-fixed 'width)
       (xwidget-webkit-browse-url url))))
+
+(defun ph/set-frame-size-xwidget-webkit-split ()
+  (interactive)
+  (set-frame-size nil 210 (frame-height)))
+
 
 #+end_src
 
@@ -1516,8 +1659,8 @@ Increment/decrement numbers like in Vim:
   (interactive "p")
   (ph/change-number-at-point '- (or increment 1)))
 
-(keymap-global-set "C-c +" 'ph/increment-number-at-point)
-(keymap-global-set "C-c -" 'ph/decrement-number-at-point)
+(keymap-global-set "C-c +" #'ph/increment-number-at-point)
+(keymap-global-set "C-c -" #'ph/decrement-number-at-point)
 #+end_src
 
 * Appearance
@@ -1556,29 +1699,28 @@ Increment/decrement numbers like in Vim:
 * TODO
 
 To practice:
-- [ ] OrgMode bindings (+ Evil ones)
+- [ ] OrgMode bindings
 - [ ] leader-key bindings
 
 To learn:
-- [ ] learn keybinding in general
-- [ ] then learn how to use general.el
-- [ ] how to use localleader with general.el
 - [ ] how does Yasnippet work and is it useful?
 - [ ] CIDER
 
+To consider:
+- [ ] remove dot-mode, since it doesn’t work well with meow
+
 Packages to try:
-- [ ] Ivy for completion instead of FIDO?
-  - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#ivy-counsel][DistroTube]] for config
 - [ ] Swiper (depends on ivy) for isearch with regex
-- [ ] all-the-icons and all-the-icons-nerd-fonts
-  - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#all-the-icons][DistroTube]] for config
 - [ ] sudo-edit if need arises to use sudo to open files
 - [ ] consider vterm instead of ~M-x shell~
   - seems to be compiled instead of elisp -> faster
   - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#vterm][DistroTube]] for config
   - also install vterm-toggle
 - [ ] does dump-jump (installed) work?
-
+- [ ] org-babel-clojure for Clojure eval in org-mode comments
+  - https://orgmode.org/worg//org-contrib/babel/languages/ob-doc-clojure.html
+- [ ] neil  
+- [ ] html-to-hiccup
   
 * Eshell alias file
 This doesn’t work somehow if I put it in =eshell/alias=!
