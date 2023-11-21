@@ -159,6 +159,71 @@ one, an error is signaled."
       (select-window other-win))))
 #+end_src
 
+* Basic config
+#+begin_src elisp
+;;; Display relative line numbers
+(setq display-line-numbers-type 'relative)
+(global-display-line-numbers-mode 1)
+(setq display-line-numbers-widen t)
+(setq display-line-numbers-width-start t)
+(setq display-line-numbers-width 3)
+
+;;; Display column number in modeline
+(column-number-mode 1)
+
+;;; Highlight current line
+(hl-line-mode 1)
+
+;;; Disable tab insertion for indentation
+(setq indent-tabs-mode nil)
+
+;;; Set max char count for automatic line breaks
+(setq-default fill-column 80) ; ! FIXME: still 70?
+;;; Display vertical line at char limit
+(global-display-fill-column-indicator-mode 1)
+(setq display-fill-column-indicator-character 9474)
+;;; Automatically insert line breaks at char limit
+;; (auto-fill-mode 1)
+
+(setq repeat-mode t)
+(setq repeat-exit-key "<return>")
+
+(setq sentence-end-double-space nil)
+
+(setq next-screen-context-lines 4) ;; was 2
+
+(setq blink-cursor-mode nil)
+
+;;; Remember and get back to recently opened files
+(recentf-mode 1)
+
+;;; Remember and restore the last cursor location of opened files
+(save-place-mode 1)
+;;; Save and restore the state of Emacs from one session to another
+(desktop-save-mode 1)
+
+;;; Don’t pop up UI dialogs when prompting
+(setq use-dialog-box nil)
+
+;;; Revert buffers when the underlying file has changed
+(global-auto-revert-mode 1)
+;;; Revert Dired and other buffers
+(setq global-auto-revert-non-file-buffers t)
+
+;;; Disabled by default, but I find them useful and not confusing:
+(put 'upcase-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
+
+;;; No backup files (foo.txt~):
+(setq make-backup-files nil)
+
+;;; Follow symlinks for version control:
+(setq vc-follow-symlinks t)
+
+(winner-mode 1)
+
+#+end_src
+
 * Packages
 ** use-package add-ons
 Enable ~:diminish~ to hide modeline display of some minor modes:
@@ -280,8 +345,8 @@ major mode or the general command if none applies."
    '("/m" . meow-start-kmacro)
    '("/n" . meow-end-or-call-kmacro)
    
-   '("/c" . kill-ring-save)
-   '("/p" . yank)
+   ;; '("/c" . kill-ring-save)
+   ;; '("/p" . yank)
    
    '("/f" . xref-find-definitions)
    '("/F" . xref-go-back)
@@ -290,6 +355,7 @@ major mode or the general command if none applies."
 
    '("/u" . upcase-dwim)
    '("/l" . downcase-dwim)
+   '("/c" . capitalize-dwim)
    '("/+" . ph/increment-number-at-point)
    '("/-" . ph/decrement-number-at-point)
    '("/w" . ph/wrap-with-char)
@@ -342,6 +408,7 @@ major mode or the general command if none applies."
 (defun ph/meow-bindings ()
   
   (meow-define-keys 'insert
+    '("H-SPC" . meow-keypad)
     '("C-M-§" . meow-insert-exit)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-y" . meow-yank))
@@ -535,6 +602,7 @@ major mode or the general command if none applies."
 
   (meow-define-keys 'paren
     ;; general meow keys:
+    '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
 
     '("p" . meow-yank)
@@ -703,7 +771,7 @@ major mode or the general command if none applies."
                           :states '(normal insert visual emacs)
                           :keymaps 'override
                           :prefix "SPC" ;; set leader
-                          :global-prefix "M-SPC") ;; access leader in insert mode
+                          :global-prefix "H-SPC") ;; access leader in insert mode
 
   (ph/leader-keys
    "." '(find-file :wk "Find file")
@@ -1221,71 +1289,6 @@ Clerk
 (scroll-bar-mode -1)
 #+end_src
 
-* Basic config
-#+begin_src elisp
-;;; Display relative line numbers
-(setq display-line-numbers-type 'relative)
-(global-display-line-numbers-mode 1)
-(setq display-line-numbers-widen t)
-(setq display-line-numbers-width-start t)
-(setq display-line-numbers-width 3)
-
-;;; Display column number in modeline
-(column-number-mode 1)
-
-;;; Highlight current line
-(hl-line-mode 1)
-
-;;; Disable tab insertion for indentation
-(setq indent-tabs-mode nil)
-
-;;; Set max char count for automatic line breaks
-(setq-default fill-column 80) ; ! FIXME: still 70?
-;;; Display vertical line at char limit
-(global-display-fill-column-indicator-mode 1)
-(setq display-fill-column-indicator-character 9474)
-;;; Automatically insert line breaks at char limit
-;; (auto-fill-mode 1)
-
-(setq repeat-mode t)
-(setq repeat-exit-key "<return>")
-
-(setq sentence-end-double-space nil)
-
-(setq next-screen-context-lines 4) ;; was 2
-
-(setq blink-cursor-mode nil)
-
-;;; Remember and get back to recently opened files
-(recentf-mode 1)
-
-;;; Remember and restore the last cursor location of opened files
-(save-place-mode 1)
-;;; Save and restore the state of Emacs from one session to another
-(desktop-save-mode 1)
-
-;;; Don’t pop up UI dialogs when prompting
-(setq use-dialog-box nil)
-
-;;; Revert buffers when the underlying file has changed
-(global-auto-revert-mode 1)
-;;; Revert Dired and other buffers
-(setq global-auto-revert-non-file-buffers t)
-
-;;; Disabled by default, but I find them useful and not confusing:
-(put 'upcase-region 'disabled nil)
-(put 'downcase-region 'disabled nil)
-
-;;; No backup files (foo.txt~):
-(setq make-backup-files nil)
-
-;;; Follow symlinks for version control:
-(setq vc-follow-symlinks t)
-
-(winner-mode 1)
-
-#+end_src
-
 * Customization
 ** Modifier keys
 #+begin_src elisp
@@ -1356,7 +1359,7 @@ Clerk
 ;;  'my-org/insert-heading-above)
 
 
-(defun describe-keybinding (keybinding)
+(defun ph/describe-keybinding (keybinding)
   (interactive "sEnter keybinding: ")
   (describe-key (kbd keybinding)))
 
