@@ -237,6 +237,15 @@ major mode or the general command if none applies."
   (if (eq major-mode 'clojure-mode)
       (cider-eval-buffer buffer nil undef-all)
     (eval-buffer buffer)))
+
+(defun ph/meow-change-save ()
+  "Calls `meow-change-save' if a region is active, otherwise calls
+`meow-change'"
+  (interactive)
+  (if (region-active-p)
+      (meow-change-save)
+    (meow-change)))
+
 #+end_src
 
 *** My meow things
@@ -322,8 +331,9 @@ major mode or the general command if none applies."
    '("C-S-<right>" . enlarge-window-horizontally)
    '("C-S-<up>" . enlarge-window) ;; C-S-i must be separated from TAB first
    '("C-S-<down>" . shrink-window)
-   '("M-c" . kill-ring-save)
-   '("M-v" . yank)))
+   '("M-c" . meow-clipboard-save) ;; was kill-ring-save
+   '("M-x" . meow-clipboard-kill)
+   '("M-v" . meow-clipboard-yank))) ;; was yank
 
 #+end_src
 *** My meow bindings
@@ -470,7 +480,7 @@ major mode or the general command if none applies."
 					; editing
     '("d" . meow-kill)
     '("D" . meow-kill-whole-line)
-    '("r" . meow-change)		; f -> c -> r
+    '("r" . ph/meow-change-save)		; f -> c -> r
     '("R" . meow-replace)
     '("x" . meow-delete)		; t -> x
     '("c" . meow-save)			; c -> y -> t -> ` -> c
@@ -547,7 +557,7 @@ major mode or the general command if none applies."
     '("s" . meow-append)
     '("S" . meow-open-below)
     
-    '("r" . meow-change)
+    '("r" . ph/meow-change-save)
     '("R" . meow-replace)
     
     ;; '("d" . meow-kill)
