@@ -332,7 +332,7 @@ major mode or the general command if none applies."
 (defun ph/meow-bindings ()
   
   (meow-define-keys 'insert
-    '("C-g" . meow-insert-exit)
+    '("C-M-§" . meow-insert-exit)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-y" . meow-yank))
   
@@ -525,7 +525,7 @@ major mode or the general command if none applies."
 
   (meow-define-keys 'paren
     ;; general meow keys:
-    '("C-g" . meow-normal-mode)
+    '("C-M-§" . meow-normal-mode)
 
     '("p" . meow-yank)
     '("P" . meow-yank-pop)
@@ -564,9 +564,7 @@ major mode or the general command if none applies."
 
     '("<backspace>" . sp-backward-unwrap-sexp)
     '("<escape>" . ignore)
-    '("c" . sp-copy-sexp)
-    ;; '("r" . sp-change-inner)
-
+    
     '("h" . sp-beginning-of-sexp)
     '("e" . sp-end-of-sexp)
     '("$" . ph/sp-innermost)
@@ -584,8 +582,10 @@ major mode or the general command if none applies."
     '("i" . sp-up-sexp)
     '("I" . sp-backward-up-sexp)
     
-    '("d" . sp-kill-sexp)
+    '("d" . ph/sp-kill-sexp-or-region)
     '("D" . sp-kill-hybrid-sexp)
+    '("c" . ph/sp-copy-sexp-or-region)
+    ;; '("r" . sp-change-inner)
     
     '("w" . sp-mark-sexp)
     '("W" . sp-rewrap-sexp)
@@ -643,7 +643,7 @@ major mode or the general command if none applies."
   ;;; see:
   ;;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
   (define-key input-decode-map [?\C-\[] [C-\[])
-  (define-key global-map [C-\[] [?\C-g])
+  (define-key global-map [C-\[] [?\C-\M-§])
   
   ;;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
   ;; (define-key input-decode-map [?\C-i] [C-i])
@@ -834,37 +834,6 @@ major mode or the general command if none applies."
 #+end_src
 
 ** Popup windows
-*** COMMENT popwin
-#+begin_src elisp
-(use-package popwin
-  :diminish
-  :config
-  (popwin-mode 1)
-
-  (push "*cider-doc*" popwin:special-display-config)
-
-  ;; Issue: calling popup help window replaces popup with a regular window.
-  ;; Thanks to user 'rakete' for this workaround:
-  ;; - https://github.com/emacsorphanage/popwin/issues/131#issuecomment-239221901
-  (defadvice display-buffer (around display-buffer-prevent-popwin-split last activate)
-    (let* ((buffer (ad-get-arg 0)))
-      (if (and (string-equal (buffer-name buffer) "*Help*")
-               (get-buffer-window buffer))
-          (let ((display-buffer-alist nil))
-            ad-do-it)
-	ad-do-it)))
-
-  (defun ph/popwin-toggle-popup ()
-    (interactive)
-    (if (popwin:popup-window-live-p)
-	(popwin:close-popup-window)
-      (popwin:popup-last-buffer)))
-
-  ;; (push '("*anything*" :height 20) popwin:special-display-config)
-  (setq popwin:popup-window-height 25)
-  (global-set-key (kbd "C-z") popwin:keymap)
-  (keymap-global-set "C-`" #'ph/popwin-toggle-popup))
-#+end_src
 *** Popper
 #+begin_src elisp
 (use-package popper
@@ -887,6 +856,7 @@ major mode or the general command if none applies."
 #+end_src
 
 ** Completion
+*marginalia* (minibuffer completion)
 #+begin_src elisp
 ;; Enable rich annotations using the Marginalia package
 (use-package marginalia
@@ -924,8 +894,22 @@ major mode or the general command if none applies."
   )
 #+end_src
 
-** Programming
+*Company* (text completion)
+#+begin_src elisp
+(use-package company
+  :ensure t
+  :defer t
+  :diminish
+  :init (add-hook 'after-init-hook 'global-company-mode))
 
+;;; ? needed
+;; (use-package company-box
+;;   :after company
+;;   :diminish
+;;   :hook (company-mode . company-box-mode))
+#+end_src
+
+** Programming
 *dumb-jump* (jump to definition, etc. (file searchers for xref)
 #+begin_src elisp
 (use-package dumb-jump
@@ -962,21 +946,6 @@ major mode or the general command if none applies."
 
 #+end_src
 
-*Company* (text completion)
-#+begin_src elisp
-(use-package company
-  :ensure t
-  :defer t
-  :diminish
-  :init (add-hook 'after-init-hook 'global-company-mode))
-
-;;; ? needed
-;; (use-package company-box
-;;   :after company
-;;   :diminish
-;;   :hook (company-mode . company-box-mode))
-#+end_src
-
 ** Structural editing
 *** smartparens
 #+begin_src elisp
@@ -1011,6 +980,23 @@ Custom commands:
   "Moves to the leftmost-innermost sexp."
   (interactive)
   (sp-down-sexp '(4)))
+
+(defun ph/sp-kill-sexp-or-region (beg end &optional arg dont-kill)
+  "Selects the appropriate kill function from Smartparens by
+chacking if a region is active or not."
+  (interactive "rP")
+  (if (region-active-p)
+      (sp-kill-region beg end)
+    (sp-kill-sexp arg dont-kill)))
+
+(defun ph/sp-copy-sexp-or-region (beg end &optional arg)
+  "Selects the appropriate kill/copy function from Smartparens by
+chacking if a region is active or not."
+  (interactive "rP")
+  (if (region-active-p)
+      (meow-save)
+    (sp-kill-sexp arg t)))
+
 #+end_src
 *** COMMENT lispy
 #+begin_src elisp
@@ -1576,6 +1562,8 @@ If called interactively, PT is the value immediately under `point'."
 
 ;;; inspired from https://www.masteringemacs.org/article/my-emacs-keybindings
 (keymap-global-set "M-o" #'other-window)
+;;; get rid of the annoying frame minimize command
+(keymap-global-set "C-z" nil) 
 
 ;; (keymap-global-set "C-J" #'shrink-window-horizontally)
 ;; (keymap-global-set "C-L" #'enlarge-window-horizontally)
