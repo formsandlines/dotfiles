@@ -4,6 +4,8 @@
 #+STARTUP: showeverything
 #+OPTIONS: toc:2
 
+Use ~org-babel-load-file~ to reload config.
+
 * IMPORTANT PROGRAMS TO LOAD FIRST
 ** Custom File
 
@@ -80,6 +82,81 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 #+begin_src elisp
 (setq user-full-name "Peter Hofmann"
       user-mail-address "peter.hofmann@formsandlines.eu")
+#+end_src
+
+* Buffer move
+Creating some functions to allow us to easily move windows (splits) around. The
+following block of code was taken from =buffer-move.el= found on the EmacsWiki:
+- https://www.emacswiki.org/emacs/buffer-move.el
+- [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org][Source (DistroTube)]]
+
+#+begin_src elisp
+;;;###autoload
+(defun buf-move-up ()
+  "Swap the current buffer and the buffer above the split.
+If there is no split, ie now window above the current one, an
+error is signaled."
+  ;;  "Switches between the current buffer, and the buffer above the
+  ;;  split, if possible."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'up))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No window above this one")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun buf-move-down ()
+  "Swap the current buffer and the buffer under the split.
+If there is no split, ie now window under the current one, an
+error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'down))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (or (null other-win) 
+            (string-match "^ \\*Minibuf" (buffer-name (window-buffer other-win))))
+        (error "No window under this one")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun buf-move-left ()
+  "Swap the current buffer and the buffer on the left of the split.
+If there is no split, ie now window on the left of the current
+one, an error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'left))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No left split")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun buf-move-right ()
+  "Swap the current buffer and the buffer on the right of the split.
+If there is no split, ie now window on the right of the current
+one, an error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'right))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No right split")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
 #+end_src
 
 * Packages
@@ -207,6 +284,7 @@ major mode or the general command if none applies."
    '("/+" . ph/increment-number-at-point)
    '("/-" . ph/decrement-number-at-point)
    '("/w" . ph/wrap-with-char)
+   '("/W" . ph/change-wrapped-char)
 
    '("/s" . meow-visit)	        ; / -> ? -> / -> ns -> /s
    '("/g" . meow-goto-line)		; S -> E -> ng -> /g
@@ -240,10 +318,12 @@ major mode or the general command if none applies."
 #+begin_src elisp
 (defconst ph/meow-common
   (list
-   '("C-J" . shrink-window-horizontally)
-   '("C-L" . enlarge-window-horizontally)
-   '("C-<S-i>" . enlarge-window) ;; C-S-i must be separated from TAB first
-   '("C-K" . shrink-window)))
+   '("C-S-<left>" . shrink-window-horizontally)
+   '("C-S-<right>" . enlarge-window-horizontally)
+   '("C-S-<up>" . enlarge-window) ;; C-S-i must be separated from TAB first
+   '("C-S-<down>" . shrink-window)
+   '("M-c" . kill-ring-save)
+   '("M-v" . yank)))
 
 #+end_src
 *** My meow bindings
@@ -253,8 +333,11 @@ major mode or the general command if none applies."
   
   (meow-define-keys 'insert
     '("C-g" . meow-insert-exit)
+    '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-y" . meow-yank))
   
+  (apply 'meow-define-keys 'insert ph/meow-common)
+
 
   (meow-motion-overwrite-define-key
    '("i" . meow-prev)
@@ -267,6 +350,7 @@ major mode or the general command if none applies."
    '("}" . forward-paragraph)
    '("<escape>" . ignore))
   
+  (apply 'meow-motion-overwrite-define-key ph/meow-prefix-backslash)
   (apply 'meow-motion-overwrite-define-key ph/meow-common)
 
 
@@ -277,6 +361,7 @@ major mode or the general command if none applies."
    '("ws" . split-window-below)   ;; C-x 2
    '("wv" . split-window-right)   ;; C-x 3
    '("ww" . other-window)	  ;; C-x o
+   '("wb" . balance-windows)
    ;; Move Windows
    '("w J" . buf-move-left)
    '("w K" . buf-move-down)
@@ -414,7 +499,8 @@ major mode or the general command if none applies."
     '("-" . negative-argument)
     '("'" . repeat)
     '("\"" . meow-end-or-call-kmacro)    
-    '("?" . meow-paren-mode)
+    '("C-]" . meow-paren-mode) ;; ? -> C-]
+    '("§" . cider-doc) ;; ! replace with generic selector
 
 					; ignore escape
     '("<escape>" . ignore)))
@@ -452,8 +538,8 @@ major mode or the general command if none applies."
 
     '("-" . negative-argument)
     '("'" . repeat)
-    '("~" . meow-cancel-selection)
-    '("`" . meow-pop-selection)
+    '("`" . meow-cancel-selection)
+    ;; '("`" . meow-pop-selection) ;; doesn’t work with smartparens
     '(";" . meow-reverse)
     
     '("a" . meow-insert)
@@ -464,11 +550,13 @@ major mode or the general command if none applies."
     '("r" . meow-change)
     '("R" . meow-replace)
     
-    '("d" . meow-kill)
+    ;; '("d" . meow-kill)
 
     '("n" . meow-search)
     '("F" . meow-till)
     '("f" . meow-find)
+    
+    '("§" . cider-doc) ;; ! replace with generic selector
 
     ;; '("=" . meow-indent)
 
@@ -481,7 +569,10 @@ major mode or the general command if none applies."
 
     '("h" . sp-beginning-of-sexp)
     '("e" . sp-end-of-sexp)
-    '("%" . ph/sp-top)
+    '("$" . ph/sp-innermost)
+    '("%" . ph/sp-outermost)
+    
+    '("~" . exchange-point-and-mark)
 
     '("j" . sp-backward-sexp)
     '("J" . sp-backward-symbol)
@@ -493,10 +584,11 @@ major mode or the general command if none applies."
     '("i" . sp-up-sexp)
     '("I" . sp-backward-up-sexp)
     
-    '("D" . sp-kill-sexp)
-    ;; '("D" . sp-kill-hybrid-sexp)
+    '("d" . sp-kill-sexp)
+    '("D" . sp-kill-hybrid-sexp)
     
     '("w" . sp-mark-sexp)
+    '("W" . sp-rewrap-sexp)
 
     '("m" . sp-raise-sexp)
     '("M" . sp-splice-sexp)
@@ -519,14 +611,16 @@ major mode or the general command if none applies."
     '("q" . sp-unwrap-sexp)
     '("Q" . sp-backward-unwrap-sexp)
 
-    '("[" . sp-select-previous-thing)
-    '("{" . sp-select-previous-thing-exchange)
-    '("]" . sp-select-next-thing)
-    '("}" . sp-select-next-thing-exchange)
+    ;; smartparens automatically wraps if bracket is typed, so no binding
+    ;; '("[" . sp-select-previous-thing)
+    ;; '("{" . sp-select-previous-thing-exchange)
+    ;; '("]" . sp-select-next-thing)
+    ;; '("}" . sp-select-next-thing-exchange)
 
     '("=" . sp-indent-defun)
 
-    '("/c" . sp-comment)
+    '("//" . sp-comment)
+    '("/?" . meow-comment)
     '("/d" . (lambda () (interactive) (sp-wrap-with-pair "[")))
     '("/s" . (lambda () (interactive) (sp-wrap-with-pair "{")))
     '("/f" . (lambda () (interactive) (sp-wrap-with-pair "(")))))
@@ -545,16 +639,15 @@ major mode or the general command if none applies."
 
   (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
 
-  ;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
-  ;; see:
-  ;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
+  ;;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
+  ;;; see:
+  ;;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
   (define-key input-decode-map [?\C-\[] [C-\[])
   (define-key global-map [C-\[] [?\C-g])
   
-  ;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
-  (define-key input-decode-map [?\C-i] [C-i])
-  (define-key input-decode-map [?\C-\S-i] [C-S-i])
-  ;; (define-key input-decode-map [?\C-I] [C-I])
+  ;;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
+  ;; (define-key input-decode-map [?\C-i] [C-i])
+  ;; (define-key input-decode-map [?\C-\S-i] [C-S-i])
 
   (ph/meow-things)
   (ph/meow-paren-setup)
@@ -603,66 +696,66 @@ major mode or the general command if none applies."
                           :global-prefix "M-SPC") ;; access leader in insert mode
 
   (ph/leader-keys
-    "." '(find-file :wk "Find file")
-    "TAB TAB" '(comment-line :wk "Comment lines")
-    "SPC" '(org-fill-paragraph :wk "Correct line wrap")
-    "[" '(newline-empty-above :wk "Insert newline above")
-    "]" '(newline-empty-below :wk "Insert newline below"))
+   "." '(find-file :wk "Find file")
+   "TAB TAB" '(comment-line :wk "Comment lines")
+   "SPC" '(org-fill-paragraph :wk "Correct line wrap")
+   "[" '(newline-empty-above :wk "Insert newline above")
+   "]" '(newline-empty-below :wk "Insert newline below"))
 
   (ph/leader-keys
-    "f" '(:ignore t :wk "file")
-    "f c" '(visit-init :wk "Edit Emacs config")
-    "f b" '(recentf-open-files :wk "Recent files buffer")
-    "f r" '(recentf-open :wk "Recent files"))
+   "f" '(:ignore t :wk "file")
+   "f c" '(visit-init :wk "Edit Emacs config")
+   "f b" '(recentf-open-files :wk "Recent files buffer")
+   "f r" '(recentf-open :wk "Recent files"))
 
   (ph/leader-keys
-    "b" '(:ignore t :wk "buffer")
-    "b b" '(switch-to-buffer :wk "Switch buffer")
-    "b i" '(ibuffer :wk "Ibuffer")
-    "b k" '(kill-this-buffer :wk "Kill this buffer")
-    "b n" '(next-buffer :wk "Next buffer")
-    "b p" '(previous-buffer :wk "Previous buffer")
-    ;; "b r" '(revert-buffer :wk "reload buffer")
-    )
+   "b" '(:ignore t :wk "buffer")
+   "b b" '(switch-to-buffer :wk "Switch buffer")
+   "b i" '(ibuffer :wk "Ibuffer")
+   "b k" '(kill-this-buffer :wk "Kill this buffer")
+   "b n" '(next-buffer :wk "Next buffer")
+   "b p" '(previous-buffer :wk "Previous buffer")
+   ;; "b r" '(revert-buffer :wk "reload buffer")
+   )
 
   (ph/leader-keys
-    "e" '(:ignore t :wk "Evaluate")    
-    "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
-    "e d" '(eval-defun :wk "Evaluate defun containing or after point")
-    "e e" '(eval-expression :wk "Evaluate and elisp expression")
-    "e l" '(eval-last-sexp :wk "Evaluate elisp expression before point")
-    "e r" '(eval-region :wk "Evaluate elisp in region")) 
+   "e" '(:ignore t :wk "Evaluate")    
+   "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
+   "e d" '(eval-defun :wk "Evaluate defun containing or after point")
+   "e e" '(eval-expression :wk "Evaluate and elisp expression")
+   "e l" '(eval-last-sexp :wk "Evaluate elisp expression before point")
+   "e r" '(eval-region :wk "Evaluate elisp in region")) 
 
-   (ph/leader-keys
-    "h" '(:ignore t :wk "Help")
-    "h f" '(describe-function :wk "Describe function")
-    "h v" '(describe-variable :wk "Describe variable")
-    "h r r" '((lambda () (interactive) (load-file user-init-file)) :wk "Reload emacs config")) ;; may need to call it twice because of some issue
+  (ph/leader-keys
+   "h" '(:ignore t :wk "Help")
+   "h f" '(describe-function :wk "Describe function")
+   "h v" '(describe-variable :wk "Describe variable")
+   "h r r" '((lambda () (interactive) (load-file user-init-file)) :wk "Reload emacs config")) ;; may need to call it twice because of some issue
 
-   (ph/leader-keys
-    "w" '(:ignore t :wk "Windows")
-    ;; Window splits
-    "w c" '(evil-window-delete :wk "Close window")
-    "w n" '(evil-window-new :wk "New window")
-    "w s" '(evil-window-split :wk "Horizontal split window")
-    "w v" '(evil-window-vsplit :wk "Vertical split window")
-    ;; Window motions
-    "w h" '(evil-window-left :wk "Window left")
-    "w j" '(evil-window-down :wk "Window down")
-    "w k" '(evil-window-up :wk "Window up")
-    "w l" '(evil-window-right :wk "Window right")
-    "w w" '(evil-window-next :wk "Goto next window")
-    ;; Move Windows
-    "w H" '(buf-move-left :wk "Buffer move left")
-    "w J" '(buf-move-down :wk "Buffer move down")
-    "w K" '(buf-move-up :wk "Buffer move up")
-    "w L" '(buf-move-right :wk "Buffer move right"))
+  (ph/leader-keys
+   "w" '(:ignore t :wk "Windows")
+   ;; Window splits
+   "w c" '(evil-window-delete :wk "Close window")
+   "w n" '(evil-window-new :wk "New window")
+   "w s" '(evil-window-split :wk "Horizontal split window")
+   "w v" '(evil-window-vsplit :wk "Vertical split window")
+   ;; Window motions
+   "w h" '(evil-window-left :wk "Window left")
+   "w j" '(evil-window-down :wk "Window down")
+   "w k" '(evil-window-up :wk "Window up")
+   "w l" '(evil-window-right :wk "Window right")
+   "w w" '(evil-window-next :wk "Goto next window")
+   ;; Move Windows
+   "w H" '(buf-move-left :wk "Buffer move left")
+   "w J" '(buf-move-down :wk "Buffer move down")
+   "w K" '(buf-move-up :wk "Buffer move up")
+   "w L" '(buf-move-right :wk "Buffer move right"))
 
-   (ph/leader-keys
-    "t" '(:ignore t :wk "Toggle")
-    "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
-    "t h" '(hl-line-mode :wk "Toggle line highlighting")
-    "t t" '(visual-line-mode :wk "Toggle truncated lines")))
+  (ph/leader-keys
+   "t" '(:ignore t :wk "Toggle")
+   "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
+   "t h" '(hl-line-mode :wk "Toggle line highlighting")
+   "t t" '(visual-line-mode :wk "Toggle truncated lines")))
 #+end_src
 
 *** which-key
@@ -741,12 +834,15 @@ major mode or the general command if none applies."
 #+end_src
 
 ** Popup windows
+*** COMMENT popwin
 #+begin_src elisp
 (use-package popwin
   :diminish
   :config
   (popwin-mode 1)
-  
+
+  (push "*cider-doc*" popwin:special-display-config)
+
   ;; Issue: calling popup help window replaces popup with a regular window.
   ;; Thanks to user 'rakete' for this workaround:
   ;; - https://github.com/emacsorphanage/popwin/issues/131#issuecomment-239221901
@@ -768,6 +864,26 @@ major mode or the general command if none applies."
   (setq popwin:popup-window-height 25)
   (global-set-key (kbd "C-z") popwin:keymap)
   (keymap-global-set "C-`" #'ph/popwin-toggle-popup))
+#+end_src
+*** Popper
+#+begin_src elisp
+(use-package popper
+  :ensure t
+  :bind (("C-`"   . popper-toggle)
+         ("M-§"   . popper-cycle) ;; was handle-switch-frame
+         ("C-M-`" . popper-toggle-type))
+  :init
+  (setq popper-reference-buffers
+        '("\\*Messages\\*"
+          "Output\\*$"
+          "\\*Async Shell Command\\*"
+	  "\\*cider-doc\\*"
+          help-mode
+          compilation-mode))
+  (popper-mode +1)
+  (popper-echo-mode +1)
+  :config
+  )
 #+end_src
 
 ** Completion
@@ -870,17 +986,31 @@ major mode or the general command if none applies."
   :config
   (smartparens-global-mode t) ;; These options can be t or nil.
   (show-smartparens-global-mode t)
-  (setq sp-show-pair-from-inside t))
+  (setq sp-show-pair-from-inside t)
+  
+  ;; (sp-pair "`" "`")
+  ;; (sp-pair "$" "$")
+  )
 #+end_src
 
 Custom commands:
 #+begin_src elisp
-(defun ph/sp-top ()
+(defun ph/sp-outermost ()
   "Moves outside to top-level sexp."
   (interactive)
   (let ((res (sp-up-sexp)))
     (while res
       (setq res (sp-up-sexp)))))
+
+;; (defun ph/sp-outermost ()
+;;   "Moves outside to top-level sexp."
+;;   (interactive)
+;;   (sp-up-sexp '(-4)))
+
+(defun ph/sp-innermost ()
+  "Moves to the leftmost-innermost sexp."
+  (interactive)
+  (sp-down-sexp '(4)))
 #+end_src
 *** COMMENT lispy
 #+begin_src elisp
@@ -992,7 +1122,12 @@ Clerk
 (defun clerk-serve ()
   "Serve clerk notebooks."
   (interactive)
-  (cider-interactive-eval "(nextjournal.clerk/serve! {:browse? true})"))
+  (let ((port "7777"))
+    (cider-interactive-eval (concat
+			     "(nextjournal.clerk/serve! {"
+			     ":port " port " "
+			     ":browse? false})"))
+    (ph/browse-url-in-split-window (concat "http://localhost:" port))))
 
 (defun clerk-build ()
   "Build static html for the current clerk notebook."
@@ -1150,81 +1285,9 @@ Clerk
 
 ;;; Follow symlinks for version control:
 (setq vc-follow-symlinks t)
-#+end_src
 
-* Buffer move
-Creating some functions to allow us to easily move windows (splits) around. The
-following block of code was taken from =buffer-move.el= found on the EmacsWiki:
-- https://www.emacswiki.org/emacs/buffer-move.el
-- [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org][Source (DistroTube)]]
+(winner-mode 1)
 
-#+begin_src elisp
-;;;###autoload
-(defun buf-move-up ()
-  "Swap the current buffer and the buffer above the split.
-If there is no split, ie now window above the current one, an
-error is signaled."
-;;  "Switches between the current buffer, and the buffer above the
-;;  split, if possible."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'up))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (null other-win)
-        (error "No window above this one")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
-
-;;;###autoload
-(defun buf-move-down ()
-"Swap the current buffer and the buffer under the split.
-If there is no split, ie now window under the current one, an
-error is signaled."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'down))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (or (null other-win) 
-            (string-match "^ \\*Minibuf" (buffer-name (window-buffer other-win))))
-        (error "No window under this one")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
-
-;;;###autoload
-(defun buf-move-left ()
-"Swap the current buffer and the buffer on the left of the split.
-If there is no split, ie now window on the left of the current
-one, an error is signaled."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'left))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (null other-win)
-        (error "No left split")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
-
-;;;###autoload
-(defun buf-move-right ()
-"Swap the current buffer and the buffer on the right of the split.
-If there is no split, ie now window on the right of the current
-one, an error is signaled."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'right))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (null other-win)
-        (error "No right split")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
 #+end_src
 
 * Customization
@@ -1432,13 +1495,25 @@ Subtracts right margin and org indentation level from fill-column"
 ** Wrap with char
 #+begin_src elisp
 (defun ph/wrap-with-char (start end)
-  "Wraps a region with an input character."
+  "Wraps a region with given input character."
   (interactive "r")
   (let ((char (string-to-char (read-string "Enter character: "))))
     (save-excursion
       (goto-char end)
       (insert-char char)
       (goto-char start)
+      (insert-char char))))
+
+(defun ph/change-wrapped-char (start end)
+  "Changes wrapping characters in a region with given input character."
+  (interactive "r")
+  (let ((char (string-to-char (read-string "Enter character: "))))
+    (save-excursion
+      (goto-char end)
+      (delete-char -1)
+      (insert-char char)
+      (goto-char start)
+      (delete-char 1)
       (insert-char char))))
 #+end_src
 ** Shells & Terminals

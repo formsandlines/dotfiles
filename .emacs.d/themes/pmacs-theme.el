@@ -48,8 +48,9 @@
       (type    "#c187ca")
       (var     "#e29c5a")
       (selection "#494a63")
-      (warning   "#ff5e99")
-      (warning2  "#e86310")
+      (err "#ff5e99")
+      (warning  "#ffaf77")
+      (warning2 "#e86310")
       (unspec   (when (>= emacs-major-version 29) 'unspecified)))
   (custom-theme-set-faces
    'pmacs
@@ -137,7 +138,7 @@
    `(js2-jsdoc-value ((,class (:foreground ,str))))
    `(js2-private-member ((,class (:foreground ,fg3))))
    `(js3-warning-face ((,class (:underline ,keyword))))
-   `(js3-error-face ((,class (:underline ,warning))))
+   `(js3-error-face ((,class (:underline ,err))))
    `(js3-external-variable-face ((,class (:foreground ,var))))
    `(js3-function-param-face ((,class (:foreground ,fg2))))
    `(js3-jsdoc-tag-face ((,class (:foreground ,keyword))))
@@ -251,11 +252,11 @@
   (if (< emacs-major-version 22)
       (custom-theme-set-faces
        'pmacs
-       `(show-paren-match-face ((,class (:background ,warning))))) ;; obsoleted in 22.1, removed 2016
+       `(show-paren-match-face ((,class (:background ,err))))) ;; obsoleted in 22.1, removed 2016
     (custom-theme-set-faces
      'pmacs
      `(show-paren-match ((,class (:underline ,str))))
-     `(show-paren-mismatch ((,class (:foreground ,bg1 :background ,warning))))))
+     `(show-paren-mismatch ((,class (:foreground ,bg1 :background ,err))))))
   ;; emacs >= 26.1
   (when (>= emacs-major-version 26)
     (custom-theme-set-faces
