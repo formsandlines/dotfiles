@@ -32,6 +32,13 @@ Use ~org-babel-load-file~ to reload config.
 (eval-when-compile (require 'use-package)) ; ? needed
 #+end_src
 
+*vc-package integration into use-package*
+- *NOTE:* remove after upgrade to /Emacs 30/, since it’s built-in there
+#+begin_src elisp
+(unless (package-installed-p 'vc-use-package)
+  (package-vc-install "https://github.com/slotThe/vc-use-package"))
+#+end_src
+
 *use-package autoremove fix*
 
 Custom ~package-autoremove~ that only removes packages not ~:ensure~'d in
@@ -299,13 +306,33 @@ Enable ~:diminish~ to hide modeline display of some minor modes:
   "Conditionally evokes eval-buffer commands specific to the active
 major mode or the general command if none applies."
   (interactive (list (current-buffer) (equal current-prefix-arg '(4))))
-  (if (eq major-mode 'clojure-mode)
-      (cider-eval-buffer buffer nil undef-all)
-    (eval-buffer buffer)))
+  (cond
+   ((eq major-mode 'clojure-mode)
+    (cider-eval-buffer buffer nil undef-all))
+   ((eq major-mode 'janet-mode)
+    (ajrepl-send-buffer))
+   (t (eval-buffer buffer))))
+
+(defun ph/meow-eval-region (start end)
+  "Conditionally evokes eval-region commands specific to the active
+major mode or the general command if none applies."
+  (interactive "r")
+  (cond
+   ((eq major-mode 'janet-mode)
+    (ajrepl-send-region start end))
+   ((t (eval-region start end)))))
+
+(defun ph/meow-eval-dwim (&optional start end)
+  "Calls `ph/meow-eval-region' if a region is active, otherwise
+calls `meow-eval-last-exp'."
+  (interactive "r")
+  (if (region-active-p)
+      (ph/meow-eval-region start end)
+    (meow-eval-last-exp)))
 
 (defun ph/meow-change-save ()
   "Calls `meow-change-save' if a region is active, otherwise calls
-`meow-change'"
+`meow-change'."
   (interactive)
   (if (region-active-p)
       (meow-change-save)
@@ -363,8 +390,9 @@ major mode or the general command if none applies."
 
    '("/s" . meow-visit)	        ; / -> ? -> / -> ns -> /s
    '("/g" . meow-goto-line)		; S -> E -> ng -> /g
-   '("/e" . meow-eval-last-exp)  ; just C-x C-e
+   '("/e" . ph/meow-eval-dwim)  ; just C-x C-e or ph/meow-eval-region
    '("/b" . ph/meow-eval-buffer)
+   ;; '("/r" . ph/meow-eval-region)
    '("/d" . "C-M-x")  ; = eval-defun & friends
    ;; '("/j" . ph/meow-join-with)
    ;; '("/k" . ph/meow-split-at)
@@ -1241,6 +1269,19 @@ Clerk
 	    (activate-hook-for-dir 'clerk-mode "notebooks")))
 #+end_src
 
+*** Janet
+#+begin_src elisp
+(use-package janet-mode
+  :ensure t)
+
+(use-package ajrepl
+  :vc (:fetcher github :repo sogaiu/ajrepl)
+  :ensure t
+  :config
+  (add-hook 'janet-mode-hook
+            #'ajrepl-interaction-mode))
+
+#+end_src
 *** markdown
 #+begin_src elisp
 (use-package markdown-mode

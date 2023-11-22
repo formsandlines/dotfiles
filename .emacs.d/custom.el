@@ -34,7 +34,10 @@
 		       "\\_>")
 	      1 'font-lock-variable-name-face)))))
  '(package-selected-packages
-   '(lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode rainbow-mode org-appear evil-surround gruvbox-theme evil)))
+   '(lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode rainbow-mode org-appear evil-surround gruvbox-theme evil))
+ '(package-vc-selected-packages
+   '((ajrepl :vc-backend Git :url "https://github.com/sogaiu/ajrepl")
+     (vc-use-package :vc-backend Git :url "https://github.com/slotThe/vc-use-package"))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
