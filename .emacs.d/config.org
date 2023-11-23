@@ -179,7 +179,7 @@ one, an error is signaled."
 (column-number-mode 1)
 
 ;;; Highlight current line
-(hl-line-mode 1)
+(global-hl-line-mode 1)
 
 ;;; Disable tab insertion for indentation
 (setq indent-tabs-mode nil)
@@ -229,6 +229,8 @@ one, an error is signaled."
 
 (winner-mode 1)
 
+(setq initial-major-mode 'org-mode)
+
 #+end_src
 
 * Packages
@@ -236,6 +238,18 @@ one, an error is signaled."
 Enable ~:diminish~ to hide modeline display of some minor modes:
 #+begin_src elisp
 (use-package diminish)
+#+end_src
+** Persistent scratch buffer
+#+begin_src elisp
+(use-package persistent-scratch
+  :ensure t
+  :config
+  (persistent-scratch-autosave-mode 1)
+  (setq persistent-scratch--auto-restored t)
+  (setq persistent-scratch-backup-directory
+	(concat user-emacs-directory "persistent-scratch-backups/"))
+  (setq persistent-scratch-backup-filter
+	(persistent-scratch-keep-n-newest-backups 100)))
 #+end_src
 ** meow
 *** Custom meow commands
