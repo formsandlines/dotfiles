@@ -65,12 +65,22 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
     (let ((items (funcall fn name-symbol keyword args rest state)))
       (dolist (ensure args items)
         (let ((package
-               (or (and (eq ensure t) (use-package-as-symbol name-symbol))
+	       (or (and (eq ensure t) (use-package-as-symbol name-symbol))
                    ensure)))
           (when package
             (when (consp package)
-              (setq package (car package)))
+	      (setq package (car package)))
             (push `(add-to-list 'use-package-selected-packages ',package) items))))))
+  (define-advice use-package-handler/:vc (:around (fn name-symbol keyword args rest state) select)
+    (let ((items (funcall fn name-symbol keyword args rest state)))
+      (dolist (ensure args items)
+        (let ((package
+	       (or (and (eq ensure t) (use-package-as-symbol name-symbol))
+                   ensure)))
+          (when package
+            (when (consp package)
+	      (setq package (car package)))
+            (push `(add-to-list 'use-package-selected-packages ',package) items)))))) 
   (define-advice use-package-handler/:quelpa (:around (fn name-symbol keyword args rest state) select)
     (let ((package (pcase (car args)
                      ((pred symbolp) (car args))
@@ -238,6 +248,9 @@ one, an error is signaled."
 Enable ~:diminish~ to hide modeline display of some minor modes:
 #+begin_src elisp
 (use-package diminish)
+
+;;; to prevent use-package-autoremove from deleting it
+(use-package vc-use-package) 
 #+end_src
 ** Persistent scratch buffer
 #+begin_src elisp
@@ -1289,8 +1302,8 @@ Clerk
   :ensure t)
 
 (use-package ajrepl
-  :vc (:fetcher github :repo sogaiu/ajrepl)
   :ensure t
+  :vc (:fetcher github :repo sogaiu/ajrepl)
   :config
   (add-hook 'janet-mode-hook
             #'ajrepl-interaction-mode))
