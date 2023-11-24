@@ -243,29 +243,54 @@ one, an error is signaled."
 
 #+end_src
 
+* GUI tweaks
+#+begin_src elisp
+(setq inhibit-startup-message t)
+
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+#+end_src
+
 * Packages
 ** use-package add-ons
+*** diminish
 Enable ~:diminish~ to hide modeline display of some minor modes:
 #+begin_src elisp
 (use-package diminish)
-
-;;; to prevent use-package-autoremove from deleting it
+#+end_src
+*** vc-use-package
+To prevent ~use-package-autoremove~ from deleting it.
+#+begin_src elisp
+;;; 
 (use-package vc-use-package) 
 #+end_src
-** Persistent scratch buffer
+** Keybinding helper
+*** which-key
 #+begin_src elisp
-(use-package persistent-scratch
+(use-package which-key
   :ensure t
+  :init
+  (which-key-mode 1)
   :config
-  (persistent-scratch-autosave-mode 1)
-  (setq persistent-scratch--auto-restored t)
-  (setq persistent-scratch-backup-directory
-	(concat user-emacs-directory "persistent-scratch-backups/"))
-  (setq persistent-scratch-backup-filter
-	(persistent-scratch-keep-n-newest-backups 100)))
+  ;; (setq which-key-side-window-location 'bottom)
+  ;; (setq which-key-sort-order #'which-key-key-order-alpha)
+  ;; (setq which-key-sort-uppercase-first nil)
+  ;; (setq which-key-add-column-padding 1)
+  ;; (setq which-key-max-display-columns nil)
+  ;; (setq which-key-min-display-lines 6)
+  ;; (setq which-key-side-window-slot -10)
+  ;; (setq which-key-side-window-max-height 0.25)
+  ;; (setq which-key-idle-delay 0.8)
+  ;; (setq which-key-max-description-length 25)
+  ;; (setq which-key-allow-imprecise-window-fit t)
+  ;; (setq which-key-separator " → ")
+  )
 #+end_src
-** meow
-*** Custom meow commands
+
+*** hydra
+*** meow/
+**** +Custom meow commands
 #+begin_src elisp
 ;; Let 'a' in 'normal' mode behave like 'a' in Vi:
 ;; - https://github.com/meow-edit/meow/discussions/497#discussioncomment-6713192
@@ -367,7 +392,7 @@ calls `meow-eval-last-exp'."
 
 #+end_src
 
-*** My meow things
+**** +My meow things
 #+begin_src elisp
 (defun ph/meow-things ()
   ;; (meow-thing-register 'quoted
@@ -389,7 +414,7 @@ calls `meow-eval-last-exp'."
           (?q . buffer))))
 #+end_src
 
-*** My meow prefix bindings
+**** +My meow prefix bindings
 #+begin_src elisp
 ;; prefix /
 (defconst ph/meow-prefix-slash
@@ -444,7 +469,7 @@ calls `meow-eval-last-exp'."
    '("\\g" . magit-status)))
 #+end_src
 
-*** My meow common bindings
+**** +My meow common bindings
 #+begin_src elisp
 (defconst ph/meow-common
   (list
@@ -457,7 +482,7 @@ calls `meow-eval-last-exp'."
    '("M-v" . meow-clipboard-yank))) ;; was yank
 
 #+end_src
-*** My meow bindings
+**** +My meow bindings
 - modified from [[https://github.com/meow-edit/meow/issues/506#issuecomment-1730789625][Source]] (Final final version (22. Sept.))
 #+begin_src elisp
 (defun ph/meow-bindings ()
@@ -639,7 +664,7 @@ calls `meow-eval-last-exp'."
 
 #+end_src
 
-*** My meow paren state:
+**** +My meow paren state:
 #+begin_src elisp
 (defun ph/meow-paren-setup ()
   (setq meow-paren-keymap (make-keymap))
@@ -760,7 +785,7 @@ calls `meow-eval-last-exp'."
 
 
 #+end_src
-*** Meow package
+**** meow
 #+begin_src elisp
 (use-package meow
   :ensure t
@@ -794,10 +819,14 @@ calls `meow-eval-last-exp'."
 	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash))))
 #+end_src
 ** Version control
+*** magit
 #+begin_src elisp
 (use-package magit
   :ensure t)
 
+#+end_src
+*** diff-hl
+#+begin_src elisp
 (use-package diff-hl
   :after (magit dired)
   :ensure t
@@ -811,109 +840,8 @@ calls `meow-eval-last-exp'."
 
 #+end_src
 
-** Keybinding helper
-*** COMMENT General keybindings
-/(thanks to DistroTube for sharing!)/
-
-#+begin_src elisp
-(use-package general
-  :ensure t
-  :config
-  (general-evil-setup)
-
-  ;; set up 'SPC' as the global leader key
-  (general-create-definer ph/leader-keys
-                          :states '(normal insert visual emacs)
-                          :keymaps 'override
-                          :prefix "SPC" ;; set leader
-                          :global-prefix "H-SPC") ;; access leader in insert mode
-
-  (ph/leader-keys
-   "." '(find-file :wk "Find file")
-   "TAB TAB" '(comment-line :wk "Comment lines")
-   "SPC" '(org-fill-paragraph :wk "Correct line wrap")
-   "[" '(newline-empty-above :wk "Insert newline above")
-   "]" '(newline-empty-below :wk "Insert newline below"))
-
-  (ph/leader-keys
-   "f" '(:ignore t :wk "file")
-   "f c" '(visit-init :wk "Edit Emacs config")
-   "f b" '(recentf-open-files :wk "Recent files buffer")
-   "f r" '(recentf-open :wk "Recent files"))
-
-  (ph/leader-keys
-   "b" '(:ignore t :wk "buffer")
-   "b b" '(switch-to-buffer :wk "Switch buffer")
-   "b i" '(ibuffer :wk "Ibuffer")
-   "b k" '(kill-this-buffer :wk "Kill this buffer")
-   "b n" '(next-buffer :wk "Next buffer")
-   "b p" '(previous-buffer :wk "Previous buffer")
-   ;; "b r" '(revert-buffer :wk "reload buffer")
-   )
-
-  (ph/leader-keys
-   "e" '(:ignore t :wk "Evaluate")    
-   "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
-   "e d" '(eval-defun :wk "Evaluate defun containing or after point")
-   "e e" '(eval-expression :wk "Evaluate and elisp expression")
-   "e l" '(eval-last-sexp :wk "Evaluate elisp expression before point")
-   "e r" '(eval-region :wk "Evaluate elisp in region")) 
-
-  (ph/leader-keys
-   "h" '(:ignore t :wk "Help")
-   "h f" '(describe-function :wk "Describe function")
-   "h v" '(describe-variable :wk "Describe variable")
-   "h r r" '((lambda () (interactive) (load-file user-init-file)) :wk "Reload emacs config")) ;; may need to call it twice because of some issue
-
-  (ph/leader-keys
-   "w" '(:ignore t :wk "Windows")
-   ;; Window splits
-   "w c" '(evil-window-delete :wk "Close window")
-   "w n" '(evil-window-new :wk "New window")
-   "w s" '(evil-window-split :wk "Horizontal split window")
-   "w v" '(evil-window-vsplit :wk "Vertical split window")
-   ;; Window motions
-   "w h" '(evil-window-left :wk "Window left")
-   "w j" '(evil-window-down :wk "Window down")
-   "w k" '(evil-window-up :wk "Window up")
-   "w l" '(evil-window-right :wk "Window right")
-   "w w" '(evil-window-next :wk "Goto next window")
-   ;; Move Windows
-   "w H" '(buf-move-left :wk "Buffer move left")
-   "w J" '(buf-move-down :wk "Buffer move down")
-   "w K" '(buf-move-up :wk "Buffer move up")
-   "w L" '(buf-move-right :wk "Buffer move right"))
-
-  (ph/leader-keys
-   "t" '(:ignore t :wk "Toggle")
-   "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
-   "t h" '(hl-line-mode :wk "Toggle line highlighting")
-   "t t" '(visual-line-mode :wk "Toggle truncated lines")))
-#+end_src
-
-*** which-key
-#+begin_src elisp
-(use-package which-key
-  :ensure t
-  :init
-  (which-key-mode 1)
-  :config
-  ;; (setq which-key-side-window-location 'bottom)
-  ;; (setq which-key-sort-order #'which-key-key-order-alpha)
-  ;; (setq which-key-sort-uppercase-first nil)
-  ;; (setq which-key-add-column-padding 1)
-  ;; (setq which-key-max-display-columns nil)
-  ;; (setq which-key-min-display-lines 6)
-  ;; (setq which-key-side-window-slot -10)
-  ;; (setq which-key-side-window-max-height 0.25)
-  ;; (setq which-key-idle-delay 0.8)
-  ;; (setq which-key-max-description-length 25)
-  ;; (setq which-key-allow-imprecise-window-fit t)
-  ;; (setq which-key-separator " → ")
-  )
-#+end_src
-
 ** OrgMode extensions
+*** org-appear
 #+begin_src elisp
 (use-package org-appear
   :ensure t
@@ -926,22 +854,8 @@ calls `meow-eval-last-exp'."
   (setq org-appear-autosubmarkers t))
 #+end_src
 
-** Repeat like Vi
-? is this useful -> does not work well with meow
-#+begin_src elisp
-(use-package dot-mode
-  :ensure t
-  :demand t
-  :diminish
-  :config
-  (global-dot-mode t))
-
-;; Compiler Warnings:
-;; ⛔ Warning (comp): dot-mode.el:454:20: Warning: Use keywords rather than deprecated positional arguments to `define-minor-mode'
-;; ⛔ Warning (comp): dot-mode.el:509:27: Warning: defcustom for `global-dot-mode' fails to specify containing group
-
-#+end_src
 ** Snippets
+*** yasnippet
 #+begin_src elisp
 (use-package yasnippet
   :ensure t
@@ -951,23 +865,25 @@ calls `meow-eval-last-exp'."
 #+end_src
 
 ** Appearance
+*** COMMENT rainbow-mode
 #+begin_src elisp
 (use-package rainbow-mode
   :diminish
   :hook org-mode prog-mode)
 #+end_src
 
+*** COMMENT gruvbox-theme
 #+begin_src elisp
-;; (use-package gruvbox-theme
-;;   :config
-;;   (load-theme 'gruvbox))
+(use-package gruvbox-theme
+  :config
+  (load-theme 'gruvbox))
 
 ;;; good theme for customization
 ;; (load-theme 'modus-vivendi)
 #+end_src
 
 ** Popup windows
-*** Popper
+*** popper
 #+begin_src elisp
 (use-package popper
   :ensure t
@@ -989,7 +905,7 @@ calls `meow-eval-last-exp'."
 #+end_src
 
 ** Completion
-*marginalia* (minibuffer completion)
+*** marginalia (minibuffer completion)
 #+begin_src elisp
 ;; Enable rich annotations using the Marginalia package
 (use-package marginalia
@@ -1027,7 +943,7 @@ calls `meow-eval-last-exp'."
   )
 #+end_src
 
-*Company* (text completion)
+*** company (text completion)
 #+begin_src elisp
 (use-package company
   :ensure t
@@ -1042,8 +958,8 @@ calls `meow-eval-last-exp'."
 ;;   :hook (company-mode . company-box-mode))
 #+end_src
 
-** Programming
-*dumb-jump* (jump to definition, etc. (file searchers for xref)
+** Cross-references
+*** dumb-jump (jump to definition, etc. (file searchers for xref)
 #+begin_src elisp
 (use-package dumb-jump
   :ensure t
@@ -1061,14 +977,18 @@ calls `meow-eval-last-exp'."
 ;; Warning (bytecomp): the function ‘ivy-read’ is not known to be defined.
 #+end_src
 
-*Flycheck* (linter)
+** Linter
+*** flycheck/
+**** flycheck
 #+begin_src elisp
 (use-package flycheck
   :ensure t
   :defer t
   :diminish
   :init (global-flycheck-mode))
-
+#+end_src
+**** flycheck-clj-kondo
+#+begin_src elisp
 (use-package flycheck-clj-kondo
   :ensure t
   :after (flycheck clojure-mode)
@@ -1076,7 +996,6 @@ calls `meow-eval-last-exp'."
   :config
   ;; ? how to disable elisp undefined warnings
   )
-
 #+end_src
 
 ** Structural editing
@@ -1142,18 +1061,23 @@ chacking if a region is active or not."
   ;;      (lispy-define-key lispy-mode-map "S" 'special-lispy-visit)))
   )
 #+end_src
-** Language support
-*** Various
+** :lang Haskell
+*** haskell-mode
 #+begin_src elisp
 (use-package haskell-mode
   :ensure t)
 
+#+end_src
+** :lang Lua
+*** lua-mode
+#+begin_src elisp
 (use-package lua-mode
   :ensure t)
 
 #+end_src
 
-*** Clojure
+** :lang Clojure
+*** cider
 #+begin_src elisp
   (use-package cider
     :ensure t
@@ -1193,11 +1117,10 @@ chacking if a region is active or not."
     (defun cider--completing-read-host (hosts)
       '("localhost")))
 
-  ;;; CIDER Warnings:
-  ;; evil-collection-cider.el:31:11: Warning: Package cl is deprecated
-  ;; ../../../cider-1.11.0/cider-mode.el: Warning: Missing format argument
-  ;; Warning (evil-collection): Make sure to set `evil-want-keybinding' to nil before loading evil or evil-collection.
+#+end_src
 
+*** clj-refactor
+#+begin_src elisp
   (use-package clj-refactor
     :ensure t
     :after cider
@@ -1220,7 +1143,7 @@ chacking if a region is active or not."
 
 #+end_src
 
-Clerk
+*** +Clerk helper
 #+begin_src elisp
 ;; (defun clerk-show ()
 ;;   (interactive)
@@ -1296,11 +1219,15 @@ Clerk
 	    (activate-hook-for-dir 'clerk-mode "notebooks")))
 #+end_src
 
-*** Janet
+** :lang Janet
+*** janet-mode
 #+begin_src elisp
 (use-package janet-mode
   :ensure t)
 
+#+end_src
+*** ajrepl
+#+begin_src elisp
 (use-package ajrepl
   :ensure t
   :vc (:fetcher github :repo sogaiu/ajrepl)
@@ -1309,7 +1236,8 @@ Clerk
             #'ajrepl-interaction-mode))
 
 #+end_src
-*** markdown
+** :lang markdown
+*** markdown-mode
 #+begin_src elisp
 (use-package markdown-mode
   :ensure t
@@ -1324,7 +1252,7 @@ Clerk
                ("cljc" . clojure-mode)))
     (add-to-list 'markdown-code-lang-modes x)))
 #+end_src
-
+*** separedit
 #+begin_src elisp
 (use-package separedit
   :ensure t
@@ -1348,15 +1276,19 @@ Clerk
   ;; (setq separedit-remove-trailing-spaces-in-comment t)
   )
 #+end_src
-* GUI tweaks
+** Misc
+*** persistent-scratch
 #+begin_src elisp
-(setq inhibit-startup-message t)
-
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
+(use-package persistent-scratch
+  :ensure t
+  :config
+  (persistent-scratch-autosave-mode 1)
+  (setq persistent-scratch--auto-restored t)
+  (setq persistent-scratch-backup-directory
+	(concat user-emacs-directory "persistent-scratch-backups/"))
+  (setq persistent-scratch-backup-filter
+	(persistent-scratch-keep-n-newest-backups 100)))
 #+end_src
-
 * Customization
 ** Modifier keys
 #+begin_src elisp
@@ -1473,7 +1405,7 @@ Clerk
 
 ** Visit config file
 #+begin_src elisp
-(defun visit-init ()
+(defun ph/visit-init ()
   "Opens the init.el file."
   (interactive)
   (find-file (locate-user-emacs-file "config.org")))
@@ -1520,7 +1452,7 @@ Subtracts right margin and org indentation level from fill-column"
 
 ** Line creating and joining/breaking
 #+begin_src elisp
-(defun newline-empty-below ()
+(defun ph/newline-empty-below ()
   "Creates a newline below the point that is always empty."
   (interactive)
   (let ((beg (point)))
@@ -1528,7 +1460,7 @@ Subtracts right margin and org indentation level from fill-column"
     (open-line 1)
     (goto-char beg)))
 
-(defun newline-empty-above ()
+(defun ph/newline-empty-above ()
   "Creates a newline above the point that is always empty."
   (interactive)
   (let ((beg (point)))
@@ -1536,11 +1468,11 @@ Subtracts right margin and org indentation level from fill-column"
     (open-line 1)
     (goto-char beg)))
 
-(keymap-global-set "C-}" #'newline-empty-below)
-(keymap-global-set "C-{" #'newline-empty-above)
+(keymap-global-set "C-}" #'ph/newline-empty-below)
+(keymap-global-set "C-{" #'ph/newline-empty-above)
 
 
-(defun join-with-next-line ()
+(defun ph/join-with-next-line ()
   "Join the current line with the line after it."
   (interactive)
   (join-line -1))
@@ -1551,7 +1483,7 @@ Subtracts right margin and org indentation level from fill-column"
 ;;; Feels more like Vims S-j to me and I use this very often:
 ;;; (note: C-j gets overwritten in Lisp Interactive mode)
 ;; (keymap-global-set "C-M-j" #'delete-indentation) ;; M-^ is weird to type
-;; (keymap-global-set "C-S-j" #'join-with-next-line) ; ? or C-c j
+;; (keymap-global-set "C-S-j" #'ph/join-with-next-line) ; ? or C-c j
 
 ;;; I don’t use these often enough for their prominent keybindings:
 ;; (keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
@@ -1587,7 +1519,7 @@ Subtracts right margin and org indentation level from fill-column"
 shell-mode:
 #+begin_src elisp
 ;;; TODO: bind to local key
-(defun comint-kill-output ()
+(defun ph/comint-kill-output ()
   "In shell-mode, kills output instead of deleting, as in
 comint-delete-output by default (C-c C-o)."
   (interactive)
@@ -1610,7 +1542,7 @@ eshell:
 Find nearest color
 Source: https://www.masteringemacs.org/article/find-nearest-colors-emacs-24
 #+begin_src elisp
-(defun find-nearest-color (color &optional use-hsv)
+(defun ph/find-nearest-color (color &optional use-hsv)
   "Finds the nearest color by RGB distance to COLOR.
 
 If called with a universal argument (or if USE-HSV is set) use HSV instead of RGB.
@@ -1623,16 +1555,16 @@ Runs \\[list-colors-display] after setting `list-colors-sort'"
         (list-colors-display)
       (error "The color \"%s\" does not exist." color))))
 
-(defun find-nearest-color-at-point (pt)
+(defun ph/find-nearest-color-at-point (pt)
   "Finds the nearest color at point PT.
 
 If called interactively, PT is the value immediately under `point'."
   (interactive "d")
-  (find-nearest-color (with-syntax-table (copy-syntax-table (syntax-table))
-                        ;; turn `#' into a word constituent to help
-                        ;; `thing-at-point' find HTML color codes.
-                        (modify-syntax-entry ?# "w")
-                        (thing-at-point 'word))))
+  (ph/find-nearest-color (with-syntax-table (copy-syntax-table (syntax-table))
+                           ;; turn `#' into a word constituent to help
+                           ;; `thing-at-point' find HTML color codes.
+                           (modify-syntax-entry ?# "w")
+                           (thing-at-point 'word))))
 #+end_src
 
 ** Windows
@@ -1778,9 +1710,6 @@ To learn:
 - [ ] how does Yasnippet work and is it useful?
 - [ ] CIDER
 
-To consider:
-- [ ] remove dot-mode, since it doesn’t work well with meow
-
 Packages to try:
 - [ ] Swiper (depends on ivy) for isearch with regex
 - [ ] sudo-edit if need arises to use sudo to open files
@@ -1794,35 +1723,3 @@ Packages to try:
 - [ ] neil  
 - [ ] html-to-hiccup
   
-* Eshell alias file
-This doesn’t work somehow if I put it in =eshell/alias=!
-
-#+begin_src shell
-# Credits to DistroTube for config inspiration:
-# https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/eshell/aliases?ref_type=heads
-
-# Aliases for emacs commands
-alias ff find-file $1
-
-# Aliasing standard shell commands to better emacs alternatives
-alias less view-file $1
-
-# Changing "ls" to "exa"
-alias ls exa -al --color=always --group-directories-first $*  # my preferred listing
-alias la exa -a --color=always --group-directories-first $*   # all files and dirs
-alias ll exa -l --color=always --group-directories-first $*   # long format
-alias lt exa -aT --color=always --group-directories-first $*  # tree listing
-alias l. exa -a1 $* | grep "^\."                              # list hidden files
-
-# Merge Xresources (what is this?)
-# alias merge xrdb -merge ~/.Xresources
-
-# Confirm before overwriting something
-alias cp cp -i $1
-alias mv mv -i $1
-alias rm rm -i $1
-
-# Bare git repo alias for dotfiles (not sure if I want this yet)
-# alias config /usr/bin/git --git-dir=$HOME/dotfiles --work-tree=$HOME $*
-#+end_src
-
