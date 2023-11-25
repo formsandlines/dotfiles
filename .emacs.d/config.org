@@ -101,81 +101,6 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
       user-mail-address "peter.hofmann@formsandlines.eu")
 #+end_src
 
-* Buffer move
-Creating some functions to allow us to easily move windows (splits) around. The
-following block of code was taken from =buffer-move.el= found on the EmacsWiki:
-- https://www.emacswiki.org/emacs/buffer-move.el
-- [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org][Source (DistroTube)]]
-
-#+begin_src elisp
-;;;###autoload
-(defun buf-move-up ()
-  "Swap the current buffer and the buffer above the split.
-If there is no split, ie now window above the current one, an
-error is signaled."
-  ;;  "Switches between the current buffer, and the buffer above the
-  ;;  split, if possible."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'up))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (null other-win)
-        (error "No window above this one")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
-
-;;;###autoload
-(defun buf-move-down ()
-  "Swap the current buffer and the buffer under the split.
-If there is no split, ie now window under the current one, an
-error is signaled."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'down))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (or (null other-win) 
-            (string-match "^ \\*Minibuf" (buffer-name (window-buffer other-win))))
-        (error "No window under this one")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
-
-;;;###autoload
-(defun buf-move-left ()
-  "Swap the current buffer and the buffer on the left of the split.
-If there is no split, ie now window on the left of the current
-one, an error is signaled."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'left))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (null other-win)
-        (error "No left split")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
-
-;;;###autoload
-(defun buf-move-right ()
-  "Swap the current buffer and the buffer on the right of the split.
-If there is no split, ie now window on the right of the current
-one, an error is signaled."
-  (interactive)
-  (let* ((other-win (windmove-find-other-window 'right))
-	 (buf-this-buf (window-buffer (selected-window))))
-    (if (null other-win)
-        (error "No right split")
-      ;; swap top with this one
-      (set-window-buffer (selected-window) (window-buffer other-win))
-      ;; move this one to top
-      (set-window-buffer other-win buf-this-buf)
-      (select-window other-win))))
-#+end_src
-
 * Basic config
 #+begin_src elisp
 ;;; Display relative line numbers
@@ -239,8 +164,85 @@ one, an error is signaled."
 
 (winner-mode 1)
 
+(windmove-mode 1)
+
 (setq initial-major-mode 'org-mode)
 
+#+end_src
+
+* Buffer move
+Creating some functions to allow us to easily move windows (splits) around. The
+following block of code was taken from =buffer-move.el= found on the EmacsWiki:
+- https://www.emacswiki.org/emacs/buffer-move.el
+- [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org][Source (DistroTube)]]
+
+#+begin_src elisp
+;;;###autoload
+(defun ph/buf-move-up ()
+  "Swap the current buffer and the buffer above the split.
+If there is no split, ie now window above the current one, an
+error is signaled."
+  ;;  "Switches between the current buffer, and the buffer above the
+  ;;  split, if possible."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'up))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No window above this one")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun ph/buf-move-down ()
+  "Swap the current buffer and the buffer under the split.
+If there is no split, ie now window under the current one, an
+error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'down))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (or (null other-win) 
+            (string-match "^ \\*Minibuf" (buffer-name (window-buffer other-win))))
+        (error "No window under this one")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun ph/buf-move-left ()
+  "Swap the current buffer and the buffer on the left of the split.
+If there is no split, ie now window on the left of the current
+one, an error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'left))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No left split")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
+
+;;;###autoload
+(defun ph/buf-move-right ()
+  "Swap the current buffer and the buffer on the right of the split.
+If there is no split, ie now window on the right of the current
+one, an error is signaled."
+  (interactive)
+  (let* ((other-win (windmove-find-other-window 'right))
+	 (buf-this-buf (window-buffer (selected-window))))
+    (if (null other-win)
+        (error "No right split")
+      ;; swap top with this one
+      (set-window-buffer (selected-window) (window-buffer other-win))
+      ;; move this one to top
+      (set-window-buffer other-win buf-this-buf)
+      (select-window other-win))))
 #+end_src
 
 * GUI tweaks
@@ -289,6 +291,44 @@ To prevent ~use-package-autoremove~ from deleting it.
 #+end_src
 
 *** hydra
+#+begin_src elisp
+(use-package hydra
+  :ensure t
+  :diminish
+  :config
+  (defhydra hydra-zoom (global-map "<f2>")
+    "zoom"
+    ("g" text-scale-increase "in")
+    ("l" text-scale-decrease "out"))
+
+  (defhydra hydra-window ()
+    "window"
+    ;; Window commands
+    ("c" delete-window)        ;; C-x 0
+    ("d" delete-other-windows :color blue) ;; C-x 1
+    ("s" split-window-below)   ;; C-x 2
+    ("v" split-window-right)   ;; C-x 3
+    ("w" other-window)	  ;; C-x o
+    ("b" balance-windows)
+    ;; Move to windows
+    ("j" windmove-left)
+    ("k" windmove-down)
+    ("i" windmove-up)
+    ("l" windmove-right)
+    ;; Move windows
+    ("J" ph/buf-move-left)
+    ("K" ph/buf-move-down)
+    ("I" ph/buf-move-up)
+    ("L" ph/buf-move-right)
+    ;; Resize windows
+    ("C-j" shrink-window-horizontally)
+    ("C-l" enlarge-window-horizontally)
+    ("C-i" enlarge-window)
+    ("C-k" shrink-window)
+
+    ("SPC" nil "cancel"))
+  )
+#+end_src
 *** meow/
 **** +Custom meow commands
 #+begin_src elisp
@@ -473,10 +513,6 @@ calls `meow-eval-last-exp'."
 #+begin_src elisp
 (defconst ph/meow-common
   (list
-   '("C-S-<left>" . shrink-window-horizontally)
-   '("C-S-<right>" . enlarge-window-horizontally)
-   '("C-S-<up>" . enlarge-window) ;; C-S-i must be separated from TAB first
-   '("C-S-<down>" . shrink-window)
    '("M-c" . meow-clipboard-save) ;; was kill-ring-save
    '("M-x" . meow-clipboard-kill)
    '("M-v" . meow-clipboard-yank))) ;; was yank
@@ -513,17 +549,7 @@ calls `meow-eval-last-exp'."
 
   (meow-leader-define-key
    ;; Window commands
-   '("wc" . delete-window)        ;; C-x 0
-   '("wd" . delete-other-windows) ;; C-x 1
-   '("ws" . split-window-below)   ;; C-x 2
-   '("wv" . split-window-right)   ;; C-x 3
-   '("ww" . other-window)	  ;; C-x o
-   '("wb" . balance-windows)
-   ;; Move Windows
-   '("w J" . buf-move-left)
-   '("w K" . buf-move-down)
-   '("w I" . buf-move-up)
-   '("w L" . buf-move-right)
+   '("w" . hydra-window/body)
 
    ;; Use SPC (0-9) for digit arguments.
    '("1" . meow-digit-argument)
@@ -790,7 +816,7 @@ calls `meow-eval-last-exp'."
 (use-package meow
   :ensure t
   :demand t
-  :after clj-refactor
+  :after (hydra clj-refactor)
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
