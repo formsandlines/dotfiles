@@ -142,7 +142,10 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 ;;; Remember and restore the last cursor location of opened files
 (save-place-mode 1)
 ;;; Save and restore the state of Emacs from one session to another
-(desktop-save-mode 1)
+(if (display-graphic-p)
+    (desktop-save-mode 1)
+  ;;; prevent saving/restoring the desktop in terminal mode
+  (desktop-save-mode 0))
 
 ;;; Don’t pop up UI dialogs when prompting
 (setq use-dialog-box nil)
@@ -1301,6 +1304,20 @@ chacking if a region is active or not."
   ;; (setq separedit-write-file-when-execute-save t)
   ;; (setq separedit-remove-trailing-spaces-in-comment t)
   )
+#+end_src
+** :lang Logo
+*** COMMENT logo-mode
+Works kind-of, but with multiple issues.
+- see: https://www.emacswiki.org/emacs/LogoMode
+- overrides Emacs font face/color configs
+#+begin_src elisp
+(use-package logo-mode
+  :ensure t
+  :vc (:fetcher github :repo brianharvey/UCBLogo
+		;; How to specify source files?
+		;; :files ("source/emacs/*" "source/helpfiles/*" "source/docs/*")
+		))
+
 #+end_src
 ** Misc
 *** persistent-scratch

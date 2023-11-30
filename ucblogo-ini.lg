@@ -1,4 +1,6 @@
 ; SETEDITOR "|open -a emacs -nW|
+; SETEDITOR "|open -a emacs|  ; doesn't exit
+; SETEDITOR "|bash -c 'exec emacs -nw'|  ; cannot inject path
 ; SETEDITOR "|focus-app iTerm2 nvim|
 SETEDITOR "nvim
 SETPREFIX "Logo

@@ -246,7 +246,7 @@ Subtracts right margin and org indentation level from fill-column"
 ;;(setq persistent-scratch--auto-restored t)
 (persistent-scratch-autosave-mode)
 (setq persistent-scratch--auto-restored t)
-(setq persistent-scratch-backup-directory "~/.emacs.d/persistent-scratch-backups/")
+(setq persistent-scratch-backup-directory "~/.doom.d/persistent-scratch-backups/")
 (setq persistent-scratch-backup-filter (persistent-scratch-keep-n-newest-backups 100))
 ;; setq persistent-scratch-backup-filter (persistent-scratch-keep-backups-not-older-than ()))
 
