@@ -314,19 +314,19 @@ To prevent ~use-package-autoremove~ from deleting it.
     ("w" other-window)	  ;; C-x o
     ("b" balance-windows)
     ;; Move to windows
-    ("j" windmove-left)
-    ("k" windmove-down)
-    ("i" windmove-up)
+    ("h" windmove-left)
+    ("j" windmove-down)
+    ("k" windmove-up)
     ("l" windmove-right)
     ;; Move windows
-    ("J" ph/buf-move-left)
-    ("K" ph/buf-move-down)
-    ("I" ph/buf-move-up)
+    ("H" ph/buf-move-left)
+    ("J" ph/buf-move-down)
+    ("K" ph/buf-move-up)
     ("L" ph/buf-move-right)
     ;; Resize windows
-    ("C-j" shrink-window-horizontally)
+    ("C-h" shrink-window-horizontally)
     ("C-l" enlarge-window-horizontally)
-    ("C-i" enlarge-window)
+    ("C-j" enlarge-window)
     ("C-k" shrink-window)
 
     ("SPC" nil "cancel"))
@@ -536,9 +536,9 @@ calls `meow-eval-last-exp'."
 
 
   (meow-motion-overwrite-define-key
-   '("i" . meow-prev)
-   '("k" . meow-next)
-   '("j" . meow-left)
+   '("k" . meow-prev)
+   '("j" . meow-next)
+   '("h" . meow-left)
    '("l" . meow-right)
    '("v" . ph/scroll-up-half)
    '("V" . ph/scroll-down-half)
@@ -572,7 +572,7 @@ calls `meow-eval-last-exp'."
    '("j" . "H-j")
    '("k" . "H-k")
    '("l" . "H-l")
-   '("i" . "H-i")
+   '("h" . "H-h")
    '("v" . "H-v")
    '("V" . "H-V")
    '("{" . "H-{")
@@ -604,9 +604,9 @@ calls `meow-eval-last-exp'."
     '(";" . meow-reverse)		; ' -> ;
 
 					; movement
-    '("i" . meow-prev)
-    '("k" . meow-next)
-    '("j" . meow-left)
+    '("k" . meow-prev)
+    '("j" . meow-next)
+    '("h" . meow-left)
     '("l" . meow-right)
 
     '("v" . ph/scroll-up-half)
@@ -615,9 +615,9 @@ calls `meow-eval-last-exp'."
     '("n" . meow-search)		; y -> / -> ` -> / -> n
 
 					; expansion
-    '("I" . meow-prev-expand)
-    '("K" . meow-next-expand)
-    '("J" . meow-left-expand)
+    '("K" . meow-prev-expand)
+    '("J" . meow-next-expand)
+    '("H" . meow-left-expand)
     '("L" . meow-right-expand)
 
     '("u" . meow-back-word)
@@ -631,8 +631,8 @@ calls `meow-eval-last-exp'."
     '("E" . ph/meow-line-append)
     '("q" . meow-block)			; w -> q
     '("Q" . meow-to-block)
-    '("h" . meow-join)			; q -> a -> h
-    '("H" . ph/meow-line-insert)
+    '("s" . meow-join)			; q -> a -> h -> a
+    '("S" . ph/meow-line-insert)        ; H -> A
     '("g" . meow-grab)			; g -> h (see undo) -> g
     '("G" . meow-pop-grab)		; G -> H -> G
     '("m" . meow-swap-grab)
@@ -663,16 +663,16 @@ calls `meow-eval-last-exp'."
     '("p" . meow-yank)			; v -> p
     '("P" . meow-yank-pop)		; V -> P
 
-    '("a" . meow-insert)		; e -> s -> a
-    '("A" . meow-open-above)		; S -> R -> S
-    '("s" . meow-append)		; Vi-style append -> normal append
-    '("S" . meow-open-below)		; E -> S -> A
+    '("i" . meow-insert)		; e -> s -> a -> i
+    '("I" . meow-open-above)		; S -> R -> S -> I
+    '("a" . meow-append)		; Vi-style append -> normal append
+    '("A" . meow-open-below)		; E -> S -> A
 
-    '("z" . undo-only)			; h -> g -> z (because Vi habits)
-    '("Z" . undo-redo)			; H -> G -> Z
+    '("y" . undo-only)			; h -> g -> z -> b
+    '("Y" . undo-redo)			; H -> G -> Z -> B
 
-    '("b" . open-line)
-    '("B" . split-line)
+    '("z" . open-line)                  ; b -> z
+    '("Z" . split-line)                 ; B -> Z
 
     '("=" . meow-indent)
     '("X" . ph/meow-join-with)
@@ -716,8 +716,8 @@ calls `meow-eval-last-exp'."
 
     '("p" . meow-yank)
     '("P" . meow-yank-pop)
-    '("z" . undo-only)
-    '("Z" . undo-redo)
+    '("y" . undo-only)
+    '("Y" . undo-redo)
     ;; '("c" . meow-save)
     
     '("v" . ph/scroll-up-half)
@@ -729,10 +729,10 @@ calls `meow-eval-last-exp'."
     ;; '("`" . meow-pop-selection) ;; doesn’t work with smartparens
     '(";" . meow-reverse)
     
-    '("a" . meow-insert)
-    '("A" . meow-open-above)
-    '("s" . meow-append)
-    '("S" . meow-open-below)
+    '("i" . meow-insert)
+    '("I" . meow-open-above)
+    '("a" . meow-append)
+    '("A" . meow-open-below)
     
     '("r" . ph/meow-change-save)
     '("R" . meow-replace)
@@ -752,22 +752,22 @@ calls `meow-eval-last-exp'."
     '("<backspace>" . sp-backward-unwrap-sexp)
     '("<escape>" . ignore)
     
-    '("h" . sp-beginning-of-sexp)
+    '("s" . sp-beginning-of-sexp)
     '("e" . sp-end-of-sexp)
     '("$" . ph/sp-innermost)
     '("%" . ph/sp-outermost)
     
     '("~" . exchange-point-and-mark)
 
-    '("j" . sp-backward-sexp)
-    '("J" . sp-backward-symbol)
+    '("h" . sp-backward-sexp)
+    '("H" . sp-backward-symbol)
     '("l" . sp-forward-sexp)
     '("L" . sp-forward-symbol)
     
-    '("k" . sp-down-sexp)
-    '("K" . sp-backward-down-sexp)
-    '("i" . sp-up-sexp)
-    '("I" . sp-backward-up-sexp)
+    '("j" . sp-down-sexp)
+    '("J" . sp-backward-down-sexp)
+    '("k" . sp-up-sexp)
+    '("K" . sp-backward-up-sexp)
     
     '("d" . ph/sp-kill-sexp-or-region)
     '("D" . sp-kill-hybrid-sexp)
