@@ -306,13 +306,16 @@ To prevent ~use-package-autoremove~ from deleting it.
 
   (defhydra hydra-window ()
     "window"
+    ;; Window buffer
+    ("b" switch-to-buffer)
+    ("f" find-file)
     ;; Window commands
     ("c" delete-window)        ;; C-x 0
     ("d" delete-other-windows :color blue) ;; C-x 1
     ("s" split-window-below)   ;; C-x 2
     ("v" split-window-right)   ;; C-x 3
     ("w" other-window)	  ;; C-x o
-    ("b" balance-windows)
+    ("=" balance-windows)
     ;; Move to windows
     ("h" windmove-left)
     ("j" windmove-down)
@@ -882,6 +885,25 @@ calls `meow-eval-last-exp'."
   (setq org-appear-autolinks t)
   (setq org-appear-autosubmarkers t))
 #+end_src
+*** COMMENT org-excalidraw
+Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org-excalidraw/pull/6][this PR]].
+- can only open links in Excalidraw, but not display images
+- generates svg though
+#+begin_src elisp
+(use-package org-excalidraw
+  :ensure t
+  :vc (:fetcher github :repo wdavew/org-excalidraw)
+  :config
+  (setq org-excalidraw-directory "~/Pictures/org-excalidraw")
+  
+  (file-notify-add-watch org-excalidraw-directory '(change)
+			 'org-excalidraw--handle-file-change)
+  ;; (add-to-list 'org-file-apps
+  ;; 	       '("\\.excalidraw.svg\\'" . (lambda (path link)
+  ;; 					    (org-excalidraw--open-file-from-svg
+  ;; 					     path))))
+  )
+#+end_src
 
 ** Snippets
 *** yasnippet
@@ -1032,12 +1054,16 @@ calls `meow-eval-last-exp'."
 #+begin_src elisp
 (use-package smartparens
   :ensure t
+  :after janet-mode
   :init (require 'smartparens-config)
   :config
   (smartparens-global-mode t) ;; These options can be t or nil.
   (show-smartparens-global-mode t)
   (setq sp-show-pair-from-inside t)
   
+  (sp-with-modes 'janet-mode
+    (sp-local-pair "'" nil :actions nil))
+
   ;; (sp-pair "`" "`")
   ;; (sp-pair "$" "$")
   )
@@ -1625,6 +1651,36 @@ If called interactively, PT is the value immediately under `point'."
 ;; (keymap-global-set "C-L" #'enlarge-window-horizontally)
 ;; (keymap-global-set "C-I" #'enlarge-window)
 ;; (keymap-global-set "C-K" #'shrink-window)
+#+end_src
+
+** Dired
+#+begin_src elisp
+;;; Source: https://gist.github.com/rmuslimov/72bf5a1561c7b60eb535
+(setq
+ ph/scripts-dired-reveal-in-finder
+ "tell application \"Finder\"
+  reveal POSIX file \"%s\"
+  activate
+end tell")
+
+(defun ph/dired-reveal-in-finder ()
+  "In Dired, reveal the location of the file/directory under cursor in Finder."
+  (interactive)
+  (let* ((filename (dired-get-file-for-visit))
+         (cmd (format ph/scripts-dired-reveal-in-finder filename)))
+    (do-applescript cmd)))
+
+(keymap-set dired-mode-map "r" #'ph/dired-reveal-in-finder)
+
+(defun ph/dired-open-in-finder ()
+  "In Dired, open the file/directory under the cursor in Finder."
+  (interactive)
+  (let ((file-name (dired-get-file-for-visit)))
+    (if (file-exists-p file-name)
+        (shell-command (concat "open" " " file-name))
+      (message "File does not exist!"))))
+
+(keymap-set dired-mode-map "O" #'ph/dired-open-in-finder)
 #+end_src
 
 ** Popup windows & Help buffers
