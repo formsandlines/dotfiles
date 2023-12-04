@@ -173,7 +173,7 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 
 #+end_src
 
-* Buffer move
+* Buffer movement
 Creating some functions to allow us to easily move windows (splits) around. The
 following block of code was taken from =buffer-move.el= found on the EmacsWiki:
 - https://www.emacswiki.org/emacs/buffer-move.el
@@ -248,6 +248,75 @@ one, an error is signaled."
       (select-window other-win))))
 #+end_src
 
+* Window movement
+#+begin_src elisp
+;;; I like to scroll line-by-line
+(defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
+(defun ph/scroll-one-line-down () (interactive) (scroll-down 1))
+
+;;; For some reason these conflict with meow-kill:
+;; (global-set-key (kbd "C-j") 'ph/scroll-one-line-up)
+;; (global-set-key (kbd "C-k") 'ph/scroll-one-line-down)
+
+(defun ph/window-half-height ()
+  (max 1 (/ (1- (window-height (selected-window))) 2)))
+
+(defun ph/scroll-up-half ()
+  (interactive)
+  (scroll-up (ph/window-half-height)))
+
+(defun ph/scroll-down-half ()         
+  (interactive)                    
+  (scroll-down (ph/window-half-height)))
+
+;; (global-set-key (kbd "C-j") 'ph/scroll-up-half)
+;; (global-set-key (kbd "C-k") 'ph/scroll-down-half)
+
+;; (add-hook 'org-mode-hook
+;; 	  (lambda ()
+;; 	    (define-key org-mode-map (kbd "C-j") 'ph/scroll-one-line-up)))
+;; (add-hook 'org-mode-hook
+;; 	  (lambda ()
+;; 	    (define-key org-mode-map (kbd "C-k") 'ph/scroll-one-line-down)))
+
+;; (defun my-org/insert-heading-above ()
+;;   "Insert a heading above the current one and activate Evil insert mode."
+;;   (interactive)
+;;   (if (org-at-heading-p)
+;;       (evil-first-non-blank)
+;;     (org-up-element))
+;;   (org-insert-heading)
+;;   (evil-insert-state))
+
+;; (evil-define-key 'normal org-mode-map (kbd "C-S-<return>")
+;;  'my-org/insert-heading-above)
+
+
+(defun ph/describe-keybinding (keybinding)
+  (interactive "sEnter keybinding: ")
+  (describe-key (kbd keybinding)))
+
+;;; Use if a keybinding in minibuffer is not accessible from the system:
+;; (setq enable-recursive-minibuffers t)  ; <-- set to nil after use!
+;; (define-key minibuffer-mode-map (kbd "C-M-k") 'describe-keybinding)
+
+#+end_src
+* Keybindings
+#+begin_src elisp
+;; (global-set-key (kbd "C-c C-r") 'recentf-open-files)
+;; (global-set-key (kbd "C-c r") 'recentf-open)
+
+;;; because M-x is hard to reach on my keyboard:
+(keymap-global-set "C-\\" #'execute-extended-command)
+(keymap-global-set "C-|" #'execute-extended-command-for-buffer)
+(keymap-global-set "M-+" #'toggle-input-method) ;; replacement for C-\
+
+(global-set-key [remap list-buffers] 'ibuffer)
+
+;;; because C-M-d activates the dictionary in MacOS (hard to change):
+(keymap-global-set "C-M-'" #'down-list) 
+
+#+end_src
 * GUI tweaks
 #+begin_src elisp
 (setq inhibit-startup-message t)
@@ -299,10 +368,34 @@ To prevent ~use-package-autoremove~ from deleting it.
   :ensure t
   :diminish
   :config
-  (defhydra hydra-zoom (global-map "<f2>")
+  (defhydra hydra-zoom ()
     "zoom"
     ("g" text-scale-increase "in")
-    ("l" text-scale-decrease "out"))
+    ("l" text-scale-decrease "out")
+    
+    ("SPC" nil "cancel"))
+
+  (defhydra hydra-view ()
+    "view"
+    ;; command names strangely reversed
+    ("j" ph/scroll-one-line-up "down")
+    ("k" ph/scroll-one-line-down "up")
+    ("v" ph/scroll-up-half "half pg down")
+    ("V" ph/scroll-down-half "half pg up")
+    ("d" scroll-up-command "page down")
+    ("u" scroll-down-command "page up")
+    
+    ("c" recenter "center")
+    ("t" (lambda () (interactive) (recenter 0)) "top")
+    ("b" (lambda () (interactive) (recenter -1)) "bottom") ;; doesn’t work
+    
+    ("?" (hydra-set-property 'hydra-view :verbosity 1) :exit nil)
+    ("SPC" nil "cancel"))
+  ;; wrapper to hide minibuffer help since it makes movement bouncy
+  (defun hydra-view-silent ()
+    (interactive)
+    (hydra-set-property 'hydra-view :verbosity 0)
+    (hydra-view/body))
 
   (defhydra hydra-window ()
     "window"
@@ -556,6 +649,8 @@ calls `meow-eval-last-exp'."
   (meow-leader-define-key
    ;; Window commands
    '("w" . hydra-window/body)
+   '("SPC" . hydra-view-silent) ;; v doesn’t seem to work
+   '("z" . hydra-zoom/body)
 
    ;; Use SPC (0-9) for digit arguments.
    '("1" . meow-digit-argument)
@@ -1370,73 +1465,6 @@ Works kind-of, but with multiple issues.
 
 #+end_src
 
-** Some keyboard shortcuts
-#+begin_src elisp
-;; (global-set-key (kbd "C-c C-r") 'recentf-open-files)
-;; (global-set-key (kbd "C-c r") 'recentf-open)
-
-
-;;; because M-x is hard to reach on my keyboard:
-(keymap-global-set "C-\\" #'execute-extended-command)
-(keymap-global-set "C-|" #'execute-extended-command-for-buffer)
-(keymap-global-set "M-+" #'toggle-input-method) ;; replacement for C-\
-
-(global-set-key [remap list-buffers] 'ibuffer)
-
-;;; because C-M-d activates the dictionary in MacOS (hard to change):
-(keymap-global-set "C-M-'" #'down-list) 
-
-;;; I like to scroll line-by-line
-(defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
-(defun ph/scroll-one-line-down () (interactive) (scroll-down 1))
-
-;;; For some reason these conflict with meow-kill:
-;; (global-set-key (kbd "C-j") 'ph/scroll-one-line-up)
-;; (global-set-key (kbd "C-k") 'ph/scroll-one-line-down)
-
-(defun ph/window-half-height ()
-  (max 1 (/ (1- (window-height (selected-window))) 2)))
-
-(defun ph/scroll-up-half ()
-  (interactive)
-  (scroll-up (ph/window-half-height)))
-
-(defun ph/scroll-down-half ()         
-  (interactive)                    
-  (scroll-down (ph/window-half-height)))
-
-;; (global-set-key (kbd "C-j") 'ph/scroll-up-half)
-;; (global-set-key (kbd "C-k") 'ph/scroll-down-half)
-
-;; (add-hook 'org-mode-hook
-;; 	  (lambda ()
-;; 	    (define-key org-mode-map (kbd "C-j") 'ph/scroll-one-line-up)))
-;; (add-hook 'org-mode-hook
-;; 	  (lambda ()
-;; 	    (define-key org-mode-map (kbd "C-k") 'ph/scroll-one-line-down)))
-
-;; (defun my-org/insert-heading-above ()
-;;   "Insert a heading above the current one and activate Evil insert mode."
-;;   (interactive)
-;;   (if (org-at-heading-p)
-;;       (evil-first-non-blank)
-;;     (org-up-element))
-;;   (org-insert-heading)
-;;   (evil-insert-state))
-
-;; (evil-define-key 'normal org-mode-map (kbd "C-S-<return>")
-;;  'my-org/insert-heading-above)
-
-
-(defun ph/describe-keybinding (keybinding)
-  (interactive "sEnter keybinding: ")
-  (describe-key (kbd keybinding)))
-
-;;; Use if a keybinding in minibuffer is not accessible from the system:
-;; (setq enable-recursive-minibuffers t)  ; <-- set to nil after use!
-;; (define-key minibuffer-mode-map (kbd "C-M-k") 'describe-keybinding)
-
-#+end_src
 ** Minibuffer / Completion
 #+begin_src elisp
 ;;; Remember history of minibuffer prompts
