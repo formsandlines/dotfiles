@@ -529,6 +529,11 @@ calls `meow-eval-last-exp'."
       (meow-change-save)
     (meow-change)))
 
+(defun ph/meow-search-reverse ()
+  "Reverses the search direction from `meow-search' (like `-n')."
+  (interactive)
+  (meow-search -1))
+
 #+end_src
 
 **** +My meow things
@@ -558,45 +563,66 @@ calls `meow-eval-last-exp'."
 ;; prefix /
 (defconst ph/meow-prefix-slash
   (list
+   ;;; COMMENTS
    '("//" . meow-comment)		; nf -> nc -> /g
+   
+   ;;; MACROS
    '("/M" . meow-start-kmacro-or-insert-counter)
    '("/m" . meow-start-kmacro)
    '("/n" . meow-end-or-call-kmacro)
    
-   ;; '("/c" . kill-ring-save)
-   ;; '("/p" . yank)
-   
+   ;;; REFERENCES
    '("/f" . xref-find-definitions)
    '("/F" . xref-go-back)
    '("/r" . xref-find-references)
    '("/R" . xref-find-apropos)
 
+   ;;; WORDS
    '("/u" . upcase-dwim)
    '("/l" . downcase-dwim)
    '("/c" . capitalize-dwim)
+   
+   ;;; NUMBERS
    '("/+" . ph/increment-number-at-point)
    '("/-" . ph/decrement-number-at-point)
+
+   ;;; WRAPPING
    '("/w" . ph/wrap-with-char)
    '("/W" . ph/change-wrapped-char)
 
+   ;;; GOTO 
+   '("/ge" . end-of-buffer)
+   '("/gg" . beginning-of-buffer)
+   '("/gl" . meow-goto-line)
+   '("/gc" . move-to-column)
+   '("/gp" . goto-char)
+
+   ;;; SEARCH
    '("/s" . meow-visit)	        ; / -> ? -> / -> ns -> /s
-   '("/g" . meow-goto-line)		; S -> E -> ng -> /g
+
+   ;;; EVAL
    '("/e" . ph/meow-eval-dwim)  ; just C-x C-e or ph/meow-eval-region
    '("/b" . ph/meow-eval-buffer)
    ;; '("/r" . ph/meow-eval-region)
    '("/d" . "C-M-x")  ; = eval-defun & friends
+   
    ;; '("/j" . ph/meow-join-with)
    ;; '("/k" . ph/meow-split-at)
+   
+   ;; '("/c" . kill-ring-save)
+   ;; '("/p" . yank)
    ))
 
 ;; prefix ; -> \
 (defconst ph/meow-prefix-backslash
   (list
+   ;;; BUFFER
    '("\\q" . meow-quit)
    '("\\w" . save-buffer)
    '("\\W" . save-some-buffers)
    '("\\r" . meow-query-replace-regexp)
    
+   ;;; PROJECT
    '("\\f" . project-find-file)
    '("\\b" . project-switch-to-buffer)
    '("\\p" . project-switch-project)
@@ -617,35 +643,9 @@ calls `meow-eval-last-exp'."
    '("M-v" . meow-clipboard-yank))) ;; was yank
 
 #+end_src
-**** +My meow bindings
-- modified from [[https://github.com/meow-edit/meow/issues/506#issuecomment-1730789625][Source]] (Final final version (22. Sept.))
+**** +My meow leader bindings
 #+begin_src elisp
-(defun ph/meow-bindings ()
-  
-  (meow-define-keys 'insert
-    '("H-SPC" . meow-keypad)
-    '("C-M-§" . meow-insert-exit)
-    '("C-]" . meow-paren-mode) ;; temporary workaround
-    '("C-y" . meow-yank))
-  
-  (apply 'meow-define-keys 'insert ph/meow-common)
-
-
-  (meow-motion-overwrite-define-key
-   '("k" . meow-prev)
-   '("j" . meow-next)
-   '("h" . meow-left)
-   '("l" . meow-right)
-   '("v" . ph/scroll-up-half)
-   '("V" . ph/scroll-down-half)
-   '("{" . backward-paragraph)
-   '("}" . forward-paragraph)
-   '("<escape>" . ignore))
-  
-  (apply 'meow-motion-overwrite-define-key ph/meow-prefix-backslash)
-  (apply 'meow-motion-overwrite-define-key ph/meow-common)
-
-
+(defun ph/meow-leader ()
   (meow-leader-define-key
    ;; Window commands
    '("w" . hydra-window/body)
@@ -675,14 +675,48 @@ calls `meow-eval-last-exp'."
    '("V" . "H-V")
    '("{" . "H-{")
    '("}" . "H-}"))
+  )
+#+end_src
+**** +My meow bindings
+- modified from [[https://github.com/meow-edit/meow/issues/506#issuecomment-1730789625][Source]] (Final final version (22. Sept.))
+#+begin_src elisp
+(defun ph/meow-bindings ()
 
+  ;;; INSERT STATE ;;;
 
+  (meow-define-keys 'insert
+    '("H-SPC" . meow-keypad)
+    '("C-M-§" . meow-insert-exit)
+    '("C-]" . meow-paren-mode) ;; temporary workaround
+    '("C-y" . meow-yank))
+  
+  (apply 'meow-define-keys 'insert ph/meow-common)
+
+  ;;; MOTION STATE OVERWRITES ;;;
+
+  (meow-motion-overwrite-define-key
+   '("k" . meow-prev)
+   '("j" . meow-next)
+   '("h" . meow-left)
+   '("l" . meow-right)
+   '("v" . ph/scroll-up-half)
+   '("V" . ph/scroll-down-half)
+   '("{" . backward-paragraph)
+   '("}" . forward-paragraph)
+   '("<escape>" . ignore))
+  
+  (apply 'meow-motion-overwrite-define-key ph/meow-prefix-backslash)
+  (apply 'meow-motion-overwrite-define-key ph/meow-common)
+
+  ;;; BEACON STATE ;;;
+  
   (meow-define-keys 'beacon
     '("/m" . meow-beacon-start)
     '("/e" . meow-beacon-apply-kmacro)  
     '("<escape>" . ignore))
 
-  
+  ;;; NORMAL STATE ;;;
+
   (apply 'meow-define-keys 'normal ph/meow-prefix-slash)
   (apply 'meow-define-keys 'normal ph/meow-prefix-backslash)
   (apply 'meow-define-keys 'normal ph/meow-common)
@@ -711,6 +745,7 @@ calls `meow-eval-last-exp'."
     '("V" . ph/scroll-down-half)
 
     '("n" . meow-search)		; y -> / -> ` -> / -> n
+    '("N" . ph/meow-search-reverse)
 
 					; expansion
     '("K" . meow-prev-expand)
@@ -936,6 +971,7 @@ calls `meow-eval-last-exp'."
 
   (ph/meow-things)
   (ph/meow-paren-setup)
+  (ph/meow-leader)
   (ph/meow-bindings)
 
   (add-hook 'meow-paren-mode-hook
