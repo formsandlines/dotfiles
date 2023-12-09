@@ -103,6 +103,10 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 
 * Basic config
 #+begin_src elisp
+;;; There are some warnings I really can’t do anything about and they
+;;; are annoying, so keep quiet
+(setq warning-minimum-level :emergency)
+
 ;;; Display relative line numbers
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
@@ -687,6 +691,7 @@ calls `meow-eval-last-exp'."
   (meow-define-keys 'insert
     '("H-SPC" . meow-keypad)
     '("C-M-§" . meow-insert-exit)
+    '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-y" . meow-yank))
   
@@ -819,6 +824,7 @@ calls `meow-eval-last-exp'."
     '("'" . repeat)
     '("\"" . meow-end-or-call-kmacro)    
     '("C-]" . meow-paren-mode) ;; ? -> C-]
+    '("C-;" . meow-symex-mode)
     '("§" . cider-doc) ;; ! replace with generic selector
 
 					; ignore escape
@@ -844,8 +850,20 @@ calls `meow-eval-last-exp'."
 
   (meow-define-keys 'paren
     ;; general meow keys:
+    '("0" . meow-expand-0)
+    '("1" . meow-expand-1)
+    '("2" . meow-expand-2)
+    '("3" . meow-expand-3)
+    '("4" . meow-expand-4)
+    '("5" . meow-expand-5)
+    '("6" . meow-expand-6)
+    '("7" . meow-expand-7)
+    '("8" . meow-expand-8)
+    '("9" . meow-expand-9)
+
     '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
+    '("C-;" . meow-symex-mode)
 
     '("p" . meow-yank)
     '("P" . meow-yank-pop)
@@ -947,12 +965,243 @@ calls `meow-eval-last-exp'."
 
 
 #+end_src
+**** +My meow symex state:
+***** symex overwrites (workaround)
+#+begin_src elisp
+(defun ph/meow-symex-overwrites ()
+  nil)
+#+end_src
+***** setup
+#+begin_src elisp
+(defun ph/meow-symex-setup ()
+  (setq meow-symex-keymap (make-keymap))
+  (meow-define-state symex
+    "meow state for structural editing with symex"
+    :lighter " [S]"
+    :keymap meow-symex-keymap
+    (if meow-symex-mode
+	(run-hooks 'meow-symex-mode-enable-hook)))
+
+  (add-hook 'meow-symex-mode-enable-hook
+      (lambda ()
+        (symex-select-nearest-in-line)
+        (symex--adjust-point)
+        ;; (symex-initialize)
+        ))
+
+  (add-hook 'meow-normal-mode-hook
+	    (lambda ()
+	      (when (and meow-normal-mode
+			 (symex--overlay-active-p))
+		(symex--delete-overlay))))
+
+  (setq meow-cursor-type-symex 'hollow)
+
+  (apply 'meow-define-keys 'symex ph/meow-prefix-slash)  
+  (apply 'meow-define-keys 'symex ph/meow-prefix-backslash)  
+  (apply 'meow-define-keys 'symex ph/meow-common)
+
+  (meow-define-keys 'symex
+    
+    ;; GENERAL MEOW KEYS
+    '("0" . meow-expand-0)
+    '("1" . meow-expand-1)
+    '("2" . meow-expand-2)
+    '("3" . meow-expand-3)
+    '("4" . meow-expand-4)
+    '("5" . meow-expand-5)
+    '("6" . meow-expand-6)
+    '("7" . meow-expand-7)
+    '("8" . meow-expand-8)
+    '("9" . meow-expand-9)
+
+    '("SPC" . meow-keypad)
+    '("C-M-§" . meow-normal-mode)
+
+    ;; '("p" . meow-yank) ;; -> symex
+    ;; '("P" . meow-yank-pop) ;; -> symex
+    '("y" . undo-only)
+    '("Y" . undo-redo)
+    ;; '("c" . meow-save)
+    
+    '("v" . ph/scroll-up-half)
+    '("V" . ph/scroll-down-half)
+
+    ;; '("-" . negative-argument) ;; -> symex-splice
+    '("'" . repeat)
+    ;; '("`" . meow-cancel-selection) ;; -> useless here
+    ;; '("`" . meow-pop-selection) ;; -> useless here
+    ;; '(";" . meow-reverse) ;; -> useless here
+
+    ;; symex has its own insert state (?)
+    ;; '("i" . meow-insert)
+    ;; '("I" . meow-open-above)
+    ;; '("a" . meow-append)
+    ;; '("A" . meow-open-below)
+    ;; '("r" . ph/meow-change-save)
+    ;; '("R" . meow-replace)
+    
+    ;; '("n" . meow-search)
+    ;; '("F" . meow-till)
+    ;; '("f" . meow-find)
+    
+    '("§" . cider-doc) ;; ! replace with generic selector
+
+    ;; '("=" . meow-indent)
+
+
+    ;; SYMEX SPECIFIC
+
+    ;; '("<backspace>" . sp-backward-unwrap-sexp)
+    ;; '("<escape>" . ignore)
+    
+    '("(" . symex-create-round)
+    '("[" . symex-create-square)
+    '("{" . symex-create-curly)
+    '("<" . symex-create-angled)
+    
+    '("h" . symex-go-backward)
+    '("k" . symex-go-up)
+    '("j" . symex-go-down)
+    '("l" . symex-go-forward)
+
+    '("gj" . symex-next-visual-line)
+    '("gk" . symex-previous-visual-line)
+    '("f" . symex-traverse-forward)
+    '("b" . symex-traverse-backward)
+    '("C-f" . symex-traverse-forward-more)
+    '("C-b" . symex-traverse-backward-more)
+    '("F" . symex-traverse-forward-skip)
+    '("B" . symex-traverse-backward-skip)
+    '("C-h" . symex-leap-backward)
+    '("C-l" . symex-leap-forward)
+    '("C-M-h" . symex-soar-backward)
+    '("C-M-l" . symex-soar-forward)
+    '("C-k" . symex-climb-branch)
+    '("C-j" . symex-descend-branch)
+    
+    '("c" . symex-yank) ;; y -> c
+    ;; '("C" . symex-yank-remaining) ;; Y -> C (doesn’t work)
+    '("p" . symex-paste-after)
+    '("P" . symex-paste-before)
+    '("d" . symex-delete) ;; x -> d
+    '("D" . symex-delete-backwards) ;; X -> D
+    ;; '("D" . symex-delete-remaining) ;; D -> ? (doesn’t work)
+    '("r" . symex-change) ;; c -> r
+    '("R" . symex-change-remaining) ;; C -> R
+    '("C--" . symex-clear)
+    '("s" . symex-replace)
+    '("S" . symex-change-delimiter)
+    
+    '("H" . symex-shift-backward)
+    '("L" . symex-shift-forward)
+    '("M-H" . symex-shift-backward-most)
+    '("M-L" . symex-shift-forward-most)
+    
+    '("K" . paredit-raise-sexp)
+    '("C-S-j" . symex-emit-backward)
+    '("C-(" . symex-capture-backward)
+    '("C-S-h" . symex-capture-backward)
+    '("C-{" . symex-emit-backward)
+    '("C-S-l" . symex-capture-forward)
+    '("C-}" . symex-emit-forward)
+    '("C-S-k" . symex-emit-forward)
+    '("C-)" . symex-capture-forward)
+    '("z" . symex-swallow)
+    '("Z" . symex-swallow-tail)
+    
+    '("e" . symex-evaluate)
+    '("E" . symex-evaluate-remaining)
+    '("C-M-e" . symex-evaluate-pretty)
+    '("C-d" . symex-evaluate-definition) ;; d -> C-d
+    '("M-e" . symex-eval-recursive)
+    '("T" . symex-evaluate-thunk)
+    '(":" . eval-expression)
+    
+    '("t" . symex-switch-to-scratch-buffer)
+    '("M" . symex-switch-to-messages-buffer)
+    ;; '("C-r" . symex-repl) ;; r -> C-r
+    ;; '("C-R" . symex-run) ;; R -> C-R
+    
+    '("|" . symex-split)
+    '("&" . symex-join)
+    '("-" . symex-splice)
+    '(")" . symex-wrap-round)
+    '("]" . symex-wrap-square)
+    '("}" . symex-wrap-curly)
+    '(">" . symex-wrap-angled)
+    '("C-'" . symex-cycle-quote)
+    '("C-," . symex-cycle-unquote)
+    '("`" . symex-add-quoting-level)
+    '("C-`" . symex-remove-quoting-level)
+    
+    '("o" . symex-open-line-after)
+    '("O" . symex-open-line-before)
+    '("n" . symex-insert-newline)
+    '("C-S-o" . symex-append-newline)
+    '("J" . symex-join-lines)
+    '("M-J" . symex-collapse)
+    '("M-<" . symex-collapse)
+    
+    '("M->" . symex-unfurl)
+    '("C-M-<" . symex-collapse-remaining)
+    '("C-M->" . symex-unfurl-remaining)
+    '("N" . symex-join-lines-backwards)
+    
+    '("0" . symex-goto-first)
+    '("M-h" . symex-goto-first)
+    '("$" . symex-goto-last)
+    '("M-l" . symex-goto-last)
+    '("M-j" . symex-goto-lowest)
+    '("M-k" . symex-goto-highest)
+    
+    '("=" . symex-tidy)
+    '("<tab>" . symex-tidy)
+    '("C-=" . symex-tidy-remaining)
+    '("C-<tab>" . symex-tidy-remaining)
+    '("M-=" . symex-tidy-proper)
+    '("M-<tab>" . symex-tidy-proper)
+    
+    '("A" . symex-append-after)
+    '("a" . symex-insert-at-end)
+    '("i" . symex-insert-at-beginning)
+    '("I" . symex-insert-before)
+    '("w" . symex-wrap)
+    '("W" . symex-wrap-and-append)
+    
+    ;; '("g" . evil-jump-to-tag) ;; -> prefix command
+    ;; '("G" . evil-jump-backward) ;; -> prefix command
+    
+    '(";" . symex-comment)
+    '("M-;" . symex-comment-remaining)
+    '("C-;" . symex-eval-print)
+    
+    ;; canonical action
+    '("s-;" . symex-evaluate)
+    
+    ;; configuration
+    '("H-h" . symex--toggle-highlight)
+    
+    '("C-e" . symex--scroll-down)
+    '("C-y" . symex--scroll-up)
+    
+    ;; standard exits
+    '("?" . symex-describe)
+    ;; '("<return>" . symex-enter-lower)
+    ;; '("<escape>" . symex-escape-higher)
+    ;; '("C-g" . symex-escape-higher)
+
+
+    )
+  )
+#+end_src
+
 **** meow
 #+begin_src elisp
 (use-package meow
   :ensure t
   :demand t
-  :after (hydra clj-refactor)
+  :after (hydra clj-refactor symex)
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
@@ -971,10 +1220,14 @@ calls `meow-eval-last-exp'."
 
   (ph/meow-things)
   (ph/meow-paren-setup)
+  (ph/meow-symex-overwrites)
+  (ph/meow-symex-setup)
   (ph/meow-leader)
   (ph/meow-bindings)
 
   (add-hook 'meow-paren-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-symex-mode-hook
 	    (lambda () (keymap-unset clj-refactor-map "/")))
   (add-hook 'meow-normal-mode-hook
 	    (lambda () (keymap-unset clj-refactor-map "/")))
@@ -1236,6 +1489,20 @@ chacking if a region is active or not."
     (sp-kill-sexp arg t)))
 
 #+end_src
+*** symex
+#+begin_src elisp
+(use-package symex
+  :ensure t
+  :after janet-mode
+  :config
+  (symex-initialize)
+  ;; (global-set-key (kbd "s-;") 'symex-mode-interface)
+
+  ;; (setq symex-highlight-p nil)
+
+  )
+#+end_src
+
 *** COMMENT lispy
 #+begin_src elisp
 (use-package lispy
