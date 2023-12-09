@@ -915,10 +915,10 @@ calls `meow-eval-last-exp'."
     '("l" . sp-forward-sexp)
     '("L" . sp-forward-symbol)
     
-    '("j" . sp-down-sexp)
-    '("J" . sp-backward-down-sexp)
-    '("k" . sp-up-sexp)
-    '("K" . sp-backward-up-sexp)
+    '("k" . sp-down-sexp)
+    '("K" . sp-backward-down-sexp)
+    '("j" . sp-up-sexp)
+    '("J" . sp-backward-up-sexp)
     
     '("d" . ph/sp-kill-sexp-or-region)
     '("D" . sp-kill-hybrid-sexp)
@@ -966,12 +966,6 @@ calls `meow-eval-last-exp'."
 
 #+end_src
 **** +My meow symex state:
-***** symex overwrites (workaround)
-#+begin_src elisp
-(defun ph/meow-symex-overwrites ()
-  nil)
-#+end_src
-***** setup
 #+begin_src elisp
 (defun ph/meow-symex-setup ()
   (setq meow-symex-keymap (make-keymap))
@@ -992,6 +986,12 @@ calls `meow-eval-last-exp'."
   (add-hook 'meow-normal-mode-hook
 	    (lambda ()
 	      (when (and meow-normal-mode
+			 (symex--overlay-active-p))
+		(symex--delete-overlay))))
+
+  (add-hook 'meow-insert-mode-hook
+	    (lambda ()
+	      (when (and meow-insert-mode
 			 (symex--overlay-active-p))
 		(symex--delete-overlay))))
 
@@ -1087,10 +1087,10 @@ calls `meow-eval-last-exp'."
     '("d" . symex-delete) ;; x -> d
     '("D" . symex-delete-backwards) ;; X -> D
     ;; '("D" . symex-delete-remaining) ;; D -> ? (doesn’t work)
-    '("r" . symex-change) ;; c -> r
-    '("R" . symex-change-remaining) ;; C -> R
+    '("r" . ph/symex-change) ;; c -> r
+    ;; '("R" . ph/symex-change-remaining) ;; C -> R (doesn’t work)
     '("C--" . symex-clear)
-    '("s" . symex-replace)
+    '("s" . ph/symex-replace) ;; same as change?
     '("S" . symex-change-delimiter)
     
     '("H" . symex-shift-backward)
@@ -1135,8 +1135,8 @@ calls `meow-eval-last-exp'."
     '("`" . symex-add-quoting-level)
     '("C-`" . symex-remove-quoting-level)
     
-    '("o" . symex-open-line-after)
-    '("O" . symex-open-line-before)
+    '("o" . ph/symex-open-line-after)
+    '("O" . ph/symex-open-line-before)
     '("n" . symex-insert-newline)
     '("C-S-o" . symex-append-newline)
     '("J" . symex-join-lines)
@@ -1162,12 +1162,12 @@ calls `meow-eval-last-exp'."
     '("M-=" . symex-tidy-proper)
     '("M-<tab>" . symex-tidy-proper)
     
-    '("A" . symex-append-after)
-    '("a" . symex-insert-at-end)
-    '("i" . symex-insert-at-beginning)
-    '("I" . symex-insert-before)
+    '("A" . ph/symex-append-after)
+    '("a" . ph/symex-insert-at-end) ;; was symex-insert-at-end
+    '("i" . meow-insert) ;; was symex-insert-at-beginning
+    '("I" . ph/symex-insert-before)
     '("w" . symex-wrap)
-    '("W" . symex-wrap-and-append)
+    '("W" . ph/symex-wrap-and-append)
     
     ;; '("g" . evil-jump-to-tag) ;; -> prefix command
     ;; '("G" . evil-jump-backward) ;; -> prefix command
@@ -1220,7 +1220,6 @@ calls `meow-eval-last-exp'."
 
   (ph/meow-things)
   (ph/meow-paren-setup)
-  (ph/meow-symex-overwrites)
   (ph/meow-symex-setup)
   (ph/meow-leader)
   (ph/meow-bindings)
@@ -1489,7 +1488,87 @@ chacking if a region is active or not."
     (sp-kill-sexp arg t)))
 
 #+end_src
-*** symex
+*** symex/
+**** symex replacements with meow insert (workaround)
+Symex’s insert-related commands do not interface with meows insert
+state, so I copied the relevant parts from source, using ~meow-insert~
+instead.
+- *Note:* this may become obsolete with further development and
+  decoupling in symex
+#+begin_src elisp
+(defun ph/symex-insert-at-end ()
+  "Insert at end of symex."
+  (interactive)
+  (if (or (lispy-left-p)
+          (symex-string-p))
+      (progn (forward-sexp)
+             (backward-char))
+    (forward-sexp))
+  (meow-insert))
+
+(defun ph/symex-append-after ()
+  "Append after symex (instead of vim's default of line)."
+  (interactive)
+  (forward-sexp)  ; selected symexes will have the cursor on the starting paren
+  (insert " ")
+  (meow-insert))
+
+(defun ph/symex-insert-before ()
+  "Insert before symex (instead of vim's default at the start of line)."
+  (interactive)
+  (insert " ")
+  (backward-char)
+  (meow-insert))
+
+(defun ph/symex-wrap-and-append ()
+  "Wrap with containing symex and append."
+  (interactive)
+  (symex-wrap-round)
+  (ph/symex-insert-at-end))
+
+(defun ph/symex-change (count)
+  "Change COUNT symexes."
+  (interactive "p")
+  (let ((start (point))
+        (end (symex--get-end-point count)))
+    (kill-region start end))
+  (meow-insert))
+
+(defun ph/symex-change-remaining ()
+  "Change remaining symexes at this level."
+  (interactive)
+  (let ((count (symex--remaining-length)))
+    (ph/symex-change count)))
+
+(defun ph/symex-replace ()
+  "Replace contents of symex."
+  (interactive)
+  (progn (symex--clear)
+	 (when (or (symex-form-p) (symex-string-p))
+	   (forward-char))
+	 (meow-insert)))
+
+(defun ph/symex-open-line-after ()
+  "Open new line after symex."
+  (interactive)
+  (forward-sexp)
+  (newline-and-indent)
+  (meow-insert))
+
+(defun ph/symex-open-line-before ()
+  "Open new line before symex."
+  (interactive)
+  (newline-and-indent)
+  (evil-previous-line)
+  (indent-according-to-mode)
+  (evil-move-end-of-line)
+  (unless (or (symex--current-line-empty-p)
+              (save-excursion (backward-char)
+                              (lispy-left-p)))
+    (insert " "))
+  (meow-insert))
+#+end_src
+**** symex
 #+begin_src elisp
 (use-package symex
   :ensure t
