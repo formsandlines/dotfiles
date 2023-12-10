@@ -1058,7 +1058,7 @@ calls `meow-eval-last-exp'."
     '("(" . symex-create-round)
     '("[" . symex-create-square)
     '("{" . symex-create-curly)
-    '("<" . symex-create-angled)
+    ;; '("<" . symex-create-angled)
     
     '("h" . symex-go-backward)
     '("k" . symex-go-up)
@@ -1067,126 +1067,119 @@ calls `meow-eval-last-exp'."
 
     '("gj" . symex-next-visual-line)
     '("gk" . symex-previous-visual-line)
-    '("f" . symex-traverse-forward)
-    '("b" . symex-traverse-backward)
-    '("C-f" . symex-traverse-forward-more)
-    '("C-b" . symex-traverse-backward-more)
-    '("F" . symex-traverse-forward-skip)
-    '("B" . symex-traverse-backward-skip)
-    '("C-h" . symex-leap-backward)
-    '("C-l" . symex-leap-forward)
-    '("C-M-h" . symex-soar-backward)
-    '("C-M-l" . symex-soar-forward)
-    '("C-k" . symex-climb-branch)
-    '("C-j" . symex-descend-branch)
+    '("L" . symex-traverse-forward) ;; f -> o -> L
+    '("H" . symex-traverse-backward) ;; b -> u -> H
+    ;; '("C-f" . symex-traverse-forward-more)
+    ;; '("C-b" . symex-traverse-backward-more)
+    ;; '("O" . symex-traverse-forward-skip) ;; F -> O
+    ;; '("U" . symex-traverse-backward-skip) ;; B -> U
+    '("u" . symex-leap-backward) ;; C-h -> u
+    '("o" . symex-leap-forward) ;; C-l -> o
+    '("U" . symex-soar-backward) ;; C-M-h -> U
+    '("O" . symex-soar-forward) ;; C-M-l -> O
+    '("K" . symex-climb-branch) ;; C-k -> K
+    '("J" . symex-descend-branch) ;; C-j -> J
     
     '("c" . symex-yank) ;; y -> c
     ;; '("C" . symex-yank-remaining) ;; Y -> C (doesn’t work)
-    '("p" . symex-paste-after)
-    '("P" . symex-paste-before)
+    '("P" . symex-paste-after) ;; p -> P
+    '("p" . symex-paste-before) ;; P -> p
     '("d" . symex-delete) ;; x -> d
-    '("D" . symex-delete-backwards) ;; X -> D
+    ;; '("D" . symex-delete-backwards) ;; X -> D
     ;; '("D" . symex-delete-remaining) ;; D -> ? (doesn’t work)
     '("r" . ph/symex-change) ;; c -> r
     ;; '("R" . ph/symex-change-remaining) ;; C -> R (doesn’t work)
-    '("C--" . symex-clear)
-    '("s" . ph/symex-replace) ;; same as change?
-    '("S" . symex-change-delimiter)
+    '("R" . ph/symex-replace) ;; same as change? s -> R
+    '("q" . symex-change-delimiter) ;; S -> /W -> q
+    '("D" . symex-clear) ;; C-- -> D
     
-    '("H" . symex-shift-backward)
-    '("L" . symex-shift-forward)
-    '("M-H" . symex-shift-backward-most)
-    '("M-L" . symex-shift-forward-most)
-    
-    '("K" . paredit-raise-sexp)
-    '("C-S-j" . symex-emit-backward)
-    '("C-(" . symex-capture-backward)
-    '("C-S-h" . symex-capture-backward)
-    '("C-{" . symex-emit-backward)
-    '("C-S-l" . symex-capture-forward)
-    '("C-}" . symex-emit-forward)
-    '("C-S-k" . symex-emit-forward)
-    '("C-)" . symex-capture-forward)
+    '("T" . symex-shift-backward) ;; H -> T
+    '("t" . symex-shift-forward) ;; L -> t
+    ;; '("M-H" . symex-shift-backward-most)
+    ;; '("M-L" . symex-shift-forward-most)
+    '("N" . paredit-raise-sexp) ;; K -> m -> M
+
+    '("," . symex-capture-backward) ;; C-( / C-S-h -> ,
+    '("<" . symex-emit-backward) ;; C-{ / C-S-j -> <
+    '(">" . symex-emit-forward) ;; C-} / C-S-k -> >
+    '("." . symex-capture-forward) ;; C-) / C-S-l -> .
     '("z" . symex-swallow)
     '("Z" . symex-swallow-tail)
     
-    '("e" . symex-evaluate)
-    '("E" . symex-evaluate-remaining)
-    '("C-M-e" . symex-evaluate-pretty)
-    '("C-d" . symex-evaluate-definition) ;; d -> C-d
-    '("M-e" . symex-eval-recursive)
-    '("T" . symex-evaluate-thunk)
-    '(":" . eval-expression)
+    ;; '("e" . symex-evaluate)
+    ;; '("E" . symex-evaluate-remaining)
+    ;; '("C-M-e" . symex-evaluate-pretty)
+    ;; '("C-d" . symex-evaluate-definition) ;; d -> C-d
+    ;; '("M-e" . symex-eval-recursive)
+    ;; '("T" . symex-evaluate-thunk)
+    ;; '(":" . eval-expression)
     
-    '("t" . symex-switch-to-scratch-buffer)
-    '("M" . symex-switch-to-messages-buffer)
+    ;; '("t" . symex-switch-to-scratch-buffer)
+    ;; '("M" . symex-switch-to-messages-buffer)
     ;; '("C-r" . symex-repl) ;; r -> C-r
     ;; '("C-R" . symex-run) ;; R -> C-R
     
     '("|" . symex-split)
     '("&" . symex-join)
-    '("-" . symex-splice)
+    '("-" . symex-splice) ;; M ?
     '(")" . symex-wrap-round)
     '("]" . symex-wrap-square)
     '("}" . symex-wrap-curly)
-    '(">" . symex-wrap-angled)
-    '("C-'" . symex-cycle-quote)
-    '("C-," . symex-cycle-unquote)
-    '("`" . symex-add-quoting-level)
-    '("C-`" . symex-remove-quoting-level)
+    ;; '(">" . symex-wrap-angled)
+    '("`" . symex-cycle-quote)
+    '("~" . symex-cycle-unquote)
+    ;; '("`" . symex-add-quoting-level)
+    ;; '("C-`" . symex-remove-quoting-level)
     
-    '("o" . ph/symex-open-line-after)
-    '("O" . ph/symex-open-line-before)
-    '("n" . symex-insert-newline)
-    '("C-S-o" . symex-append-newline)
-    '("J" . symex-join-lines)
-    '("M-J" . symex-collapse)
+    '("E" . ph/symex-open-line-after) ;; o -> b -> n -> E
+    '("S" . ph/symex-open-line-before) ;; O -> B -> N -> S
+    '("C-{" . symex-insert-newline) ;; n -> C-{
+    '("C-}" . symex-append-newline) ;; C-S-o -> C-}
+    '("X" . symex-join-lines) ;; J -> X
+    ;; '("M-J" . symex-collapse)
     '("M-<" . symex-collapse)
-    
     '("M->" . symex-unfurl)
-    '("C-M-<" . symex-collapse-remaining)
-    '("C-M->" . symex-unfurl-remaining)
-    '("N" . symex-join-lines-backwards)
+    ;; '("C-M-<" . symex-collapse-remaining)
+    ;; '("C-M->" . symex-unfurl-remaining)
+    '("x" . symex-join-lines-backwards) ;; N -> x
     
-    '("0" . symex-goto-first)
-    '("M-h" . symex-goto-first)
-    '("$" . symex-goto-last)
-    '("M-l" . symex-goto-last)
-    '("M-j" . symex-goto-lowest)
-    '("M-k" . symex-goto-highest)
+    '("s" . symex-goto-first) ;; 0 / M-h -> s
+    '("e" . symex-goto-last) ;; $ / M-l -> e
+    '("n" . symex-goto-lowest) ;; M-j -> S -> n
+    '("m" . symex-goto-highest) ;; M-k -> E -> m
     
     '("=" . symex-tidy)
     '("<tab>" . symex-tidy)
-    '("C-=" . symex-tidy-remaining)
-    '("C-<tab>" . symex-tidy-remaining)
-    '("M-=" . symex-tidy-proper)
-    '("M-<tab>" . symex-tidy-proper)
+    ;; '("C-=" . symex-tidy-remaining)
+    ;; '("C-<tab>" . symex-tidy-remaining)
+    ;; '("M-=" . symex-tidy-proper)
+    ;; '("M-<tab>" . symex-tidy-proper)
     
     '("A" . ph/symex-append-after)
-    '("a" . ph/symex-insert-at-end) ;; was symex-insert-at-end
-    '("i" . meow-insert) ;; was symex-insert-at-beginning
+    '("a" . ph/symex-insert-at-end)
+    '("i" . ph/symex-insert-at-beginning)
     '("I" . ph/symex-insert-before)
-    '("w" . symex-wrap)
+    '("w" . ph/symex-wrap)
     '("W" . ph/symex-wrap-and-append)
     
     ;; '("g" . evil-jump-to-tag) ;; -> prefix command
     ;; '("G" . evil-jump-backward) ;; -> prefix command
     
     '(";" . symex-comment)
-    '("M-;" . symex-comment-remaining)
-    '("C-;" . symex-eval-print)
+    ;; '("M-;" . symex-comment-remaining) ;; -> doesn’t work
+    ;; '("C-;" . symex-eval-print)
     
     ;; canonical action
-    '("s-;" . symex-evaluate)
+    ;; '("s-;" . symex-evaluate)
     
     ;; configuration
-    '("H-h" . symex--toggle-highlight)
+    ;; '("H-h" . symex--toggle-highlight)
     
-    '("C-e" . symex--scroll-down)
-    '("C-y" . symex--scroll-up)
+    ;; '("C-e" . symex--scroll-down)
+    ;; '("C-y" . symex--scroll-up)
     
     ;; standard exits
-    '("?" . symex-describe)
+    ;; '("?" . symex-describe)
     ;; '("<return>" . symex-enter-lower)
     ;; '("<escape>" . symex-escape-higher)
     ;; '("C-g" . symex-escape-higher)
@@ -1506,6 +1499,14 @@ instead.
     (forward-sexp))
   (meow-insert))
 
+(defun ph/symex-insert-at-beginning ()
+  "Insert at beginning of symex."
+  (interactive)
+  (when (or (lispy-left-p)
+            (symex-string-p))
+    (forward-char))
+  (meow-insert))
+
 (defun ph/symex-append-after ()
   "Append after symex (instead of vim's default of line)."
   (interactive)
@@ -1519,6 +1520,12 @@ instead.
   (insert " ")
   (backward-char)
   (meow-insert))
+
+(defun ph/symex-wrap ()
+  "Wrap with containing symex."
+  (interactive)
+  (symex-wrap-round)
+  (ph/symex-insert-at-beginning))
 
 (defun ph/symex-wrap-and-append ()
   "Wrap with containing symex and append."
