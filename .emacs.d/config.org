@@ -1082,8 +1082,8 @@ calls `meow-eval-last-exp'."
     
     '("c" . symex-yank) ;; y -> c
     ;; '("C" . symex-yank-remaining) ;; Y -> C (doesn’t work)
-    '("P" . symex-paste-after) ;; p -> P
-    '("p" . symex-paste-before) ;; P -> p
+    '("p" . ph/symex-paste-after) ;; p -> P -> p
+    '("P" . ph/symex-paste-before) ;; P -> p -> P
     '("d" . symex-delete) ;; x -> d
     ;; '("D" . symex-delete-backwards) ;; X -> D
     ;; '("D" . symex-delete-remaining) ;; D -> ? (doesn’t work)
@@ -1106,13 +1106,13 @@ calls `meow-eval-last-exp'."
     '("z" . symex-swallow)
     '("Z" . symex-swallow-tail)
     
-    ;; '("e" . symex-evaluate)
-    ;; '("E" . symex-evaluate-remaining)
+    '("/e" . ph/symex-evaluate) ;; e -> /e
+    '("/E" . symex-evaluate-remaining) ;; E -> /E
     ;; '("C-M-e" . symex-evaluate-pretty)
-    ;; '("C-d" . symex-evaluate-definition) ;; d -> C-d
+    '("/d" . symex-evaluate-definition) ;; d -> C-d -> /d
     ;; '("M-e" . symex-eval-recursive)
     ;; '("T" . symex-evaluate-thunk)
-    ;; '(":" . eval-expression)
+    '(":" . eval-expression)
     
     ;; '("t" . symex-switch-to-scratch-buffer)
     ;; '("M" . symex-switch-to-messages-buffer)
@@ -1574,6 +1574,99 @@ instead.
                               (lispy-left-p)))
     (insert " "))
   (meow-insert))
+#+end_src
+**** symex replacements for eval
+#+begin_src elisp
+(defun ph/symex-eval-janet ()
+  "Eval last sexp."
+  (interactive)
+  (ajrepl-send-expression-at-point))
+
+(defun ph/symex--evaluate ()
+  "Evaluate symex."
+  (save-excursion
+    (forward-sexp)
+    (cond ((equal major-mode 'janet-mode)
+	   (ph/symex-eval-janet))
+	  ((member major-mode symex-racket-modes)
+	   (symex-eval-racket))
+	  ((member major-mode symex-elisp-modes)
+	   (symex-eval-elisp))
+	  ((equal major-mode 'scheme-mode)
+	   (symex-eval-scheme))
+	  ((member major-mode symex-clojure-modes)
+	   (symex-eval-clojure))
+	  ((member major-mode symex-common-lisp-modes)
+	   (symex-eval-common-lisp))
+	  ((equal major-mode 'arc-mode)
+	   (symex-eval-arc))
+	  (t (error "Symex mode: Lisp flavor not recognized!")))))
+
+(defun ph/symex-evaluate (count)
+  "Evaluate COUNT symexes."
+  (interactive "p")
+  (save-excursion
+    (let ((i 0)
+          (movedp t))
+      (while (or (not movedp)
+                 (< i count))
+        (ph/symex--evaluate)
+        (symex--go-forward)
+        (setq i (1+ i))))))
+#+end_src
+**** symex replacements for copy/paste
+#+begin_src elisp
+(defun ph/symex-lisp--paste-before ()
+  "Paste before symex."
+  (interactive)
+  (let ((extra-to-append
+         (cond ((or (and (symex--point-at-indentation-p)
+                         (not (bolp)))
+                    (save-excursion (forward-sexp)
+                                    (eolp)))
+                "\n")
+               (t " "))))
+    (save-excursion
+      (meow-yank)
+      (insert extra-to-append)
+      (symex--go-forward)
+      ;; (symex-tidy)
+      )
+    (symex-tidy)))
+
+(defun ph/symex-lisp--paste-after ()
+  "Paste after symex."
+  (interactive)
+  (let ((extra-to-prepend
+         (cond ((or (and (symex--point-at-indentation-p)
+                         (not (bolp)))
+                    (save-excursion (forward-sexp)
+                                    (eolp)))
+                "\n")
+               (t " "))))
+    (save-excursion
+      (forward-sexp)
+      (insert extra-to-prepend)
+      (meow-yank))
+    (symex--go-forward)
+    (symex-tidy)))
+
+(defun ph/symex-paste-before (count)
+  "Paste before symex, COUNT times."
+  (interactive "p")
+  (setq this-command 'meow-yank)
+  (symex--with-undo-collapse
+    (dotimes (_ count)
+      (ph/symex-lisp--paste-before))))
+
+(defun ph/symex-paste-after (count)
+  "Paste after symex, COUNT times."
+  (interactive "p")
+  (setq this-command 'meow-yank)
+  (symex--with-undo-collapse
+    (dotimes (_ count)
+      (ph/symex-lisp--paste-after))))
+
 #+end_src
 **** symex
 #+begin_src elisp
