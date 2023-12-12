@@ -36,7 +36,8 @@
  '(package-selected-packages
    '(lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode rainbow-mode org-appear evil-surround gruvbox-theme evil))
  '(package-vc-selected-packages
-   '((flycheck-rjan :vc-backend Git :url "https://github.com/sogaiu/flycheck-rjan")
+   '((ajsc :vc-backend Git :url "https://github.com/sogaiu/a-janet-spork-client")
+     (flycheck-rjan :vc-backend Git :url "https://github.com/sogaiu/flycheck-rjan")
      (janet-ts-mode :vc-backend Git :url "https://github.com/sogaiu/janet-ts-mode")
      (flycheck-janet :vc-backend Git :url "https://github.com/sogaiu/flycheck-janet")
      (org-excalidraw :vc-backend Git :url "https://github.com/ifeitao/org-excalidraw")

@@ -513,7 +513,7 @@ major mode or the general command if none applies."
   (cond
    ((eq major-mode 'clojure-mode)
     (cider-eval-buffer buffer nil undef-all))
-   ((eq major-mode 'janet-mode)
+   ((eq major-mode 'janet-ts-mode)
     (ajrepl-send-buffer))
    (t (eval-buffer buffer))))
 
@@ -522,7 +522,7 @@ major mode or the general command if none applies."
 major mode or the general command if none applies."
   (interactive "r")
   (cond
-   ((eq major-mode 'janet-mode)
+   ((eq major-mode 'janet-ts-mode)
     (ajrepl-send-region start end))
    ((t (eval-region start end)))))
 
@@ -1423,6 +1423,14 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   :diminish
   :init (global-flycheck-mode))
 #+end_src
+**** flycheck-color-mode-line
+#+begin_src elisp
+(use-package flycheck-color-mode-line
+  :ensure t
+  :diminish
+  :after flycheck
+  :hook flycheck-mode)
+#+end_src
 **** flycheck-clj-kondo
 #+begin_src elisp
 (use-package flycheck-clj-kondo
@@ -1456,14 +1464,14 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 #+begin_src elisp
 (use-package smartparens
   :ensure t
-  :after janet-mode
+  :after janet-ts-mode
   :init (require 'smartparens-config)
   :config
   (smartparens-global-mode t) ;; These options can be t or nil.
   (show-smartparens-global-mode t)
   (setq sp-show-pair-from-inside t)
   
-  (sp-with-modes 'janet-mode
+  (sp-with-modes 'janet-ts-mode
     (sp-local-pair "'" nil :actions nil))
 
   ;; (sp-pair "`" "`")
@@ -1515,7 +1523,16 @@ instead.
 - *Note:* this may become obsolete with further development and
   decoupling in symex
 #+begin_src elisp
-(defun ph/symex-insert-at-end ()
+
+(defun ph/symex-ts-insert-at-end ()
+  "Insert at end of symex."
+  (interactive)
+  (when (symex-ts-get-current-node)
+    (goto-char (tsc-node-end-position (symex-ts-get-current-node)))
+    ;; (evil-insert-state)
+    (meow-insert)))
+
+(defun ph/symex-lisp--insert-at-end ()
   "Insert at end of symex."
   (interactive)
   (if (or (lispy-left-p)
@@ -1523,29 +1540,92 @@ instead.
       (progn (forward-sexp)
              (backward-char))
     (forward-sexp))
+  ;; (symex-enter-lowest)
   (meow-insert))
 
-(defun ph/symex-insert-at-beginning ()
+(defun ph/symex-insert-at-end ()
+  "Insert at end of symex."
+  (interactive)
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-insert-at-end)
+    (ph/symex-lisp--insert-at-end)))
+
+
+(defun ph/symex-ts-insert-at-beginning ()
+  "Insert at beginning of symex."
+  (interactive)
+  (when (symex-ts-get-current-node)
+    (goto-char (tsc-node-start-position (symex-ts-get-current-node)))
+    ;; (evil-insert-state)
+    (meow-insert)))
+
+(defun ph/symex-lisp--insert-at-beginning ()
   "Insert at beginning of symex."
   (interactive)
   (when (or (lispy-left-p)
             (symex-string-p))
     (forward-char))
+  ;; (symex-enter-lowest)
+  (meow-insert))
+
+(defun ph/symex-insert-at-beginning ()
+  "Insert at beginning of symex."
+  (interactive)
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-insert-at-beginning)
+    (ph/symex-lisp--insert-at-beginning)))
+
+
+(defun ph/symex-ts-append-after ()
+  "Append after symex (instead of vim's default of line)."
+  (interactive)
+  (when (symex-ts-get-current-node)
+    (goto-char (tsc-node-end-position (symex-ts-get-current-node)))
+    (insert " ")
+    ;; (evil-insert-state)
+    (meow-insert)))
+
+(defun ph/symex-lisp--append-after ()
+  "Append after symex (instead of vim's default of line)."
+  (interactive)
+  (forward-sexp)  ; selected symexes will have the cursor on the starting paren
+  (insert " ")
+  ;; (symex-enter-lowest)
   (meow-insert))
 
 (defun ph/symex-append-after ()
   "Append after symex (instead of vim's default of line)."
   (interactive)
-  (forward-sexp)  ; selected symexes will have the cursor on the starting paren
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-append-after)
+    (ph/symex-lisp--append-after)))
+
+
+(defun ph/symex-ts-insert-before ()
+  "Insert before symex (instead of vim's default at the start of line)."
+  (interactive)
+  (when (symex-ts-get-current-node)
+    (goto-char (tsc-node-start-position (symex-ts-get-current-node)))
+    (insert " ")
+    (backward-char)
+    ;; (evil-insert-state)
+    (meow-insert)))
+
+(defun ph/symex-lisp--insert-before ()
+  "Insert before symex (instead of vim's default at the start of line)."
+  (interactive)
   (insert " ")
+  (backward-char)
+  ;; (symex-enter-lowest)
   (meow-insert))
 
 (defun ph/symex-insert-before ()
   "Insert before symex (instead of vim's default at the start of line)."
   (interactive)
-  (insert " ")
-  (backward-char)
-  (meow-insert))
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-insert-before)
+    (ph/symex-lisp--insert-before)))
+
 
 (defun ph/symex-wrap ()
   "Wrap with containing symex."
@@ -1553,19 +1633,37 @@ instead.
   (symex-wrap-round)
   (ph/symex-insert-at-beginning))
 
+
 (defun ph/symex-wrap-and-append ()
   "Wrap with containing symex and append."
   (interactive)
   (symex-wrap-round)
   (ph/symex-insert-at-end))
 
-(defun ph/symex-change (count)
+
+(defun ph/symex-ts-change-node-forward (&optional count)
+  "Delete COUNT nodes forward from the current node and enter Insert state."
+  (interactive "p")
+  (save-excursion (symex-ts-delete-node-forward count t))
+  ;; (evil-insert-state 1)
+  (meow-insert))
+
+(defun ph/symex-lisp--change (count)
   "Change COUNT symexes."
   (interactive "p")
   (let ((start (point))
         (end (symex--get-end-point count)))
     (kill-region start end))
+  ;; (symex-enter-lowest)
   (meow-insert))
+
+(defun ph/symex-change (count)
+  "Change COUNT symexes."
+  (interactive "p")
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-change-node-forward count)
+    (ph/symex-lisp--change count)))
+
 
 (defun ph/symex-change-remaining ()
   "Change remaining symexes at this level."
@@ -1573,22 +1671,73 @@ instead.
   (let ((count (symex--remaining-length)))
     (ph/symex-change count)))
 
+
+(defun ph/symex-ts-replace ()
+  "Replace contents of symex."
+  (when symex-ts--current-node
+    (let* ((child-count (tsc-count-named-children symex-ts--current-node))
+
+           ;; Get new position for insertion: if the node has children
+           ;; then the start of the first child node, otherwise the
+           ;; current point.
+           (new-pos (if (> child-count 0)
+                        (tsc-node-start-position (tsc-get-nth-named-child symex-ts--current-node 0))
+                      (point))))
+
+      (symex-ts-clear)
+      (goto-char new-pos)
+      ;; (evil-insert-state 1)
+      (meow-insert))))
+
 (defun ph/symex-replace ()
   "Replace contents of symex."
   (interactive)
-  (progn (symex--clear)
-	 (when (or (symex-form-p) (symex-string-p))
-	   (forward-char))
-	 (meow-insert)))
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-replace)
+    (progn (symex--clear)
+           (when (or (symex-form-p) (symex-string-p))
+             (forward-char))
+           ;; (symex-enter-lowest)
+	   (meow-insert))))
 
-(defun ph/symex-open-line-after ()
+
+(defun ph/symex-ts-open-line-after ()
+  "Open new line after symex."
+  (interactive)
+  (when (symex-ts-get-current-node)
+    (goto-char (tsc-node-end-position (symex-ts-get-current-node)))
+    (newline-and-indent)
+    ;; (evil-insert-state)
+    (meow-insert)))
+
+(defun ph/symex-lisp--open-line-after ()
   "Open new line after symex."
   (interactive)
   (forward-sexp)
   (newline-and-indent)
+  ;; (symex-enter-lowest)
   (meow-insert))
 
-(defun ph/symex-open-line-before ()
+(defun ph/symex-open-line-after ()
+  "Open new line after symex."
+  (interactive)
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-open-line-after)
+    (ph/symex-lisp--open-line-after)))
+
+
+(defun ph/symex-ts-open-line-before ()
+  "Open new line before symex."
+  (interactive)
+  (when (symex-ts-get-current-node)
+    (goto-char (tsc-node-start-position (symex-ts-get-current-node)))
+    (newline-and-indent)
+    (evil-previous-line)
+    (indent-according-to-mode)
+    ;; (evil-append-line 1)
+    (meow-insert))) ;; ! incorrect command mapping from append-line
+
+(defun ph/symex-lisp--open-line-before ()
   "Open new line before symex."
   (interactive)
   (newline-and-indent)
@@ -1599,7 +1748,15 @@ instead.
               (save-excursion (backward-char)
                               (lispy-left-p)))
     (insert " "))
+  ;; (symex-enter-lowest)
   (meow-insert))
+
+(defun ph/symex-open-line-before ()
+  "Open new line before symex."
+  (interactive)
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-open-line-before)
+    (ph/symex-lisp--open-line-before)))
 #+end_src
 **** symex replacements for eval
 #+begin_src elisp
@@ -1608,11 +1765,12 @@ instead.
   (interactive)
   (ajrepl-send-expression-at-point))
 
+;; changed significantly (trimmed down)
 (defun ph/symex--evaluate ()
   "Evaluate symex."
   (save-excursion
     (forward-sexp)
-    (cond ((equal major-mode 'janet-mode)
+    (cond ((equal major-mode 'janet-ts-mode)
 	   (ph/symex-eval-janet))
 	  ((member major-mode symex-racket-modes)
 	   (symex-eval-racket))
@@ -1642,6 +1800,36 @@ instead.
 #+end_src
 **** symex replacements for copy/paste
 #+begin_src elisp
+;; ! may need adjustment
+(defun ph/symex-ts--paste (count direction)
+  "Paste before or after symex, COUNT times, according to DIRECTION.
+
+DIRECTION should be either the symbol `before' or `after'."
+  (interactive)
+  (when (symex-ts-get-current-node)
+    (symex-ts--handle-tree-modification
+     (let* ((node (symex-ts-get-current-node))
+	    (start (tsc-node-start-position node))
+	    (end (tsc-node-end-position node))
+	    (indent-start (save-excursion (back-to-indentation) (point)))
+	    (block-node (or (not (= (line-number-at-pos start)
+				    (line-number-at-pos end)))
+			    (and (= start indent-start)
+				 (= end (line-end-position))))))
+       (goto-char (if (eq direction 'before) start end))
+       (dotimes (_ count)
+	 (when (eq direction 'after) (insert (if block-node "\n" " ")))
+	 ;; (yank)
+	 (meow-yank)
+	 (when (eq direction 'before) (insert (if block-node "\n" " "))
+	       (indent-according-to-mode)))))))
+
+
+(defun ph/symex-ts-paste-before (count)
+  "Paste before symex, COUNT times."
+  (interactive)
+  (ph/symex-ts--paste count 'before))
+
 (defun ph/symex-lisp--paste-before ()
   "Paste before symex."
   (interactive)
@@ -1653,12 +1841,33 @@ instead.
                 "\n")
                (t " "))))
     (save-excursion
-      (meow-yank)
-      (insert extra-to-append)
+      ;; (save-excursion
+      ;;   (evil-paste-before nil nil)
+      ;;   (when evil-move-cursor-back
+      ;;     (forward-char))
+      ;;   (insert extra-to-append))
+      (meow-yank) ;; ++
+      (insert extra-to-append) ;; ++
       (symex--go-forward)
       ;; (symex-tidy)
       )
     (symex-tidy)))
+
+(defun ph/symex-paste-before (count)
+  "Paste before symex, COUNT times."
+  (interactive "p")
+  (setq this-command 'meow-yank) ;; 'evil-paste-before
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-paste-before count)
+    (symex--with-undo-collapse
+      (dotimes (_ count)
+        (ph/symex-lisp--paste-before)))))
+
+
+(defun ph/symex-ts-paste-after (count)
+  "Paste after symex, COUNT times."
+  (interactive)
+  (ph/symex-ts--paste count 'after))
 
 (defun ph/symex-lisp--paste-after ()
   "Paste after symex."
@@ -1673,25 +1882,20 @@ instead.
     (save-excursion
       (forward-sexp)
       (insert extra-to-prepend)
+      ;; (evil-paste-before nil nil)
       (meow-yank))
     (symex--go-forward)
     (symex-tidy)))
 
-(defun ph/symex-paste-before (count)
-  "Paste before symex, COUNT times."
-  (interactive "p")
-  (setq this-command 'meow-yank)
-  (symex--with-undo-collapse
-    (dotimes (_ count)
-      (ph/symex-lisp--paste-before))))
-
 (defun ph/symex-paste-after (count)
   "Paste after symex, COUNT times."
   (interactive "p")
-  (setq this-command 'meow-yank)
-  (symex--with-undo-collapse
-    (dotimes (_ count)
-      (ph/symex-lisp--paste-after))))
+  (setq this-command 'meow-yank) ;; 'evil-paste-after
+  (if (symex-tree-sitter-p)
+      (ph/symex-ts-paste-after count)
+    (symex--with-undo-collapse
+      (dotimes (_ count)
+        (ph/symex-lisp--paste-after)))))
 
 #+end_src
 **** symex
@@ -1702,7 +1906,7 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 #+begin_src elisp
 (use-package symex
   :ensure t
-  :after janet-mode
+  :after janet-ts-mode
   :config
   (symex-initialize)
   ;; (global-set-key (kbd "s-;") 'symex-mode-interface)
@@ -1730,8 +1934,8 @@ Issues waiting to be resolved (maybe in 2.0 release?):
       '((janet-simple
 	 . ("https://github.com/sogaiu/tree-sitter-janet-simple"))))
 
-;; ? make sure it’s not already installed
-(treesit-install-language-grammar 'janet-simple)
+;;; ? how to make sure it’s not already installed
+;; (treesit-install-language-grammar 'janet-simple)
 #+end_src
 ** :lang Haskell
 *** haskell-mode
@@ -1915,6 +2119,26 @@ Issues waiting to be resolved (maybe in 2.0 release?):
   (add-hook 'janet-ts-mode-hook
             #'ajrepl-interaction-mode))
 
+#+end_src
+*** a-janet-spork-client
+Janet Spork Netrepl client.
+- [[https://github.com/sogaiu/a-janet-spork-client/blob/master/ajsc.el][Instructions]]
+- needs [[https://github.com/janet-lang/spork][Spork]] utility library: ~sudo jpm install spork~
+- there is also [[https://github.com/sogaiu/snr][snr]] (which I haven’t tested)
+
+1. in console, call:
+   : janet -e '(import spork/netrepl) (netrepl/server)'
+   (or create/use ~janetrepl~ alias)
+2. ~M-x ajsc~ to connect to the nrepl server with specified port
+
+#+begin_src elisp
+(use-package ajsc
+  :ensure t
+  :after (janet-ts-mode ajrepl)
+  :vc (:fetcher github :repo sogaiu/a-janet-spork-client)
+  :config
+  (add-hook 'janet-ts-mode-hook
+            #'ajsc-interaction-mode))
 #+end_src
 ** :lang markdown
 *** markdown-mode
