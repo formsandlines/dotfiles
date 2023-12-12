@@ -169,12 +169,21 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 ;;; Follow symlinks for version control:
 (setq vc-follow-symlinks t)
 
+;;; Record state of window configuration to undo/redo:
+;;; - C-c <left> to undo window configuration
+;;; - C-c <right> to redo
 (winner-mode 1)
 
+;;; Enable commands to move windows:
 (windmove-mode 1)
 
 ;; (setq initial-major-mode 'org-mode)
 
+;;; better mouse wheel scrolling
+;;; https://stackoverflow.com/a/26053341
+(setq mouse-wheel-scroll-amount '(0.07))
+;;; https://stackoverflow.com/a/445881
+(setq mouse-wheel-progressive-speed nil)
 #+end_src
 
 * Buffer movement
@@ -1424,14 +1433,23 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   ;; ? how to disable elisp undefined warnings
   )
 #+end_src
-
 **** flycheck-janet
 #+begin_src elisp
 (use-package flycheck-janet
   :ensure t
-  :after (flycheck janet-mode)
+  :after (flycheck janet-ts-mode)
   :diminish
   :vc (:fetcher github :repo sogaiu/flycheck-janet))
+#+end_src
+**** flycheck-rjan (for Janet)
+#+begin_src elisp
+(use-package flycheck-rjan
+  :ensure t
+  :after (flycheck janet-ts-mode flycheck-janet)
+  :diminish
+  :vc (:fetcher github :repo sogaiu/flycheck-rjan)
+  :config
+  (flycheck-add-next-checker 'janet-rjan 'janet-janet))
 #+end_src
 ** Structural editing
 *** smartparens
@@ -1677,6 +1695,10 @@ instead.
 
 #+end_src
 **** symex
+Issues waiting to be resolved (maybe in 2.0 release?):
+- remove tree-sitter dependency (this is now built-in in Emacs 29+)
+- remove evil dependency (no need for that with meow)
+- hopefully trim other dependencies like lispy too
 #+begin_src elisp
 (use-package symex
   :ensure t
@@ -1700,6 +1722,16 @@ instead.
   ;;   `(progn
   ;;      (lispy-define-key lispy-mode-map "S" 'special-lispy-visit)))
   )
+#+end_src
+** Tree-sitter
+*** tree-sitter-janet-simple
+#+begin_src elisp
+(setq treesit-language-source-alist
+      '((janet-simple
+	 . ("https://github.com/sogaiu/tree-sitter-janet-simple"))))
+
+;; ? make sure it’s not already installed
+(treesit-install-language-grammar 'janet-simple)
 #+end_src
 ** :lang Haskell
 *** haskell-mode
@@ -1860,9 +1892,16 @@ instead.
 #+end_src
 
 ** :lang Janet
-*** janet-mode
+*** COMMENT janet-mode
 #+begin_src elisp
 (use-package janet-mode
+  :ensure t)
+
+#+end_src
+*** janet-ts-mode
+#+begin_src elisp
+(use-package janet-ts-mode
+  :vc (:fetcher github :repo sogaiu/janet-ts-mode)
   :ensure t)
 
 #+end_src
@@ -1870,9 +1909,10 @@ instead.
 #+begin_src elisp
 (use-package ajrepl
   :ensure t
+  :after janet-ts-mode
   :vc (:fetcher github :repo sogaiu/ajrepl)
   :config
-  (add-hook 'janet-mode-hook
+  (add-hook 'janet-ts-mode-hook
             #'ajrepl-interaction-mode))
 
 #+end_src
@@ -2339,4 +2379,5 @@ Packages to try:
   - https://orgmode.org/worg//org-contrib/babel/languages/ob-doc-clojure.html
 - [ ] neil  
 - [ ] html-to-hiccup
+- [ ] flycheck-color-mode-line.el
   
