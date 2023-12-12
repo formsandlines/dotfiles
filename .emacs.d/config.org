@@ -173,7 +173,7 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 
 (windmove-mode 1)
 
-(setq initial-major-mode 'org-mode)
+;; (setq initial-major-mode 'org-mode)
 
 #+end_src
 
@@ -1425,6 +1425,14 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   )
 #+end_src
 
+**** flycheck-janet
+#+begin_src elisp
+(use-package flycheck-janet
+  :ensure t
+  :after (flycheck janet-mode)
+  :diminish
+  :vc (:fetcher github :repo sogaiu/flycheck-janet))
+#+end_src
 ** Structural editing
 *** smartparens
 #+begin_src elisp
@@ -1923,7 +1931,7 @@ Works kind-of, but with multiple issues.
 
 #+end_src
 ** Misc
-*** persistent-scratch
+*** COMMENT persistent-scratch
 #+begin_src elisp
 (use-package persistent-scratch
   :ensure t
