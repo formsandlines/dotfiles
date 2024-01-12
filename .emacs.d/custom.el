@@ -34,15 +34,15 @@
 		       "\\_>")
 	      1 'font-lock-variable-name-face)))))
  '(package-selected-packages
-   '(lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode rainbow-mode org-appear evil-surround gruvbox-theme evil))
+   '(eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode rainbow-mode org-appear evil-surround gruvbox-theme evil))
  '(package-vc-selected-packages
    '((ajsc :vc-backend Git :url "https://github.com/sogaiu/a-janet-spork-client")
-     (flycheck-rjan :vc-backend Git :url "https://github.com/sogaiu/flycheck-rjan")
-     (janet-ts-mode :vc-backend Git :url "https://github.com/sogaiu/janet-ts-mode")
-     (flycheck-janet :vc-backend Git :url "https://github.com/sogaiu/flycheck-janet")
-     (org-excalidraw :vc-backend Git :url "https://github.com/ifeitao/org-excalidraw")
      (ajrepl :vc-backend Git :url "https://github.com/sogaiu/ajrepl")
-     (vc-use-package :vc-backend Git :url "https://github.com/slotThe/vc-use-package"))))
+     (janet-ts-mode :vc-backend Git :url "https://github.com/sogaiu/janet-ts-mode")
+     (flycheck-rjan :vc-backend Git :url "https://github.com/sogaiu/flycheck-rjan")
+     (flycheck-janet :vc-backend Git :url "https://github.com/sogaiu/flycheck-janet")
+     (vc-use-package :vc-backend Git :url "https://github.com/slotThe/vc-use-package")
+     (org-excalidraw :vc-backend Git :url "https://github.com/ifeitao/org-excalidraw"))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

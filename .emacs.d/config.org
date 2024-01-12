@@ -25,7 +25,7 @@ Use ~org-babel-load-file~ to reload config.
 ;;; Bootstrap use-package:
 ;; (package-initialize)                ; ? still needed
 ;; (setq use-package-always-pin "nongnu") ; ? is this important
-(setq use-package-always-ensure t)
+;; (setq use-package-always-ensure t)
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
@@ -93,6 +93,7 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 
 #+begin_src elisp
 (require 'org-tempo)
+;; (require 'eldoc)
 #+end_src
 
 * Personal information
@@ -344,13 +345,15 @@ one, an error is signaled."
 *** diminish
 Enable ~:diminish~ to hide modeline display of some minor modes:
 #+begin_src elisp
-(use-package diminish)
+(use-package diminish
+  :ensure t)
 #+end_src
 *** vc-use-package
 To prevent ~use-package-autoremove~ from deleting it.
 #+begin_src elisp
 ;;; 
-(use-package vc-use-package) 
+(use-package vc-use-package
+  :ensure t) 
 #+end_src
 ** Keybinding helper
 *** which-key
@@ -588,7 +591,9 @@ calls `meow-eval-last-exp'."
    '("/f" . xref-find-definitions)
    '("/F" . xref-go-back)
    '("/r" . xref-find-references)
-   '("/R" . xref-find-apropos)
+   '("/a" . xref-find-apropos)
+   '("/j" . eldoc)
+   '("/R" . eglot-rename)
 
    ;;; WORDS
    '("/u" . upcase-dwim)
@@ -611,7 +616,8 @@ calls `meow-eval-last-exp'."
    '("/gp" . goto-char)
 
    ;;; SEARCH
-   '("/s" . meow-visit)	        ; / -> ? -> / -> ns -> /s
+   '("/v" . meow-visit)	        ; / -> ? -> / -> ns -> /s -> /v
+   '("/s" . query-replace-regexp)
 
    ;;; EVAL
    '("/e" . ph/meow-eval-dwim)  ; just C-x C-e or ph/meow-eval-region
@@ -1304,6 +1310,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 *** COMMENT rainbow-mode
 #+begin_src elisp
 (use-package rainbow-mode
+  :ensure t
   :diminish
   :hook org-mode prog-mode)
 #+end_src
@@ -1311,6 +1318,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 *** COMMENT gruvbox-theme
 #+begin_src elisp
 (use-package gruvbox-theme
+  :ensure t
   :config
   (load-theme 'gruvbox))
 
@@ -1348,6 +1356,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
   ;; available in the *Completions* buffer, add it to the
   ;; `completion-list-mode-map'.
+  :ensure t
   :bind (:map minibuffer-local-map
 	      ("M-A" . marginalia-cycle))
 
@@ -1395,7 +1404,8 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 #+end_src
 
 ** Cross-references
-*** dumb-jump (jump to definition, etc. (file searchers for xref)
+*** COMMENT dumb-jump (jump to definition, etc. (file searchers for xref)
+Needed because eglot?
 #+begin_src elisp
 (use-package dumb-jump
   :ensure t
@@ -1415,13 +1425,45 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 
 ** Linter
 *** flycheck/
+**** COMMENT +My flycheck-prefer-eldoc
+Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc][masteringemacs]]
+#+begin_src elisp
+(defun ph/flycheck-eldoc (callback &rest _ignored)
+  "Print flycheck messages at point by calling CALLBACK."
+  (when-let ((flycheck-errors (and flycheck-mode (flycheck-overlay-errors-at (point)))))
+    (mapc
+     (lambda (err)
+       (funcall callback
+		(format "%s: %s"
+			(let ((level (flycheck-error-level err)))
+			  (pcase level
+			    ('info (propertize "I" 'face 'flycheck-error-list-info))
+			    ('error (propertize "E" 'face 'flycheck-error-list-error))
+			    ('warning (propertize "W" 'face 'flycheck-error-list-warning))
+			    (_ level)))
+			(flycheck-error-message err))
+		:thing (or (flycheck-error-id err)
+			   (flycheck-error-group err))
+		:face 'font-lock-doc-face))
+     flycheck-errors)))
+
+(defun ph/flycheck-prefer-eldoc ()
+  (add-hook 'eldoc-documentation-functions #'ph/flycheck-eldoc nil t)
+  (setq eldoc-documentation-strategy 'eldoc-documentation-compose-eagerly)
+  (setq flycheck-display-errors-function nil)
+  (setq flycheck-help-echo-function nil))
+
+#+end_src
 **** flycheck
 #+begin_src elisp
 (use-package flycheck
   :ensure t
   :defer t
+  :after eldoc
   :diminish
-  :init (global-flycheck-mode))
+  :init (global-flycheck-mode)
+  ;; :hook ((flycheck-mode . ph/flycheck-prefer-eldoc))
+  )
 #+end_src
 **** flycheck-color-mode-line
 #+begin_src elisp
@@ -1913,6 +1955,22 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 
   ;; (setq symex-highlight-p nil)
 
+  ;;; symex-mode has functions that react on tree-sitter-mode with different
+  ;;; implementations, possibly breaking my meow integration, so I overwrite
+  ;;; the predicate to check for that to prevent activation.
+  (defvar ph/symex-use-tree-sitter nil)
+  ;;; !! overwrite
+  (defun symex-tree-sitter-p ()
+    "Whether to use the tree sitter primitives."
+    (and ph/symex-use-tree-sitter
+	 tree-sitter-mode
+	 ;; We use the Lisp primitives for Clojure
+	 ;; even though Emacs 29 provides tree-sitter APIs
+	 ;; for it, since the Lisp primitives in Symex are
+	 ;; more mature than the Tree Sitter ones at the
+	 ;; present time.
+	 (not (member major-mode symex-clojure-modes))))
+
   )
 #+end_src
 
@@ -1927,7 +1985,10 @@ Issues waiting to be resolved (maybe in 2.0 release?):
   ;;      (lispy-define-key lispy-mode-map "S" 'special-lispy-visit)))
   )
 #+end_src
-** Tree-sitter
+** tree-sitter/
+*** tree-sitter
+Part of core since Emacs 29, so no need to install.
+
 *** tree-sitter-janet-simple
 #+begin_src elisp
 (setq treesit-language-source-alist
@@ -1936,6 +1997,94 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 
 ;;; ? how to make sure it’s not already installed
 ;; (treesit-install-language-grammar 'janet-simple)
+#+end_src
+** LSP support
+*** eldoc
+- installed manually from ~describe-package eldoc~, because built-in version
+  is outdated
+  - somehow Emacs still uses the built-in version instead of the newer
+    one, cannot fix this with the obvious approaches, no luck finding
+    answers or asking AI
+  - see https://elpa.gnu.org/packages/eldoc.html
+#+begin_src elisp
+  (use-package eldoc
+    :ensure t
+    :pin elpa
+    :config
+    ;; ? enabled by default
+    ;; (global-eldoc-mode 1)
+    
+    ;; ? does this work
+    ;; Source: https://github.com/joaotavora/eglot/discussions/1328#discussioncomment-7787866
+ ;;    (defun eldoc-fancy (arg)
+ ;;      "`eldoc' but uses the echo area by default and a prefix
+ ;; will swap to a buffer."
+ ;;      (interactive "P")
+ ;;      (let ((eldoc-display-functions
+ ;;             (if arg '(eldoc-display-in-buffer) '(eldoc-display-in-echo-area))))
+ ;; 	(eldoc t)))
+
+
+    (add-to-list 'display-buffer-alist
+		 '("^\\*eldoc" display-buffer-at-bottom
+		   (window-height . 4)))
+
+
+    ;;; use `eldoc-doc-buffer'
+    ;; (setq eldoc-echo-area-prefer-doc-buffer t)
+  
+    ;;; see https://github.com/joaotavora/eglot/discussions/734
+    ;; (setq eldoc-echo-area-use-multiline-p nil)
+    )
+
+#+end_src
+*** COMMENT eldoc-box
+#+begin_src elisp
+(use-package eldoc-box
+  :ensure t
+  :after eldoc
+  :diminish
+  :config
+  )
+#+end_src
+*** COMMENT +My eglot-eldoc
+Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc][masteringemacs]]
+#+begin_src elisp
+(defun ph/eglot-eldoc ()
+  (setq eldoc-documentation-strategy
+        'eldoc-documentation-compose-eagerly))
+#+end_src
+*** eglot
+Part of core since Emacs 29, so no need to install.
+
+janet-lsp
+- continuously displays an error, which may be related to:
+  - https://github.com/joaotavora/eglot/issues/597
+  - becomes almost unusable due to small freezes
+
+#+begin_src elisp
+(use-package eglot
+  ;; :hook ((eglot-managed-mode . ph/eglot-eldoc)) 
+  :config
+  (add-to-list 'eglot-server-programs
+               '(janet-ts-mode . ("janet-lsp")))
+  
+  ;; (add-hook 'janet-ts-mode-hook 'eglot-ensure)
+
+  ;;; Disable documentation-on-hover, which is still accessible with `M-x
+  ;;; eldoc':
+  ;;; https://github.com/joaotavora/eglot/discussions/691#discussioncomment-719373
+  (add-hook 'eglot-managed-mode-hook
+	    (lambda () (eldoc-mode -1)))
+
+  ;; (setq eglot-strict-mode nil)
+
+  ;; (add-to-list 'eglot-ignored-server-capabilities :hoverProvider)
+
+  ;; (add-to-list 'eglot-ignored-server-capabilities :inlayHintProvider)
+  ;; (add-to-list 'eglot-stay-out-of 'flymake)
+  )
+
 #+end_src
 ** :lang Haskell
 *** haskell-mode
@@ -2161,17 +2310,19 @@ Janet Spork Netrepl client.
 (use-package separedit
   :ensure t
   :after markdown-mode
-  :init
+  ;; :init
+  :config
   ;; Default major-mode for edit buffer
   ;; can also be other mode e.g. ‘org-mode’.
   (setq separedit-default-mode 'markdown-mode)
-  :config
+  
   ;; Key binding for modes you want edit
   ;; or simply bind ‘global-map’ for all.
   (define-key prog-mode-map        (kbd "C-c '") #'separedit)
   (define-key minibuffer-local-map (kbd "C-c '") #'separedit)
   (define-key help-mode-map        (kbd "C-c '") #'separedit)
   (define-key helpful-mode-map     (kbd "C-c '") #'separedit)
+  (define-key clojure-mode-map     (kbd "C-c '") #'separedit)
 
   ;; Feature options
   ;; (setq separedit-preserve-string-indentation t)
@@ -2590,6 +2741,9 @@ To practice:
 To learn:
 - [ ] how does Yasnippet work and is it useful?
 - [ ] CIDER
+- [ ] how to pin packages to specific versions?
+  - https://www.reddit.com/r/emacs/comments/qrythw/pin_a_specific_version_of_a_package/
+  - use https://github.com/quelpa/quelpa ?
 
 Packages to try:
 - [ ] Swiper (depends on ivy) for isearch with regex
