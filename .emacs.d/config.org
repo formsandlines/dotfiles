@@ -413,6 +413,34 @@ To prevent ~use-package-autoremove~ from deleting it.
     (hydra-set-property 'hydra-view :verbosity 0)
     (hydra-view/body))
 
+  (defhydra hydra-org (:color pink)
+    "Org Mode movement"
+    ;; command names strangely reversed
+    ("k" org-previous-visible-heading "prev heading")
+    ("K" org-backward-heading-same-level "backward heading")
+    ("J" org-forward-heading-same-level "forward heading")
+    ("j" org-next-visible-heading "next heading")
+    
+    ("u" outline-up-heading "up heading")
+    ("o" org-cycle "cycle headings")
+    ("c" org-shifttab "cycle all")
+
+    ("H" org-previous-item "prev item")
+    ("h" org-backward-element "backward element")
+    ("l" org-forward-element "forward element")
+    ("L" org-next-item "next item")
+
+    ("f" org-narrow-to-subtree "prev heading")
+    ("d" widen "next heading")
+
+    ("?" (hydra-set-property 'hydra-org :verbosity 1) :exit nil)
+    ("SPC" nil "cancel"))
+  ;; wrapper to hide minibuffer help since it makes movement bouncy
+  (defun hydra-org-silent ()
+    (interactive)
+    (hydra-set-property 'hydra-org :verbosity 0)
+    (hydra-org/body))
+
   (defhydra hydra-window ()
     "window"
     ;; Window buffer
@@ -666,10 +694,11 @@ calls `meow-eval-last-exp'."
 #+begin_src elisp
 (defun ph/meow-leader ()
   (meow-leader-define-key
-   ;; Window commands
+   ;; Hydras
    '("w" . hydra-window/body)
    '("SPC" . hydra-view-silent) ;; v doesn’t seem to work
    '("z" . hydra-zoom/body)
+   '("o" . hydra-org-silent)
 
    ;; Use SPC (0-9) for digit arguments.
    '("1" . meow-digit-argument)
@@ -694,7 +723,8 @@ calls `meow-eval-last-exp'."
    '("V" . "H-V")
    '("{" . "H-{")
    '("}" . "H-}"))
-  )
+  
+   )
 #+end_src
 **** +My meow bindings
 - modified from [[https://github.com/meow-edit/meow/issues/506#issuecomment-1730789625][Source]] (Final final version (22. Sept.))
@@ -706,6 +736,7 @@ calls `meow-eval-last-exp'."
   (meow-define-keys 'insert
     '("H-SPC" . meow-keypad)
     '("C-M-§" . meow-insert-exit)
+    '("S-<backspace>" . ph/kill-whole-line-move-prev)
     '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-y" . meow-yank))
@@ -809,6 +840,7 @@ calls `meow-eval-last-exp'."
 					; editing
     '("d" . meow-kill)
     '("D" . meow-kill-whole-line)
+    '("S-<backspace>" . ph/kill-whole-line-move-prev)
     '("r" . ph/meow-change-save)		; f -> c -> r
     '("R" . meow-replace)
     '("x" . meow-delete)		; t -> x
@@ -1263,7 +1295,47 @@ calls `meow-eval-last-exp'."
 
 #+end_src
 
-** OrgMode extensions
+** OrgMode
+*** org /(built-in)/
+#+begin_src elisp
+(use-package org
+  :config
+  ;;; Hide emphasis marker characters
+  (setq org-use-speed-commands t)
+
+  ;;; Enable org-indent-mode on startup
+  (setq org-startup-indented t)
+
+  (setq org-hide-emphasis-markers t)
+  ;;; Show entities as UTF8 characters
+  (setq org-pretty-entities t)
+
+  ;; (setq org-startup-with-latex-preview t)
+
+  ;; (setq org-edit-src-content-indentation 0)
+  (setq org-src-preserve-indentation t))
+#+end_src
+*** +My list editing improvements
+
+*** +My fix for ~org-fill-paragraph~ in ~org-indent-mode~
+
+Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate
+the indentation. Overrides ~current-fill-column~ to ensure the correct
+calculation.
+- credits to patrick: https://emacs.stackexchange.com/a/74973
+
+#+begin_src elisp
+(defun current-fill-column ()
+      "Return the fill-column to use for this line.
+Subtracts right margin and org indentation level from fill-column"
+      (let ((indent-level (if (bound-and-true-p org-indent-mode)
+                              (* org-indent-indentation-per-level
+                                 (org-current-level))
+                            0))
+            (margin (or (get-text-property (point) 'right-margin) 0)))
+        (- fill-column indent-level margin)))
+#+end_src
+
 *** org-appear
 #+begin_src elisp
 (use-package org-appear
@@ -1275,6 +1347,14 @@ calls `meow-eval-last-exp'."
   (setq org-appear-autoentities t)
   (setq org-appear-autolinks t)
   (setq org-appear-autosubmarkers t))
+#+end_src
+*** COMMENT org-autolist
+#+begin_src elisp
+(use-package org-autolist
+  :diminish
+  :ensure t
+  :after org
+  :hook (org-mode . org-autolist-mode))
 #+end_src
 *** COMMENT org-excalidraw
 Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org-excalidraw/pull/6][this PR]].
@@ -1945,6 +2025,10 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 - remove tree-sitter dependency (this is now built-in in Emacs 29+)
 - remove evil dependency (no need for that with meow)
 - hopefully trim other dependencies like lispy too
+
+[[https://github.com/drym-org/symex.el/blob/c3f000e037c62523267d3a89f14ac24cd8acc9fb/symex-hydra.el][Example-integration of symex with hydra]]
+- also see [[https://github.com/drym-org/symex.el/pull/118][Replace evil -- first pass #118 (GitHub)]]
+
 #+begin_src elisp
 (use-package symex
   :ensure t
@@ -1986,7 +2070,7 @@ Issues waiting to be resolved (maybe in 2.0 release?):
   )
 #+end_src
 ** tree-sitter/
-*** tree-sitter
+*** tree-sitter /(built-in)/
 Part of core since Emacs 29, so no need to install.
 
 *** tree-sitter-janet-simple
@@ -1999,7 +2083,7 @@ Part of core since Emacs 29, so no need to install.
 ;; (treesit-install-language-grammar 'janet-simple)
 #+end_src
 ** LSP support
-*** eldoc
+*** eldoc /(built-in -> shadowed)/
 - installed manually from ~describe-package eldoc~, because built-in version
   is outdated
   - somehow Emacs still uses the built-in version instead of the newer
@@ -2054,7 +2138,7 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   (setq eldoc-documentation-strategy
         'eldoc-documentation-compose-eagerly))
 #+end_src
-*** eglot
+*** eglot /(built-in)/
 Part of core since Emacs 29, so no need to install.
 
 janet-lsp
@@ -2415,44 +2499,7 @@ Works kind-of, but with multiple issues.
 ;; (keymap-global-set "C-x c" 'visit-init)
 #+end_src
 
-** OrgMode config
-
-#+begin_src elisp
-;;; Hide emphasis marker characters
-(setq org-use-speed-commands t)
-
-;;; Enable org-indent-mode on startup
-(setq org-startup-indented t)
-
-(setq org-hide-emphasis-markers t)
-;;; Show entities as UTF8 characters
-(setq org-pretty-entities t)
-
-;; (setq org-startup-with-latex-preview t)
-
-;; (setq org-edit-src-content-indentation 0)
-(setq org-src-preserve-indentation t)
-#+end_src
-
-
-Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate the
-indentation. Overrides ~current-fill-column~ to ensure the correct
-calculation.
-- credits to patrick: https://emacs.stackexchange.com/a/74973
-
-#+begin_src elisp
-(defun current-fill-column ()
-      "Return the fill-column to use for this line.
-Subtracts right margin and org indentation level from fill-column"
-      (let ((indent-level (if (bound-and-true-p org-indent-mode)
-                              (* org-indent-indentation-per-level
-                                 (org-current-level))
-                            0))
-            (margin (or (get-text-property (point) 'right-margin) 0)))
-        (- fill-column indent-level margin)))
-#+end_src
-
-** Line creating and joining/breaking
+** Text editing
 #+begin_src elisp
 (defun ph/newline-empty-below ()
   "Creates a newline below the point that is always empty."
@@ -2479,6 +2526,12 @@ Subtracts right margin and org indentation level from fill-column"
   (interactive)
   (join-line -1))
 
+
+(defun ph/kill-whole-line-move-prev ()
+  "Deletes the current line and moves point back to end of previous line."
+  (interactive)
+  (kill-whole-line)
+  (move-end-of-line 0))
 
 ;;; UPDATE: I don’t use the following bindings anymore, because of meow
 
