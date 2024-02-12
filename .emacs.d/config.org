@@ -330,6 +330,15 @@ one, an error is signaled."
 ;;; because C-M-d activates the dictionary in MacOS (hard to change):
 (keymap-global-set "C-M-'" #'down-list) 
 
+(defun ph/open-notes ()
+  "Quickly opens my notes buffer or the file if the buffer doesn’t exist."
+  (interactive)
+  (let ((buff (get-buffer "emacs-notes.org")))
+    (if buff
+	(switch-to-buffer buff)
+      (find-file "~/Documents/emacs-notes.org"))))
+
+(keymap-global-set "C-c n" #'ph/open-notes)
 #+end_src
 * GUI tweaks
 #+begin_src elisp
@@ -338,6 +347,12 @@ one, an error is signaled."
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
+
+;;; macOS titlebar decoration
+;;; - see https://xenodium.com/my-emacs-eye-candy/
+;;; - doesn’t seem to work (no such variables?)
+;; (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+;; (add-to-list 'default-frame-alist '(ns-appearance . dark))
 #+end_src
 
 * Packages
@@ -430,8 +445,8 @@ To prevent ~use-package-autoremove~ from deleting it.
     ("l" org-forward-element "forward element")
     ("L" org-next-item "next item")
 
-    ("f" org-narrow-to-subtree "prev heading")
-    ("d" widen "next heading")
+    ("f" org-narrow-to-subtree "focus subtree")
+    ("d" widen "defocus subtree")
 
     ("?" (hydra-set-property 'hydra-org :verbosity 1) :exit nil)
     ("SPC" nil "cancel"))
@@ -471,6 +486,14 @@ To prevent ~use-package-autoremove~ from deleting it.
 
     ("SPC" nil "cancel"))
   )
+#+end_src
+*** COMMENT dot-mode
+#+begin_src elisp
+(use-package dot-mode
+  :ensure t
+  :diminish
+  :config
+  (global-dot-mode t))
 #+end_src
 *** meow/
 **** +Custom meow commands
@@ -635,6 +658,10 @@ calls `meow-eval-last-exp'."
    ;;; WRAPPING
    '("/w" . ph/wrap-with-char)
    '("/W" . ph/change-wrapped-char)
+
+   ;;; INDENTATION
+   '("/ TAB" . org-indent-item)  ; org-mode replaces <tab>
+   '("/ <backtab>" . org-outdent-item)  ; org-mode replaces <backtab>
 
    ;;; GOTO 
    '("/ge" . end-of-buffer)
@@ -868,7 +895,7 @@ calls `meow-eval-last-exp'."
 
     					; special
     '("-" . negative-argument)
-    '("'" . repeat)
+    '("'" . repeat)  ; dot-mode-execute
     '("\"" . meow-end-or-call-kmacro)    
     '("C-]" . meow-paren-mode) ;; ? -> C-]
     '("C-;" . meow-symex-mode)
@@ -1315,8 +1342,6 @@ calls `meow-eval-last-exp'."
   ;; (setq org-edit-src-content-indentation 0)
   (setq org-src-preserve-indentation t))
 #+end_src
-*** +My list editing improvements
-
 *** +My fix for ~org-fill-paragraph~ in ~org-indent-mode~
 
 Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate
@@ -1325,15 +1350,17 @@ calculation.
 - credits to patrick: https://emacs.stackexchange.com/a/74973
 
 #+begin_src elisp
-(defun current-fill-column ()
-      "Return the fill-column to use for this line.
+(use-package org
+  :config
+  (defun current-fill-column ()
+    "Return the fill-column to use for this line.
 Subtracts right margin and org indentation level from fill-column"
-      (let ((indent-level (if (bound-and-true-p org-indent-mode)
-                              (* org-indent-indentation-per-level
-                                 (org-current-level))
-                            0))
-            (margin (or (get-text-property (point) 'right-margin) 0)))
-        (- fill-column indent-level margin)))
+    (let ((indent-level (if (bound-and-true-p org-indent-mode)
+			    (* org-indent-indentation-per-level
+			       (org-current-level))
+			  0))
+	  (margin (or (get-text-property (point) 'right-margin) 0)))
+      (- fill-column indent-level margin))))
 #+end_src
 
 *** org-appear
@@ -1536,6 +1563,10 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
 #+end_src
 **** flycheck
 #+begin_src elisp
+(defun ph/disable-checker-in-mode ()
+  "Disable emacs-lisp-checkdoc checker in the emacs-lisp-mode."
+  (setq-local flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
+
 (use-package flycheck
   :ensure t
   :defer t
@@ -1543,7 +1574,10 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   :diminish
   :init (global-flycheck-mode)
   ;; :hook ((flycheck-mode . ph/flycheck-prefer-eldoc))
-  )
+  :config
+  ;;; emacs-lisp-checkdoc checker is annoying in emacs-lisp-mode,
+  ;;; so I disable it there:
+  (add-hook 'emacs-lisp-mode-hook 'ph/disable-checker-in-mode))
 #+end_src
 **** flycheck-color-mode-line
 #+begin_src elisp
@@ -2328,6 +2362,19 @@ janet-lsp
 	    (activate-hook-for-dir 'clerk-mode "notebooks")))
 #+end_src
 
+** :lang Scheme
+*** geiser
+#+begin_src elisp
+(use-package geiser-chicken
+  :ensure t)
+#+end_src
+*** racket-mode
+#+begin_src elisp
+(use-package racket-mode
+  :ensure t
+  :config
+  (setq racket-program "/opt/homebrew/bin/racket"))
+#+end_src
 ** :lang Janet
 *** COMMENT janet-mode
 #+begin_src elisp

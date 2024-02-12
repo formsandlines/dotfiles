@@ -6,7 +6,10 @@
  '(custom-safe-themes
    '("eab4154bd3b8ec5cf90a5a2a14545ba3dc5dd7cf99fcdce013d10475c08ea56d" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" default))
  '(ignored-local-variable-values
-   '((elisp-lint-indent-specs
+   '((eval progn
+	   (make-variable-buffer-local 'cider-jack-in-nrepl-middlewares)
+	   (add-to-list 'cider-jack-in-nrepl-middlewares "shadow.cljs.devtools.server.nrepl/middleware"))
+     (elisp-lint-indent-specs
       (if-let* . 2)
       (when-let* . 1)
       (let* . defun)
