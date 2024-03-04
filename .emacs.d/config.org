@@ -130,7 +130,7 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 (global-display-fill-column-indicator-mode 1)
 (setq display-fill-column-indicator-character 9474)
 ;;; Automatically insert line breaks at char limit
-;; (auto-fill-mode 1)
+(auto-fill-mode 1)
 
 (setq repeat-mode t)
 (setq repeat-exit-key "<return>")
@@ -178,7 +178,7 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 ;;; Enable commands to move windows:
 (windmove-mode 1)
 
-;; (setq initial-major-mode 'org-mode)
+(setq initial-major-mode 'lisp-interaction-mode)
 
 ;;; better mouse wheel scrolling
 ;;; https://stackoverflow.com/a/26053341
@@ -330,15 +330,17 @@ one, an error is signaled."
 ;;; because C-M-d activates the dictionary in MacOS (hard to change):
 (keymap-global-set "C-M-'" #'down-list) 
 
-(defun ph/open-notes ()
-  "Quickly opens my notes buffer or the file if the buffer doesn’t exist."
+(defun ph/visit-config ()
+  "Opens my config.org file."
   (interactive)
-  (let ((buff (get-buffer "emacs-notes.org")))
-    (if buff
-	(switch-to-buffer buff)
-      (find-file "~/Documents/emacs-notes.org"))))
+  (find-file (locate-user-emacs-file "config.org")))
 
-(keymap-global-set "C-c n" #'ph/open-notes)
+(keymap-global-set "C-c c" #'ph/visit-config)
+
+(keymap-global-set "C-c n" (lambda ()
+			     (interactive)
+			     (find-file "~/Documents/emacs-notes.org")))
+
 #+end_src
 * GUI tweaks
 #+begin_src elisp
@@ -1340,7 +1342,43 @@ calls `meow-eval-last-exp'."
   ;; (setq org-startup-with-latex-preview t)
 
   ;; (setq org-edit-src-content-indentation 0)
-  (setq org-src-preserve-indentation t))
+  (setq org-src-preserve-indentation t)
+
+  ;; Enable following links in TheBrain
+  (org-link-set-parameters
+   "brain"
+   :follow (lambda (path) (ph/macos-open (concat "brain:" path)))
+   ;; :store #'org-brain-store-link
+   ))
+#+end_src
+*** +My custom keybindings for org-mode
+#+begin_src elisp
+(defun ph/org-insert-child-heading ()
+  "Inserts a child heading from the current heading node."
+  (interactive)
+  (org-insert-heading-respect-content)
+  (org-do-demote))
+
+(defun ph/meow-org-insert-heading ()
+  (interactive)
+  (org-insert-heading-respect-content)
+  (meow-insert))
+
+(defun ph/meow-org-insert-child-heading ()
+  (interactive)
+  (ph/org-insert-child-heading)
+  (meow-insert))
+
+(use-package org
+  :config
+  (keymap-set org-mode-map "C-M-<return>" #'ph/org-insert-child-heading)
+
+  (keymap-set org-mode-map "C-c <return>" #'ph/meow-org-insert-heading)
+
+  (keymap-set org-mode-map "C-c S-<return>" #'ph/meow-org-insert-child-heading)
+  ;
+
+  )
 #+end_src
 *** +My fix for ~org-fill-paragraph~ in ~org-indent-mode~
 
@@ -1496,6 +1534,12 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 #+end_src
 
 *** company (text completion)
+*Note:* there is a strange error where emacs keeps asking ~Visit tags table
+ (default TAGS): …~ in the echo area when trying to visit a link in
+ org-mode, even if TAGS aren’t used. This seems to be related to company
+ mode somehow.
+- [[https://github.com/haskell/haskell-mode/issues/1234][Emacs keeps asking for a TAGS file when TAGS aren't used #1234]]
+
 #+begin_src elisp
 (use-package company
   :ensure t
@@ -1563,10 +1607,6 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
 #+end_src
 **** flycheck
 #+begin_src elisp
-(defun ph/disable-checker-in-mode ()
-  "Disable emacs-lisp-checkdoc checker in the emacs-lisp-mode."
-  (setq-local flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
-
 (use-package flycheck
   :ensure t
   :defer t
@@ -1577,7 +1617,10 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   :config
   ;;; emacs-lisp-checkdoc checker is annoying in emacs-lisp-mode,
   ;;; so I disable it there:
-  (add-hook 'emacs-lisp-mode-hook 'ph/disable-checker-in-mode))
+  (add-hook 'emacs-lisp-mode-hook
+	    (lambda ()
+	      (setq-local flycheck-disabled-checkers
+			  '(emacs-lisp-checkdoc)))))
 #+end_src
 **** flycheck-color-mode-line
 #+begin_src elisp
@@ -1628,6 +1671,14 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   (setq sp-show-pair-from-inside t)
   
   (sp-with-modes 'janet-ts-mode
+    (sp-local-pair "'" nil :actions nil))
+
+  (sp-with-modes 'org-mode
+    (sp-local-pair "*" nil :actions nil)
+    ;; (sp-local-pair "_" nil :actions nil)
+    ;; (sp-local-pair "/" nil :actions nil)
+    ;; (sp-local-pair "~" nil :actions nil)
+    ;; (sp-local-pair "=" nil :actions nil)
     (sp-local-pair "'" nil :actions nil))
 
   ;; (sp-pair "`" "`")
@@ -2366,14 +2417,21 @@ janet-lsp
 *** geiser
 #+begin_src elisp
 (use-package geiser-chicken
-  :ensure t)
+  :ensure t
+  :config
+  (setq geiser-default-implementation 'chicken))
 #+end_src
 *** racket-mode
 #+begin_src elisp
 (use-package racket-mode
   :ensure t
   :config
-  (setq racket-program "/opt/homebrew/bin/racket"))
+  (setq racket-program "/opt/homebrew/bin/racket")
+  (add-to-list 'display-buffer-alist
+	       '("\\*Racket REPL.+"
+		 (display-buffer-in-side-window)
+		 (side . right)
+		 (window-width . 0.5))))
 #+end_src
 ** :lang Janet
 *** COMMENT janet-mode
@@ -2536,16 +2594,6 @@ Works kind-of, but with multiple issues.
 	    #'minibuffer-complete-history)
 #+end_src
 
-** Visit config file
-#+begin_src elisp
-(defun ph/visit-init ()
-  "Opens the init.el file."
-  (interactive)
-  (find-file (locate-user-emacs-file "config.org")))
-
-;; (keymap-global-set "C-x c" 'visit-init)
-#+end_src
-
 ** Text editing
 #+begin_src elisp
 (defun ph/newline-empty-below ()
@@ -2590,6 +2638,11 @@ Works kind-of, but with multiple issues.
 ;;; I don’t use these often enough for their prominent keybindings:
 ;; (keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
 ;; (keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
+
+(defun ph/insert-date ()
+  "Insert current date."
+  (interactive)
+  (insert (format-time-string "%Y-%m-%d")))
 
 #+end_src
 
@@ -2797,6 +2850,11 @@ Increment/decrement numbers like in Vim:
 
 (keymap-global-set "C-c +" #'ph/increment-number-at-point)
 (keymap-global-set "C-c -" #'ph/decrement-number-at-point)
+
+(defun ph/macos-open (path)
+  "Open `path' using the built-in `open' command from MacOS."
+  (shell-command (concat "open " path)))
+
 #+end_src
 
 * Appearance
@@ -2844,6 +2902,7 @@ To learn:
 - [ ] how to pin packages to specific versions?
   - https://www.reddit.com/r/emacs/comments/qrythw/pin_a_specific_version_of_a_package/
   - use https://github.com/quelpa/quelpa ?
+- [ ] how to eval elisp in orgmode without special edit mode
 
 Packages to try:
 - [ ] Swiper (depends on ivy) for isearch with regex
@@ -2858,4 +2917,5 @@ Packages to try:
 - [ ] neil  
 - [ ] html-to-hiccup
 - [ ] flycheck-color-mode-line.el
+- [ ] [[https://www.youtube.com/watch?v=OczjiV9eZwA][Olivetti Mode]] (centers window, makes it smaller to focus read)
   
