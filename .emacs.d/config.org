@@ -527,7 +527,7 @@ To prevent ~use-package-autoremove~ from deleting it.
   (global-dot-mode t))
 #+end_src
 *** meow/
-**** +Custom meow commands
+**** Custom meow commands
 #+begin_src elisp
 ;; Let 'a' in 'normal' mode behave like 'a' in Vi:
 ;; - https://github.com/meow-edit/meow/discussions/497#discussioncomment-6713192
@@ -634,29 +634,7 @@ calls `meow-eval-last-exp'."
 
 #+end_src
 
-**** +My meow things
-#+begin_src elisp
-(defun ph/meow-things ()
-  ;; (meow-thing-register 'quoted
-  ;;                      '(regexp "`" "`\\|'")
-  ;;                      '(regexp "`" "`\\|'"))
-  
-  (meow-thing-register 'angle
-                       '(pair ("<") (">"))
-                       '(pair ("<") (">")))
-
-  (setq meow-char-thing-table
-	'((?f . round)
-          (?d . square)
-          (?s . curly)
-          (?a . angle)
-          (?r . string)
-          (?w . paragraph)
-          (?e . line)
-          (?q . buffer))))
-#+end_src
-
-**** +My meow prefix bindings
+**** meow prefix bindings
 #+begin_src elisp
 ;; prefix /
 (defconst ph/meow-prefix-slash
@@ -742,7 +720,7 @@ calls `meow-eval-last-exp'."
    '("\\g" . magit-status)))
 #+end_src
 
-**** +My meow common bindings
+**** meow common bindings
 #+begin_src elisp
 (defconst ph/meow-common
   (list
@@ -751,198 +729,70 @@ calls `meow-eval-last-exp'."
    '("M-v" . meow-clipboard-yank))) ;; was yank
 
 #+end_src
-**** +My meow leader bindings
+**** meow
 #+begin_src elisp
-(defun ph/meow-leader ()
-  (meow-leader-define-key
-   ;; Hydras
-   '("w" . hydra-window/body)
-   '("`" . hydra-view-silent) ;; v doesn’t seem to work
-   '("z" . hydra-zoom/body)
-   '("o" . hydra-org-silent)
+(use-package meow
+  :ensure t
+  :demand t
+  :after (hydra clj-refactor symex)
+  :config
+  (meow-global-mode 1)
+  (meow-setup-indicator)
 
-   ;; Use SPC (0-9) for digit arguments.
-   '("1" . meow-digit-argument)
-   '("2" . meow-digit-argument)
-   '("3" . meow-digit-argument)
-   '("4" . meow-digit-argument)
-   '("5" . meow-digit-argument)
-   '("6" . meow-digit-argument)
-   '("7" . meow-digit-argument)
-   '("8" . meow-digit-argument)
-   '("9" . meow-digit-argument)
-   '("0" . meow-digit-argument)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet)
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+  (setq meow-keypad-leader-dispatch "C-c")
 
-   ;; SPC j/k/l/h will run the original command in MOTION state.
-   '("j" . "H-j")
-   '("k" . "H-k")
-   '("l" . "H-l")
-   '("h" . "H-h")
-   '("v" . "H-v")
-   '("V" . "H-V")
-   '("{" . "H-{")
-   '("}" . "H-}"))
+  ;;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
+  ;;; see:
+  ;;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
+  (define-key input-decode-map [?\C-\[] [C-\[])
+  (define-key global-map [C-\[] [?\C-\M-§])
   
-   )
-#+end_src
-**** +My meow bindings
-- modified from [[https://github.com/meow-edit/meow/issues/506#issuecomment-1730789625][Source]] (Final final version (22. Sept.))
+  ;;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
+  ;; (define-key input-decode-map [?\C-i] [C-i])
+  ;; (define-key input-decode-map [?\C-\S-i] [C-S-i])
+
+  (add-hook 'meow-paren-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-symex-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-normal-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-insert-mode-hook
+	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash)))
+  ;;
+  )
+  #+end_src
+**** +My meow things
 #+begin_src elisp
-(defun ph/meow-bindings ()
+(use-package meow
+  :config
+  ;; (meow-thing-register 'quoted
+  ;;                      '(regexp "`" "`\\|'")
+  ;;                      '(regexp "`" "`\\|'"))
 
-  ;;; INSERT STATE ;;;
+  (meow-thing-register 'angle
+		       '(pair ("<") (">"))
+		       '(pair ("<") (">")))
 
-  (meow-define-keys 'insert
-    '("H-SPC" . meow-keypad)
-    '("C-M-§" . meow-insert-exit)
-    '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    '("C-;" . meow-symex-mode)
-    '("C-]" . meow-paren-mode) ;; temporary workaround
-    '("C-y" . meow-yank))
-  
-  (apply 'meow-define-keys 'insert ph/meow-common)
-
-  ;;; MOTION STATE OVERWRITES ;;;
-
-  (meow-motion-overwrite-define-key
-   '("k" . meow-prev)
-   '("j" . meow-next)
-   '("h" . meow-left)
-   '("l" . meow-right)
-   '("v" . ph/scroll-up-half)
-   '("V" . ph/scroll-down-half)
-   '("{" . backward-paragraph)
-   '("}" . forward-paragraph)
-   '("<escape>" . ignore))
-  
-  (apply 'meow-motion-overwrite-define-key ph/meow-prefix-backslash)
-  (apply 'meow-motion-overwrite-define-key ph/meow-common)
-
-  ;;; BEACON STATE ;;;
-  
-  (meow-define-keys 'beacon
-    '("/m" . meow-beacon-start)
-    '("/e" . meow-beacon-apply-kmacro)  
-    '("<escape>" . ignore))
-
-  ;;; NORMAL STATE ;;;
-
-  (apply 'meow-define-keys 'normal ph/meow-prefix-slash)
-  (apply 'meow-define-keys 'normal ph/meow-prefix-backslash)
-  (apply 'meow-define-keys 'normal ph/meow-common)
-  
-  (meow-define-keys 'normal
-					; expansion
-    '("0" . meow-expand-0)
-    '("1" . meow-expand-1)
-    '("2" . meow-expand-2)
-    '("3" . meow-expand-3)
-    '("4" . meow-expand-4)
-    '("5" . meow-expand-5)
-    '("6" . meow-expand-6)
-    '("7" . meow-expand-7)
-    '("8" . meow-expand-8)
-    '("9" . meow-expand-9)
-    '(";" . meow-reverse)		; ' -> ;
-
-					; movement
-    '("k" . meow-prev)
-    '("j" . meow-next)
-    '("h" . meow-left)
-    '("l" . meow-right)
-
-    '("v" . ph/scroll-up-half)
-    '("V" . ph/scroll-down-half)
-
-    '("n" . meow-search)		; y -> / -> ` -> / -> n
-    '("N" . ph/meow-search-reverse)
-
-					; expansion
-    '("K" . meow-prev-expand)
-    '("J" . meow-next-expand)
-    '("H" . meow-left-expand)
-    '("L" . meow-right-expand)
-
-    '("u" . meow-back-word)
-    '("U" . meow-back-symbol)
-    '("o" . meow-next-word)
-    '("O" . meow-next-symbol)
-
-    '("w" . meow-mark-word)		; a -> w
-    '("W" . meow-mark-symbol)		; A -> W
-    '("e" . meow-line)			; s -> e
-    '("E" . ph/meow-line-append)
-    '("q" . meow-block)			; w -> q
-    '("Q" . meow-to-block)
-    '("s" . meow-join)			; q -> a -> h -> a
-    '("S" . ph/meow-line-insert)        ; H -> A
-    '("g" . meow-grab)			; g -> h (see undo) -> g
-    '("G" . meow-pop-grab)		; G -> H -> G
-    '("m" . meow-swap-grab)
-    '("M" . meow-sync-grab)
-    '("~" . meow-cancel-selection)	; p -> [ -> t -> h -> H -> ~
-    '("`" . meow-pop-selection)		; P -> { -> T -> H -> h -> `
-    '("t" . meow-transpose-sexp)
-    '("T" . transpose-lines)
-
-    '("F" . meow-till)			; x -> t -> F
-    '("f" . meow-find)			; z -> f
-
-    '("[" . meow-beginning-of-thing)	; , -> [
-    '("]" . meow-end-of-thing)		; . -> ]
-    '("," . meow-inner-of-thing)	; < -> ,
-    '("." . meow-bounds-of-thing)	; > -> .
-
-    '("{" . backward-paragraph)
-    '("}" . forward-paragraph)
-
-					; editing
-    '("d" . meow-kill)
-    '("D" . meow-kill-whole-line)
-    '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    '("r" . ph/meow-change-save)		; f -> c -> r
-    '("R" . meow-replace)
-    '("x" . meow-delete)		; t -> x
-    '("c" . meow-save)			; c -> y -> t -> ` -> c
-    '("p" . meow-yank)			; v -> p
-    '("P" . meow-yank-pop)		; V -> P
-
-    '("i" . meow-insert)		; e -> s -> a -> i
-    '("I" . meow-open-above)		; S -> R -> S -> I
-    '("a" . meow-append)		; Vi-style append -> normal append
-    '("A" . meow-open-below)		; E -> S -> A
-
-    '("y" . undo-only)			; h -> g -> z -> b
-    '("Y" . undo-redo)			; H -> G -> Z -> B
-
-    '("z" . open-line)                  ; b -> z
-    '("Z" . split-line)                 ; B -> Z
-
-    '("=" . meow-indent)
-    '("X" . ph/meow-join-with)
-
-    ;; '("[" . indent-rigidly-left-to-tab-stop)
-    ;; '("]" . indent-rigidly-right-to-tab-stop)
-
-
-    					; special
-    '("-" . negative-argument)
-    '("'" . repeat)  ; dot-mode-execute
-    '("\"" . meow-end-or-call-kmacro)    
-    '("C-]" . meow-paren-mode) ;; ? -> C-]
-    '("C-;" . meow-symex-mode)
-    '("§" . cider-doc) ;; ! replace with generic selector
-
-					; ignore escape
-    '("<escape>" . ignore)))
-
+  (setq meow-char-thing-table
+	'((?f . round)
+	  (?d . square)
+	  (?s . curly)
+	  (?a . angle)
+	  (?r . string)
+	  (?w . paragraph)
+	  (?e . line)
+	  (?q . buffer)))
+  ;;
+  )
 #+end_src
 
 **** +My meow paren state:
 #+begin_src elisp
-(defun ph/meow-paren-setup ()
+(use-package meow
+  :config
+
   (setq meow-paren-keymap (make-keymap))
   (meow-define-state paren
     "meow state for structural editing"
@@ -1069,13 +919,16 @@ calls `meow-eval-last-exp'."
     '("/?" . meow-comment)
     '("/d" . (lambda () (interactive) (sp-wrap-with-pair "[")))
     '("/s" . (lambda () (interactive) (sp-wrap-with-pair "{")))
-    '("/f" . (lambda () (interactive) (sp-wrap-with-pair "(")))))
+    '("/f" . (lambda () (interactive) (sp-wrap-with-pair "("))))
 
-
+  ;;
+  )
 #+end_src
 **** +My meow symex state:
 #+begin_src elisp
-(defun ph/meow-symex-setup ()
+(use-package meow
+  :config
+
   (setq meow-symex-keymap (make-keymap))
   (meow-define-state symex
     "meow state for structural editing with symex"
@@ -1085,11 +938,11 @@ calls `meow-eval-last-exp'."
 	(run-hooks 'meow-symex-mode-enable-hook)))
 
   (add-hook 'meow-symex-mode-enable-hook
-      (lambda ()
-        (symex-select-nearest-in-line)
-        (symex--adjust-point)
-        ;; (symex-initialize)
-        ))
+	    (lambda ()
+              (symex-select-nearest-in-line)
+              (symex--adjust-point)
+              ;; (symex-initialize)
+              ))
 
   (add-hook 'meow-normal-mode-hook
 	    (lambda ()
@@ -1110,7 +963,6 @@ calls `meow-eval-last-exp'."
   (apply 'meow-define-keys 'symex ph/meow-common)
 
   (meow-define-keys 'symex
-    
     ;; GENERAL MEOW KEYS
     '("0" . meow-expand-0)
     '("1" . meow-expand-1)
@@ -1294,50 +1146,208 @@ calls `meow-eval-last-exp'."
 
 
     )
+  
+  ;;
   )
 #+end_src
 **** +My meow org-table state:
 #+begin_src elisp
 
 #+end_src
-**** meow
+**** +My meow bindings
+
 #+begin_src elisp
 (use-package meow
-  :ensure t
-  :demand t
-  :after (hydra clj-refactor symex)
   :config
-  (meow-global-mode 1)
-  (meow-setup-indicator)
 
-  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-  (setq meow-keypad-leader-dispatch "C-c")
+  ;;; INSERT STATE ;;;
 
-  ;;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
-  ;;; see:
-  ;;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
-  (define-key input-decode-map [?\C-\[] [C-\[])
-  (define-key global-map [C-\[] [?\C-\M-§])
+  (meow-define-keys 'insert
+    '("H-SPC" . meow-keypad)
+    '("C-M-§" . meow-insert-exit)
+    '("S-<backspace>" . ph/kill-whole-line-move-prev)
+    '("C-;" . meow-symex-mode)
+    '("C-]" . meow-paren-mode) ;; temporary workaround
+    '("C-y" . meow-yank))
   
-  ;;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
-  ;; (define-key input-decode-map [?\C-i] [C-i])
-  ;; (define-key input-decode-map [?\C-\S-i] [C-S-i])
+  (apply 'meow-define-keys 'insert ph/meow-common)
 
-  (ph/meow-things)
-  (ph/meow-paren-setup)
-  (ph/meow-symex-setup)
-  (ph/meow-leader)
-  (ph/meow-bindings)
+  ;;; MOTION STATE OVERWRITES ;;;
 
-  (add-hook 'meow-paren-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-symex-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-normal-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-insert-mode-hook
-  (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash))))
-  #+end_src
+  (meow-motion-overwrite-define-key
+   '("k" . meow-prev)
+   '("j" . meow-next)
+   '("h" . meow-left)
+   '("l" . meow-right)
+   '("v" . ph/scroll-up-half)
+   '("V" . ph/scroll-down-half)
+   '("{" . backward-paragraph)
+   '("}" . forward-paragraph)
+   '("<escape>" . ignore))
+  
+  (apply 'meow-motion-overwrite-define-key ph/meow-prefix-backslash)
+  (apply 'meow-motion-overwrite-define-key ph/meow-common)
+
+  ;;; BEACON STATE ;;;
+  
+  (meow-define-keys 'beacon
+    '("/m" . meow-beacon-start)
+    '("/e" . meow-beacon-apply-kmacro)  
+    '("<escape>" . ignore))
+
+  ;;; NORMAL STATE ;;;
+
+  (apply 'meow-define-keys 'normal ph/meow-prefix-slash)
+  (apply 'meow-define-keys 'normal ph/meow-prefix-backslash)
+  (apply 'meow-define-keys 'normal ph/meow-common)
+  
+  (meow-define-keys 'normal
+					; expansion
+    '("0" . meow-expand-0)
+    '("1" . meow-expand-1)
+    '("2" . meow-expand-2)
+    '("3" . meow-expand-3)
+    '("4" . meow-expand-4)
+    '("5" . meow-expand-5)
+    '("6" . meow-expand-6)
+    '("7" . meow-expand-7)
+    '("8" . meow-expand-8)
+    '("9" . meow-expand-9)
+    '(";" . meow-reverse)		; ' -> ;
+
+					; movement
+    '("k" . meow-prev)
+    '("j" . meow-next)
+    '("h" . meow-left)
+    '("l" . meow-right)
+
+    '("v" . ph/scroll-up-half)
+    '("V" . ph/scroll-down-half)
+
+    '("n" . meow-search)		; y -> / -> ` -> / -> n
+    '("N" . ph/meow-search-reverse)
+
+					; expansion
+    '("K" . meow-prev-expand)
+    '("J" . meow-next-expand)
+    '("H" . meow-left-expand)
+    '("L" . meow-right-expand)
+
+    '("u" . meow-back-word)
+    '("U" . meow-back-symbol)
+    '("o" . meow-next-word)
+    '("O" . meow-next-symbol)
+
+    '("w" . meow-mark-word)		; a -> w
+    '("W" . meow-mark-symbol)		; A -> W
+    '("e" . meow-line)			; s -> e
+    '("E" . ph/meow-line-append)
+    '("q" . meow-block)			; w -> q
+    '("Q" . meow-to-block)
+    '("s" . meow-join)			; q -> a -> h -> a
+    '("S" . ph/meow-line-insert)        ; H -> A
+    '("g" . meow-grab)			; g -> h (see undo) -> g
+    '("G" . meow-pop-grab)		; G -> H -> G
+    '("m" . meow-swap-grab)
+    '("M" . meow-sync-grab)
+    '("~" . meow-cancel-selection)	; p -> [ -> t -> h -> H -> ~
+    '("`" . meow-pop-selection)		; P -> { -> T -> H -> h -> `
+    '("t" . meow-transpose-sexp)
+    '("T" . transpose-lines)
+
+    '("F" . meow-till)			; x -> t -> F
+    '("f" . meow-find)			; z -> f
+
+    '("[" . meow-beginning-of-thing)	; , -> [
+    '("]" . meow-end-of-thing)		; . -> ]
+    '("," . meow-inner-of-thing)	; < -> ,
+    '("." . meow-bounds-of-thing)	; > -> .
+
+    '("{" . backward-paragraph)
+    '("}" . forward-paragraph)
+
+					; editing
+    '("d" . meow-kill)
+    '("D" . meow-kill-whole-line)
+    '("S-<backspace>" . ph/kill-whole-line-move-prev)
+    '("r" . ph/meow-change-save)		; f -> c -> r
+    '("R" . meow-replace)
+    '("x" . meow-delete)		; t -> x
+    '("c" . meow-save)			; c -> y -> t -> ` -> c
+    '("p" . meow-yank)			; v -> p
+    '("P" . meow-yank-pop)		; V -> P
+
+    '("i" . meow-insert)		; e -> s -> a -> i
+    '("I" . meow-open-above)		; S -> R -> S -> I
+    '("a" . meow-append)		; Vi-style append -> normal append
+    '("A" . meow-open-below)		; E -> S -> A
+
+    '("y" . undo-only)			; h -> g -> z -> b
+    '("Y" . undo-redo)			; H -> G -> Z -> B
+
+    '("z" . open-line)                  ; b -> z
+    '("Z" . split-line)                 ; B -> Z
+
+    '("=" . meow-indent)
+    '("X" . ph/meow-join-with)
+
+    ;; '("[" . indent-rigidly-left-to-tab-stop)
+    ;; '("]" . indent-rigidly-right-to-tab-stop)
+
+
+    					; special
+    '("-" . negative-argument)
+    '("'" . repeat)  ; dot-mode-execute
+    '("\"" . meow-end-or-call-kmacro)    
+    '("C-]" . meow-paren-mode) ;; ? -> C-]
+    '("C-;" . meow-symex-mode)
+    '("§" . cider-doc) ;; ! replace with generic selector
+
+					; ignore escape
+    '("<escape>" . ignore))
+
+  ;;
+  )
+#+end_src
+
+**** +My meow leader bindings
+#+begin_src elisp
+(use-package meow
+  :config
+
+  (meow-leader-define-key
+   ;; Hydras
+   '("w" . hydra-window/body)
+   '("`" . hydra-view-silent) ;; v doesn’t seem to work
+   '("z" . hydra-zoom/body)
+   '("o" . hydra-org-silent)
+
+   ;; Use SPC (0-9) for digit arguments.
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet)
+
+   ;; SPC j/k/l/h will run the original command in MOTION state.
+   '("j" . "H-j")
+   '("k" . "H-k")
+   '("l" . "H-l")
+   '("h" . "H-h")
+   '("v" . "H-v")
+   '("V" . "H-V")
+   '("{" . "H-{")
+   '("}" . "H-}"))
+  ;;
+  )
+#+end_src
 ** Version control
 *** magit
 #+begin_src elisp
