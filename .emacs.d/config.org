@@ -20,7 +20,8 @@ Use ~org-babel-load-file~ to reload config.
 #+begin_src elisp
 (setq package-archives 
       '(("melpa" . "https://melpa.org/packages/")
-        ("elpa" . "https://elpa.gnu.org/packages/")))
+        ("elpa" . "https://elpa.gnu.org/packages/")
+	("elpa-devel" . "https://elpa.gnu.org/devel/")))
 
 ;;; Bootstrap use-package:
 ;; (package-initialize)                ; ? still needed
@@ -335,12 +336,26 @@ one, an error is signaled."
   (interactive)
   (find-file (locate-user-emacs-file "config.org")))
 
-(keymap-global-set "C-c c" #'ph/visit-config)
+(defun ph/reload-config ()
+  (interactive)
+  (org-babel-load-file (locate-user-emacs-file "config.org")))
+
+(defun ph/visit-theme ()
+  "Opens my theme file."
+  (interactive)
+  (find-file (locate-user-emacs-file "themes/pmacs-theme.el")))
+
+(keymap-global-set "C-c s s" #'ph/visit-config)
+(keymap-global-set "C-c s r" #'ph/reload-config)
+
+(keymap-global-set "C-c s t" #'ph/visit-theme)
 
 (keymap-global-set "C-c n" (lambda ()
 			     (interactive)
 			     (find-file "~/Documents/emacs-notes.org")))
 
+(keymap-set Info-mode-map "M-{" #'Info-search-backward)
+(keymap-set Info-mode-map "M-}" #'Info-search-next)
 #+end_src
 * GUI tweaks
 #+begin_src elisp
@@ -349,6 +364,17 @@ one, an error is signaled."
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
+(pixel-scroll-precision-mode 1)
+
+;;; e.g. to show the `λ' symbol when typing `lambda'
+(global-prettify-symbols-mode 1)
+
+(setq pixel-scroll-precision-use-momentum t)
+;;; I’m just making blind guesses here, no idea what these values mean:
+(setq pixel-scroll-precision-initial-velocity-factor 0.001) ;; def. 0.008375
+(setq pixel-scroll-precision-interpolation-between-scroll 0.0001) ;; def. 0.001
+(setq pixel-scroll-precision-interpolation-factor 1.2) ;; def. 2.0
+(setq pixel-scroll-precision-momentum-min-velocity 10.0) ;; default 10.0
 
 ;;; macOS titlebar decoration
 ;;; - see https://xenodium.com/my-emacs-eye-candy/
@@ -418,9 +444,12 @@ To prevent ~use-package-autoremove~ from deleting it.
     ("d" scroll-up-command "page down")
     ("u" scroll-down-command "page up")
     
-    ("c" recenter "center")
-    ("t" (lambda () (interactive) (recenter 0)) "top")
-    ("b" (lambda () (interactive) (recenter -1)) "bottom") ;; doesn’t work
+    ("J" end-of-buffer "buffer end")
+    ("K" beginning-of-buffer "buffer start")
+
+    ("c" recenter "view center")
+    ("t" (lambda () (interactive) (recenter 0)) "view top")
+    ("b" (lambda () (interactive) (recenter -1)) "view bottom") ;; doesn’t work
     
     ("?" (hydra-set-property 'hydra-view :verbosity 1) :exit nil)
     ("SPC" nil "cancel"))
@@ -483,8 +512,8 @@ To prevent ~use-package-autoremove~ from deleting it.
     ;; Resize windows
     ("C-h" shrink-window-horizontally)
     ("C-l" enlarge-window-horizontally)
-    ("C-j" enlarge-window)
-    ("C-k" shrink-window)
+    ("C-k" enlarge-window)
+    ("C-j" shrink-window)
 
     ("SPC" nil "cancel"))
   )
@@ -667,6 +696,9 @@ calls `meow-eval-last-exp'."
 
    ;;; GOTO 
    '("/ge" . end-of-buffer)
+   '("/G" . end-of-buffer)
+   '("/gj" . end-of-buffer)
+   '("/gk" . beginning-of-buffer)
    '("/gg" . beginning-of-buffer)
    '("/gl" . meow-goto-line)
    '("/gc" . move-to-column)
@@ -725,7 +757,7 @@ calls `meow-eval-last-exp'."
   (meow-leader-define-key
    ;; Hydras
    '("w" . hydra-window/body)
-   '("SPC" . hydra-view-silent) ;; v doesn’t seem to work
+   '("`" . hydra-view-silent) ;; v doesn’t seem to work
    '("z" . hydra-zoom/body)
    '("o" . hydra-org-silent)
 
@@ -1264,7 +1296,10 @@ calls `meow-eval-last-exp'."
     )
   )
 #+end_src
+**** +My meow org-table state:
+#+begin_src elisp
 
+#+end_src
 **** meow
 #+begin_src elisp
 (use-package meow
@@ -1276,6 +1311,7 @@ calls `meow-eval-last-exp'."
   (meow-setup-indicator)
 
   (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+  (setq meow-keypad-leader-dispatch "C-c")
 
   ;;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
   ;;; see:
@@ -1300,8 +1336,8 @@ calls `meow-eval-last-exp'."
   (add-hook 'meow-normal-mode-hook
 	    (lambda () (keymap-unset clj-refactor-map "/")))
   (add-hook 'meow-insert-mode-hook
-	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash))))
-#+end_src
+  (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash))))
+  #+end_src
 ** Version control
 *** magit
 #+begin_src elisp
@@ -1329,6 +1365,8 @@ calls `meow-eval-last-exp'."
 #+begin_src elisp
 (use-package org
   :config
+  (setq org-id-link-to-org-use-id 'use-existing)
+
   ;;; Hide emphasis marker characters
   (setq org-use-speed-commands t)
 
@@ -1344,12 +1382,15 @@ calls `meow-eval-last-exp'."
   ;; (setq org-edit-src-content-indentation 0)
   (setq org-src-preserve-indentation t)
 
-  ;; Enable following links in TheBrain
-  (org-link-set-parameters
-   "brain"
-   :follow (lambda (path) (ph/macos-open (concat "brain:" path)))
-   ;; :store #'org-brain-store-link
-   ))
+  (setq org-directory "~/org")
+  (setq org-default-notes-file (concat org-directory "/notes.org"))
+  
+  (setq org-src-window-setup 'current-window)
+
+  ;; (add-to-list 'display-buffer-alist
+  ;; 	       '("^\\*Org Src" display-buffer-at-bottom
+  ;; 		 (window-height . 0.5)))
+)
 #+end_src
 *** +My custom keybindings for org-mode
 #+begin_src elisp
@@ -1369,17 +1410,104 @@ calls `meow-eval-last-exp'."
   (ph/org-insert-child-heading)
   (meow-insert))
 
+
+;;; TODO maybe extract a more general function to make these DRYer:
+
+(defun ph/meow-org-add-list-item ()
+  (interactive)
+  (org-end-of-line)
+  (org-insert-item)
+  (meow-append))
+
+(defun ph/meow-org-add-above-list-item ()
+  (interactive)
+  (org-beginning-of-line)
+  (org-insert-item)
+  (meow-insert))
+
+(defun ph/meow-org-add-lower-list-item ()
+  (interactive)
+  (org-end-of-line)
+  (org-insert-item)
+  (org-indent-item)  
+  (meow-append))
+
+(defun ph/meow-org-add-todo-item ()
+  (interactive)
+  (org-end-of-line)
+  (org-insert-item t)
+  (meow-append))
+
+(defun ph/meow-org-add-above-todo-item ()
+  (interactive)
+  (org-beginning-of-line)
+  (org-insert-item t)
+  (meow-insert))
+
+(defun ph/meow-org-add-lower-todo-item ()
+  (interactive)
+  (org-end-of-line)
+  (org-insert-item t)
+  (org-indent-item)  
+  (meow-append))
+
 (use-package org
   :config
-  (keymap-set org-mode-map "C-M-<return>" #'ph/org-insert-child-heading)
+  ;; Global bindings as recommended by the org manual:
+  (global-set-key (kbd "C-c l") #'org-store-link)
+  (global-set-key (kbd "C-c a") #'org-agenda)
+  (global-set-key (kbd "C-c c") #'org-capture)
 
-  (keymap-set org-mode-map "C-c <return>" #'ph/meow-org-insert-heading)
+  ;; Local bindings:
+  (keymap-set org-mode-map "C-c j" #'ph/meow-org-insert-heading)
+  (keymap-set org-mode-map "C-c J" #'ph/meow-org-insert-child-heading)
+  (keymap-set org-mode-map "C-c M-j" #'ph/org-insert-child-heading)
+  
+  (keymap-set org-mode-map "C-c i" #'ph/meow-org-add-list-item)
+  (keymap-set org-mode-map "C-c I" #'ph/meow-org-add-above-list-item)
+  (keymap-set org-mode-map "C-c M-i" #'ph/meow-org-add-lower-list-item)
+  (keymap-set org-mode-map "C-c x" #'ph/meow-org-add-todo-item)
+  (keymap-set org-mode-map "C-c X" #'ph/meow-org-add-above-todo-item)
+  (keymap-set org-mode-map "C-c M-x" #'ph/meow-org-add-lower-todo-item)
 
-  (keymap-set org-mode-map "C-c S-<return>" #'ph/meow-org-insert-child-heading)
-  ;
-
-  )
+  ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
+  (keymap-set org-mode-map "C-c d" #'org-table-blank-field))
 #+end_src
+*** +My custom links for org-mode
+#+begin_src elisp
+(use-package org
+  :config
+  ;; Enable following links in TheBrain
+  (org-link-set-parameters
+   "brain"
+   :follow (lambda (path) (ph/macos-open (concat "brain:" path)))
+   ;; :store #'org-brain-store-link
+   ))
+#+end_src
+*** +My custom capture templates
+#+begin_src elisp
+(defun ph/org-id-store-create ()
+  (interactive)
+  (org-id-get-create)
+  (call-interactively 'org-store-link))
+
+(defun ph/org-capture-fw-ref ()
+  (interactive)
+  (org-capture nil "f"))
+
+(keymap-global-set "C-c f" #'ph/org-capture-fw-ref)
+
+(use-package org
+  :config
+
+  (setq org-capture-templates
+	'(("t" "Task" entry (file+headline "" "Tasks")
+	   "* TODO %?\n  %u\n  %a")
+	  ("f" "FW Reference" entry (file "~/org/fw-refs.org")
+	   "* %?\n:PROPERTIES:\n:AUTHOR: %n\n:CREATED: %U\n:LAST_EDITED: nil\n:CAPTURED: %T\n:ORIGIN_CAPTURED: %a\n:END:\n"
+	   :before-finalize ph/org-id-store-create))))
+#+end_src
+
 *** +My fix for ~org-fill-paragraph~ in ~org-indent-mode~
 
 Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate
@@ -1412,6 +1540,50 @@ Subtracts right margin and org indentation level from fill-column"
   (setq org-appear-autoentities t)
   (setq org-appear-autolinks t)
   (setq org-appear-autosubmarkers t))
+#+end_src
+*** org-transclusion
+#+begin_src elisp
+;;; Somehow the fringe in target buffer does not show up.
+;;; Workaround, source:
+;;; - https://github.com/nobiot/org-transclusion/issues/201#issue-1868665106
+;;; - UPDATE: seems to mess with indentation -> unusable
+;; (defun org-transclusion-content-insert-add-overlay (beg end)
+;;   "Add fringe after transclusion."
+;;   (overlay-put (text-clone-make-overlay beg end (current-buffer))
+;; 	       'line-prefix
+;; 	       (org-transclusion-propertize-transclusion))
+;;   (overlay-put (text-clone-make-overlay beg end (current-buffer))
+;; 	       'wrap-prefix
+;; 	       (org-transclusion-propertize-transclusion)))
+
+(use-package org-transclusion
+  :pin elpa-devel
+  :ensure t
+  :after org
+  :config
+  (add-to-list 'org-transclusion-extensions 'org-transclusion-indent-mode)
+  (require 'org-transclusion-indent-mode)
+
+  (keymap-set org-mode-map "C-c t a" #'org-transclusion-add)
+  (keymap-set org-mode-map "C-c t m" #'org-transclusion-mode)
+
+  (keymap-set org-transclusion-map "C-c t e" #'org-transclusion-live-sync-start)
+  (keymap-set org-transclusion-map "C-c t g" #'org-transclusion-refresh)
+  (keymap-set org-transclusion-map "C-c t d" #'org-transclusion-remove)
+  (keymap-set org-transclusion-map "C-c t C-d" #'org-transclusion-detach)
+  (keymap-set org-transclusion-map "C-c t P" #'org-transclusion-promote-subtree)
+  (keymap-set org-transclusion-map "C-c t D" #'org-transclusion-demote-subtree)
+  (keymap-set org-transclusion-map "C-c t o" #'org-transclusion-open-source)
+  (keymap-set org-transclusion-map "C-c t O" #'org-transclusion-move-to-source)
+  
+  (keymap-set org-transclusion-live-sync-map "C-c t C-c C-c"
+	      #'org-transclusion-live-sync-exit)
+  (keymap-set org-transclusion-live-sync-map "C-c t C-y"
+	      #'org-transclusion-live-sync-paste)
+
+  ;; (add-hook 'org-transclusion-after-add-functions
+  ;; 	    #'org-transclusion-content-insert-add-overlay)
+  )
 #+end_src
 *** COMMENT org-autolist
 #+begin_src elisp
@@ -1452,7 +1624,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 #+end_src
 
 ** Appearance
-*** COMMENT rainbow-mode
+*** rainbow-mode
 #+begin_src elisp
 (use-package rainbow-mode
   :ensure t
@@ -1469,6 +1641,15 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 
 ;;; good theme for customization
 ;; (load-theme 'modus-vivendi)
+#+end_src
+
+*** beacon (highlight my cursor)
+#+begin_src elisp
+(use-package beacon
+  :ensure t
+  :diminish
+  :config
+  (beacon-mode 1))
 #+end_src
 
 ** Popup windows
@@ -2534,19 +2715,6 @@ Works kind-of, but with multiple issues.
 		))
 
 #+end_src
-** Misc
-*** COMMENT persistent-scratch
-#+begin_src elisp
-(use-package persistent-scratch
-  :ensure t
-  :config
-  (persistent-scratch-autosave-mode 1)
-  (setq persistent-scratch--auto-restored t)
-  (setq persistent-scratch-backup-directory
-	(concat user-emacs-directory "persistent-scratch-backups/"))
-  (setq persistent-scratch-backup-filter
-	(persistent-scratch-keep-n-newest-backups 100)))
-#+end_src
 * Customization
 ** Modifier keys
 #+begin_src elisp
@@ -2888,13 +3056,36 @@ Increment/decrement numbers like in Vim:
 #+begin_src elisp
 (add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
 (load-theme 'pmacs t)
+
+(set-face-attribute
+ 'org-transclusion-fringe nil
+ :foreground "#83be9d"
+ ;; :background "#494a63"
+ )
+
+(set-face-attribute
+ 'org-transclusion-source-fringe nil
+ :foreground "#83be9d"
+ ;; :background "#494a63"
+ )
+
+(set-face-attribute
+ 'org-transclusion nil
+ ;; :foreground "#83be9d"
+ :background "#2d3c33"
+ )
+
+(set-face-attribute
+ 'org-transclusion-source nil
+ ;; :foreground "#83be9d"
+ :background "#2d3c33"
+ )
 #+end_src
 
 * TODO
 
-To practice:
-- [ ] OrgMode bindings
-- [ ] leader-key bindings
+To fix:
+- [ ] sometime ~org-store-link~ does not work until config is reloaded
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?
@@ -2903,8 +3094,21 @@ To learn:
   - https://www.reddit.com/r/emacs/comments/qrythw/pin_a_specific_version_of_a_package/
   - use https://github.com/quelpa/quelpa ?
 - [ ] how to eval elisp in orgmode without special edit mode
+- [ ] what exactly is ~org-babel-tangle~ and how does it help with transpiling
+  =.org= files into =.el= (such as my config)?
+  - how does the package ~org-auto-tangle~ help?
+- [ ] does it make sense to put all backup files in Trash can?
+  - seen on YouTube:
+    : (setq backup-directory-alist '((".*" . "~/.Trash")))
+  
+Think about more often:
+- ~org-capture~ (~C-c c~)
 
 Packages to try:
+- [ ] ~perspective~ to manage workspaces (incl. window management)
+- [ ] ~embark~ for a list of minibuffer keybinds/actions on the current thing
+- [ ] consider ~vertico~ as a performant and minimalistic ivy replacement
+  - I think I like fido mode better
 - [ ] Swiper (depends on ivy) for isearch with regex
 - [ ] sudo-edit if need arises to use sudo to open files
 - [ ] consider vterm instead of ~M-x shell~
@@ -2917,5 +3121,9 @@ Packages to try:
 - [ ] neil  
 - [ ] html-to-hiccup
 - [ ] flycheck-color-mode-line.el
+- [ ] [[https://www.youtube.com/watch?v=cM8zXJKdC8o][Emmet mode]] (HTML tag editing macros)
+  - also see [[https://www.youtube.com/watch?v=EiCDLVp6O5A][HTML mode]]
 - [ ] [[https://www.youtube.com/watch?v=OczjiV9eZwA][Olivetti Mode]] (centers window, makes it smaller to focus read)
+- [ ] [[https://github.com/tarsius/hl-todo][hl-todo]] (todo keyword highlighting)
+  - see https://youtu.be/pPzD6FlZ4ss?t=929
   

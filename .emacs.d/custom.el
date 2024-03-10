@@ -37,7 +37,7 @@
 		       "\\_>")
 	      1 'font-lock-variable-name-face)))))
  '(package-selected-packages
-   '(eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode rainbow-mode org-appear evil-surround gruvbox-theme evil))
+   '(beacon org-transclusion eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode rainbow-mode org-appear evil-surround gruvbox-theme evil))
  '(package-vc-selected-packages
    '((ajsc :vc-backend Git :url "https://github.com/sogaiu/a-janet-spork-client")
      (ajrepl :vc-backend Git :url "https://github.com/sogaiu/ajrepl")

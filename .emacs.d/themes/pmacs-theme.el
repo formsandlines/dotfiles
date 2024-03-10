@@ -77,7 +77,7 @@
    ;; `(region ((,class (:background ,fg1 :foreground ,bg1))))
    `(region ((,class (:background ,selection))))
    `(highlight ((,class (:background ,selection))))
-   `(hl-line ((,class (:background  ,bg2))))
+   `(hl-line ((,class (:background ,bg2))))
    `(fringe ((,class (:foreground ,bg3))))
    `(shadow ((,class (:foreground ,bg4))))
    `(cursor ((,class (:background ,fg4))))
