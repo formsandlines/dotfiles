@@ -3,10 +3,18 @@
 #+DESCRIPTION: Peter’s personal Emacs config.
 #+STARTUP: showeverything
 #+OPTIONS: toc:2
+#+PROPERTY: header-args:elisp :lexical t :tangle yes
 
-Use ~org-babel-load-file~ to reload config.
+Use ~org-babel-tangle~ to generate =init.el= and reload config.
+# Use ~org-babel-load-file~ to reload config.
 
 * IMPORTANT PROGRAMS TO LOAD FIRST
+** Use lexical bindings
+By default, Emacs Lisp uses dynamic bindings, which is slower and outdated.
+#+begin_src elisp
+;;; -*- lexical-binding: t; -*-
+#+end_src
+
 ** Custom File
 
 #+begin_src elisp
@@ -14,7 +22,6 @@ Use ~org-babel-load-file~ to reload config.
 (when (file-exists-p custom-file)
   (load custom-file))
 #+end_src
-
 ** Package Manager
 
 #+begin_src elisp
@@ -332,13 +339,13 @@ one, an error is signaled."
 (keymap-global-set "C-M-'" #'down-list) 
 
 (defun ph/visit-config ()
-  "Opens my config.org file."
+  "Opens my init.org file."
   (interactive)
-  (find-file (locate-user-emacs-file "config.org")))
+  (find-file (locate-user-emacs-file "init.org")))
 
 (defun ph/reload-config ()
   (interactive)
-  (org-babel-load-file (locate-user-emacs-file "config.org")))
+  (org-babel-load-file (locate-user-emacs-file "init.org") t))
 
 (defun ph/visit-theme ()
   "Opens my theme file."
@@ -350,9 +357,11 @@ one, an error is signaled."
 
 (keymap-global-set "C-c s t" #'ph/visit-theme)
 
-(keymap-global-set "C-c n" (lambda ()
+(keymap-global-set "C-c b n" (lambda ()
 			     (interactive)
 			     (find-file "~/Documents/emacs-notes.org")))
+
+(keymap-global-set "C-c b b" #'scratch-buffer)
 
 (keymap-set Info-mode-map "M-{" #'Info-search-backward)
 (keymap-set Info-mode-map "M-}" #'Info-search-next)
@@ -665,8 +674,9 @@ calls `meow-eval-last-exp'."
    '("/-" . ph/decrement-number-at-point)
 
    ;;; WRAPPING
-   '("/w" . ph/wrap-with-char)
-   '("/W" . ph/change-wrapped-char)
+   '("/ww" . ph/wrap-with-char)
+   '("/wc" . ph/change-wrapped-char)
+   '("/wd" . ph/remove-surrounding)
 
    ;;; INDENTATION
    '("/ TAB" . org-indent-item)  ; org-mode replaces <tab>
@@ -874,9 +884,13 @@ calls `meow-eval-last-exp'."
 #+begin_src elisp
 (use-package meow
   :config
-  ;; (meow-thing-register 'quoted
-  ;;                      '(regexp "`" "`\\|'")
-  ;;                      '(regexp "`" "`\\|'"))
+  (meow-thing-register 'elisp-quoted
+		       '(regexp "`" "`\\|'")
+		       '(regexp "`" "`\\|'"))
+
+  (meow-thing-register 'quoted
+		       '(regexp "‘" "‘\\|’")
+		       '(regexp "‘" "‘\\|’"))
 
   (meow-thing-register 'angle
 		       '(pair ("<") (">"))
@@ -887,6 +901,8 @@ calls `meow-eval-last-exp'."
 	  (?d . square)
 	  (?s . curly)
 	  (?a . angle)
+	  (?n . quoted)
+	  (?m . elisp-quoted)
 	  (?r . string)
 	  (?w . paragraph)
 	  (?e . line)
@@ -1339,7 +1355,7 @@ calls `meow-eval-last-exp'."
     '("S" . org-table-insert-column) ;; to the left
     '("D" . org-table-delete-column) ;; current
 
-    '("v" . org-table-copy-down)
+    ;; '("v" . org-table-copy-down) ;; already on S-RET
     
     '(":" . ph/meow-org-table-field-replace)
 
@@ -2876,6 +2892,7 @@ Works kind-of, but with multiple issues.
 #+end_src
 
 ** Text editing
+*** lines
 #+begin_src elisp
 (defun ph/newline-empty-below ()
   "Creates a newline below the point that is always empty."
@@ -2920,14 +2937,9 @@ Works kind-of, but with multiple issues.
 ;; (keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
 ;; (keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
 
-(defun ph/insert-date ()
-  "Insert current date."
-  (interactive)
-  (insert (format-time-string "%Y-%m-%d")))
-
 #+end_src
 
-** Wrap with char
+*** regions
 #+begin_src elisp
 (defun ph/wrap-with-char (start end)
   "Wraps a region with given input character."
@@ -2942,15 +2954,37 @@ Works kind-of, but with multiple issues.
 (defun ph/change-wrapped-char (start end)
   "Changes wrapping characters in a region with given input character."
   (interactive "r")
-  (let ((char (string-to-char (read-string "Enter character: "))))
+  (let ((char (let ((input (read-string "Enter character: ")))
+		(unless (string-blank-p input)
+		  (string-to-char input)))))
     (save-excursion
       (goto-char end)
       (delete-char -1)
-      (insert-char char)
+      (when char (insert-char char))
       (goto-char start)
       (delete-char 1)
-      (insert-char char))))
+      (when char (insert-char char)))))
+
+(defun ph/remove-surrounding (start end)
+  "Removes surrounding characters in a region."
+  (interactive "r")
+  (save-excursion
+    (goto-char end)
+    (delete-char -1)
+    (goto-char start)
+    (delete-char 1)))
+
 #+end_src
+
+*** insertions
+#+begin_src elisp
+(defun ph/insert-date ()
+  "Insert current date."
+  (interactive)
+  (insert (format-time-string "%Y-%m-%d")))
+
+#+end_src
+** Wrap with char
 ** Shells & Terminals
 shell-mode:
 #+begin_src elisp
@@ -3199,6 +3233,8 @@ Increment/decrement numbers like in Vim:
 
 To fix:
 - [ ] sometime ~org-store-link~ does not work until config is reloaded
+- [ ] sometimes ~auto-fill-mode~ is disabled even though it’s set in config
+  - makes lines not break when exceeding max length
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?

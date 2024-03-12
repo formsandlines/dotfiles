@@ -1,3 +1,5 @@
+;;; -*- lexical-binding: t; -*-
+
 ;;; pmacs-theme.el --- Theme
 
 ;; Copyright (C) 2023 , Peter Hofmann
