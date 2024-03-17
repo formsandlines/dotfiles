@@ -1633,6 +1633,57 @@ Subtracts right margin and org indentation level from fill-column"
   :config
   )
 
+(use-package savehist
+  :diminish
+  :init
+  (setq history-length 25)
+  (savehist-mode 1))
+
+(use-package vertico
+  :ensure t
+  :after savehist
+  :init
+  (vertico-mode 1))
+
+;; As suggested by: https://github.com/minad/vertico
+(use-package emacs
+  :init
+  ;; Add prompt indicator to `completing-read-multiple'.
+  ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
+  (defun crm-indicator (args)
+    (cons (format "[CRM%s] %s"
+		  (replace-regexp-in-string
+		   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+		   crm-separator)
+		  (car args))
+	  (cdr args)))
+  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+
+  ;; Do not allow the cursor in the minibuffer prompt
+  (setq minibuffer-prompt-properties
+        '(read-only t cursor-intangible t face minibuffer-prompt))
+  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+
+  ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
+  ;; Vertico commands are hidden in normal buffers.
+  (setq read-extended-command-predicate
+        #'command-completion-default-include-p)
+
+  ;; Enable recursive minibuffers
+  (setq enable-recursive-minibuffers t)
+
+  ;;
+  )
+
+(use-package orderless
+  :ensure t
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles basic partial-completion))))
+  ;;
+  )
+
 ;; Enable rich annotations using the Marginalia package
 (use-package marginalia
   ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
@@ -2458,38 +2509,6 @@ DIRECTION should be either the symbol `before' or `after'."
 (setq mac-right-option-modifier 'left)
 (setq mac-control-modifier 'hyper)         ;; in case hyper is needed
 (setq mac-right-control-modifier 'control) ;; also works for caps-lock as ctrl
-
-;;; Remember history of minibuffer prompts
-(setq history-length 25)
-(savehist-mode 1)
-
-(setq completions-format 'horizontal)
-(setq completion-auto-wrap t) ;; wraps around when navigating completions
-(setq completion-auto-help t)
-(setq completion-auto-select 'second-tab)
-(setq completion-show-help nil) ;; hides help message
-
-(add-hook 'minibuffer-mode-hook
-	  (lambda ()
-	    (keymap-set minibuffer-mode-map "C-n"
-			#'minibuffer-next-completion)
-	    (keymap-set minibuffer-mode-map "C-p"
-			#'minibuffer-previous-completion)))
-
-(add-hook 'completion-in-region-mode-hook
-	  (lambda ()
-	    (keymap-set completion-in-region-mode-map "C-n"
-			#'minibuffer-next-completion)
-	    (keymap-set completion-in-region-mode-map "C-p"
-			#'minibuffer-previous-completion)))
- 
-;;; Completion system
-(fido-mode 1)
-;; (fido-vertical-mode 1)
-
-;; because M-x <up> is awkward:
-(keymap-set icomplete-fido-mode-map "C-r"
-	    #'minibuffer-complete-history)
 
 (defun ph/newline-empty-below ()
   "Creates a newline below the point that is always empty."
