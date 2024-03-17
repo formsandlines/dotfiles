@@ -1,30 +1,9 @@
-#+TITLE: GNU Emacs Config
-#+AUTHOR: Peter Hofmann
-#+DESCRIPTION: Peter’s personal Emacs config.
-#+STARTUP: showeverything
-#+OPTIONS: toc:2
-#+PROPERTY: header-args:elisp :lexical t :tangle yes
-
-Use ~org-babel-tangle~ to generate =init.el= and reload config.
-# Use ~org-babel-load-file~ to reload config.
-
-* IMPORTANT PROGRAMS TO LOAD FIRST
-** Use lexical bindings
-By default, Emacs Lisp uses dynamic bindings, which is slower and outdated.
-#+begin_src elisp
 ;;; -*- lexical-binding: t; -*-
-#+end_src
 
-** Custom File
-
-#+begin_src elisp
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (when (file-exists-p custom-file)
   (load custom-file))
-#+end_src
-** Package Manager
 
-#+begin_src elisp
 (setq package-native-compile t)
 
 (setq package-archives 
@@ -40,28 +19,10 @@ By default, Emacs Lisp uses dynamic bindings, which is slower and outdated.
   (package-refresh-contents)
   (package-install 'use-package))
 (eval-when-compile (require 'use-package)) ; ? needed
-#+end_src
 
-*vc-package integration into use-package*
-- *NOTE:* remove after upgrade to /Emacs 30/, since it’s built-in there
-#+begin_src elisp
 (unless (package-installed-p 'vc-use-package)
   (package-vc-install "https://github.com/slotThe/vc-use-package"))
-#+end_src
 
-*use-package autoremove fix*
-
-Custom ~package-autoremove~ that only removes packages not ~:ensure~'d in
-~use-package~ declarations by building a custom list that overrides
-~package-selected-packages~.
-
-Normally, ~use-package~ should add (via ~:ensure~) auto-installed packages to
-~package-selected-packages~, but it seems like they are added only as
-dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
-- may be fixed properly in the future (hopefully?), then this snippet can be
-  removed
-- [[https://github.com/jwiegley/use-package/issues/870#issuecomment-771881305][Source]] (GitHub)
-#+begin_src elisp
 (defvar use-package-selected-packages '(use-package)
   "Packages pulled in by use-package.")
 (defun use-package-autoremove ()
@@ -97,23 +58,13 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
                      ((pred listp) (car (car args))))))
       (cons `(add-to-list 'use-package-selected-packages ',package)
             (funcall fn name-symbol keyword args rest state)))))
-#+end_src
 
-** Includes
-
-#+begin_src elisp
 (require 'org-tempo)
 ;; (require 'eldoc)
-#+end_src
 
-* Personal information
-#+begin_src elisp
 (setq user-full-name "Peter Hofmann"
       user-mail-address "peter.hofmann@formsandlines.eu")
-#+end_src
 
-* Basic config
-#+begin_src elisp
 ;;; There are some warnings I really can’t do anything about and they
 ;;; are annoying, so keep quiet
 (setq warning-minimum-level :emergency)
@@ -188,15 +139,6 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 
 (setq initial-major-mode 'lisp-interaction-mode)
 
-#+end_src
-
-* Buffer movement
-Creating some functions to allow us to easily move windows (splits) around. The
-following block of code was taken from =buffer-move.el= found on the EmacsWiki:
-- https://www.emacswiki.org/emacs/buffer-move.el
-- [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org][Source (DistroTube)]]
-
-#+begin_src elisp
 ;;;###autoload
 (defun ph/buf-move-up ()
   "Swap the current buffer and the buffer above the split.
@@ -263,10 +205,7 @@ one, an error is signaled."
       ;; move this one to top
       (set-window-buffer other-win buf-this-buf)
       (select-window other-win))))
-#+end_src
 
-* Window movement
-#+begin_src elisp
 ;;; I like to scroll line-by-line
 (defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
 (defun ph/scroll-one-line-down () (interactive) (scroll-down 1))
@@ -317,9 +256,6 @@ one, an error is signaled."
 ;; (setq enable-recursive-minibuffers t)  ; <-- set to nil after use!
 ;; (define-key minibuffer-mode-map (kbd "C-M-k") 'describe-keybinding)
 
-#+end_src
-* Keybindings
-#+begin_src elisp
 ;; (global-set-key (kbd "C-c C-r") 'recentf-open-files)
 ;; (global-set-key (kbd "C-c r") 'recentf-open)
 
@@ -357,9 +293,7 @@ one, an error is signaled."
 			     (find-file "~/Documents/emacs-notes.org")))
 
 (keymap-global-set "C-c b b" #'scratch-buffer)
-#+end_src
-* GUI tweaks
-#+begin_src elisp
+
 (setq inhibit-startup-message t)
 
 (menu-bar-mode -1)
@@ -381,24 +315,6 @@ one, an error is signaled."
 ;;; https://stackoverflow.com/a/445881
 (setq mouse-wheel-progressive-speed nil)
 
-#+end_src
-
-** COMMENT Pixel scrolling
-#+begin_src elisp
-
-(pixel-scroll-precision-mode 1)
-
-(setq pixel-scroll-precision-use-momentum t)
-;;; I’m just making blind guesses here, no idea what these values mean:
-(setq pixel-scroll-precision-initial-velocity-factor 0.001) ;; def. 0.008375
-(setq pixel-scroll-precision-interpolation-between-scroll 0.0001) ;; def. 0.001
-(setq pixel-scroll-precision-interpolation-factor 1.2) ;; def. 2.0
-(setq pixel-scroll-precision-momentum-min-velocity 10.0) ;; default 10.0
-
-#+end_src
-
-* isearch
-#+begin_src elisp
 ;; Remove “pause” when changing directions
 (setq isearch-repeat-on-direction-change t)
 ;; Do not wrap isearch when reaching the end of a buffer
@@ -423,26 +339,13 @@ one, an error is signaled."
 (keymap-set isearch-mode-map "C->" #'isearch-end-of-buffer)
 (keymap-set isearch-mode-map "C-<" #'isearch-beginning-of-buffer)
 
-
-#+end_src
-* Packages
-** use-package add-ons
-*** diminish
-Enable ~:diminish~ to hide modeline display of some minor modes:
-#+begin_src elisp
 (use-package diminish
   :ensure t)
-#+end_src
-*** vc-use-package
-To prevent ~use-package-autoremove~ from deleting it.
-#+begin_src elisp
+
 ;;; 
 (use-package vc-use-package
-  :ensure t) 
-#+end_src
-** Keybinding helper
-*** which-key
-#+begin_src elisp
+  :ensure t)
+
 (use-package which-key
   :ensure t
   :init
@@ -461,10 +364,7 @@ To prevent ~use-package-autoremove~ from deleting it.
   ;; (setq which-key-allow-imprecise-window-fit t)
   ;; (setq which-key-separator " → ")
   )
-#+end_src
 
-*** hydra
-#+begin_src elisp
 (use-package hydra
   :ensure t
   :diminish
@@ -561,18 +461,7 @@ To prevent ~use-package-autoremove~ from deleting it.
 
     ("SPC" nil "cancel"))
   )
-#+end_src
-*** COMMENT dot-mode
-#+begin_src elisp
-(use-package dot-mode
-  :ensure t
-  :diminish
-  :config
-  (global-dot-mode t))
-#+end_src
-*** meow/
-**** Custom meow commands
-#+begin_src elisp
+
 ;; Let 'a' in 'normal' mode behave like 'a' in Vi:
 ;; - https://github.com/meow-edit/meow/discussions/497#discussioncomment-6713192
 ;; - unused for now, since it somehow doesn’t work with my clj-refactor
@@ -676,10 +565,6 @@ calls `meow-eval-last-exp'."
   (interactive)
   (meow-search -1))
 
-#+end_src
-
-**** meow prefix bindings
-#+begin_src elisp
 ;; prefix /
 (defconst ph/meow-prefix-slash
   (list
@@ -770,10 +655,7 @@ calls `meow-eval-last-exp'."
    ;; '("\\r" . project-query-replace-regexp)
    '("\\/" . project-shell)
    '("\\g" . magit-status)))
-#+end_src
 
-**** meow common bindings
-#+begin_src elisp
 (defconst ph/meow-common
   (list
    ;; '("M-c" . meow-clipboard-save) ;; was kill-ring-save
@@ -781,9 +663,6 @@ calls `meow-eval-last-exp'."
    ;; '("M-v" . meow-clipboard-yank) ;; was yank
    ))
 
-#+end_src
-**** meow normal bindings
-#+begin_src elisp
 (defconst ph/meow-normal
   (list
    '("0" . meow-expand-0)
@@ -888,9 +767,7 @@ calls `meow-eval-last-exp'."
 
    ;; ignore escape
    '("<escape>" . ignore)))
-#+end_src
-**** meow
-#+begin_src elisp
+
 (use-package meow
   :ensure t
   :demand t
@@ -922,9 +799,7 @@ calls `meow-eval-last-exp'."
 	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash)))
   ;;
   )
-  #+end_src
-**** +My meow things
-#+begin_src elisp
+
 (use-package meow
   :config
   (meow-thing-register 'elisp-quoted
@@ -952,10 +827,7 @@ calls `meow-eval-last-exp'."
 	  (?q . buffer)))
   ;;
   )
-#+end_src
 
-**** +My meow paren state:
-#+begin_src elisp
 (use-package meow
   :config
 
@@ -1089,9 +961,7 @@ calls `meow-eval-last-exp'."
 
   ;;
   )
-#+end_src
-**** +My meow symex state:
-#+begin_src elisp
+
 (use-package meow
   :config
 
@@ -1315,9 +1185,7 @@ calls `meow-eval-last-exp'."
   
   ;;
   )
-#+end_src
-**** +My meow table state:
-#+begin_src elisp
+
 (defun ph/meow-org-table-field-insert (&optional n)
   "Inserts text from insert mode before the contents of table field."
   (interactive "p")
@@ -1416,10 +1284,7 @@ calls `meow-eval-last-exp'."
 
   ;;
   )
-#+end_src
-**** +My meow bindings
 
-#+begin_src elisp
 (use-package meow
   :config
 
@@ -1469,10 +1334,7 @@ calls `meow-eval-last-exp'."
   (apply 'meow-define-keys 'normal ph/meow-normal)
   ;;
   )
-#+end_src
 
-**** +My meow leader bindings
-#+begin_src elisp
 (use-package meow
   :config
 
@@ -1509,16 +1371,10 @@ calls `meow-eval-last-exp'."
    )
   ;;
   )
-#+end_src
-** Version control
-*** magit
-#+begin_src elisp
+
 (use-package magit
   :ensure t)
 
-#+end_src
-*** diff-hl
-#+begin_src elisp
 (use-package diff-hl
   :after (magit dired)
   :ensure t
@@ -1530,11 +1386,6 @@ calls `meow-eval-last-exp'."
   (global-diff-hl-mode)
   (add-hook 'dired-mode-hook 'diff-hl-dired-mode))
 
-#+end_src
-
-** OrgMode
-*** org /(built-in)/
-#+begin_src elisp
 (use-package org
   :config
   (setq org-id-link-to-org-use-id 'use-existing)
@@ -1573,9 +1424,7 @@ calls `meow-eval-last-exp'."
   ;; 	       '("^\\*Org Src" display-buffer-at-bottom
   ;; 		 (window-height . 0.5)))
 )
-#+end_src
-*** +My custom keybindings for org-mode
-#+begin_src elisp
+
 (defun ph/org-insert-child-heading ()
   "Inserts a child heading from the current heading node."
   (interactive)
@@ -1654,9 +1503,7 @@ calls `meow-eval-last-exp'."
 
   ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
   (keymap-set org-mode-map "C-c d" #'org-table-blank-field))
-#+end_src
-*** +My custom links for org-mode
-#+begin_src elisp
+
 (use-package org
   :config
   ;; Enable following links in TheBrain
@@ -1665,9 +1512,7 @@ calls `meow-eval-last-exp'."
    :follow (lambda (path) (ph/macos-open (concat "brain:" path)))
    ;; :store #'org-brain-store-link
    ))
-#+end_src
-*** +My custom capture templates
-#+begin_src elisp
+
 (defun ph/org-id-store-create ()
   (interactive)
   (org-id-get-create)
@@ -1688,16 +1533,7 @@ calls `meow-eval-last-exp'."
 	  ("f" "FW Reference" entry (file "~/org/fw-refs.org")
 	   "* %?\n:PROPERTIES:\n:AUTHOR: %n\n:CREATED: %U\n:LAST_EDITED: nil\n:CAPTURED: %T\n:ORIGIN_CAPTURED: %a\n:END:\n"
 	   :before-finalize ph/org-id-store-create))))
-#+end_src
 
-*** +My fix for ~org-fill-paragraph~ in ~org-indent-mode~
-
-Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate
-the indentation. Overrides ~current-fill-column~ to ensure the correct
-calculation.
-- credits to patrick: https://emacs.stackexchange.com/a/74973
-
-#+begin_src elisp
 (use-package org
   :config
   (defun current-fill-column ()
@@ -1709,10 +1545,7 @@ Subtracts right margin and org indentation level from fill-column"
 			  0))
 	  (margin (or (get-text-property (point) 'right-margin) 0)))
       (- fill-column indent-level margin))))
-#+end_src
 
-*** org-appear
-#+begin_src elisp
 (use-package org-appear
   :ensure t
   :diminish
@@ -1722,9 +1555,7 @@ Subtracts right margin and org indentation level from fill-column"
   (setq org-appear-autoentities t)
   (setq org-appear-autolinks t)
   (setq org-appear-autosubmarkers t))
-#+end_src
-*** org-transclusion
-#+begin_src elisp
+
 ;;; Somehow the fringe in target buffer does not show up.
 ;;; Workaround, source:
 ;;; - https://github.com/nobiot/org-transclusion/issues/201#issue-1868665106
@@ -1766,77 +1597,24 @@ Subtracts right margin and org indentation level from fill-column"
   ;; (add-hook 'org-transclusion-after-add-functions
   ;; 	    #'org-transclusion-content-insert-add-overlay)
   )
-#+end_src
-*** COMMENT org-autolist
-#+begin_src elisp
-(use-package org-autolist
-  :diminish
-  :ensure t
-  :after org
-  :hook (org-mode . org-autolist-mode))
-#+end_src
-*** COMMENT org-excalidraw
-Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org-excalidraw/pull/6][this PR]].
-- can only open links in Excalidraw, but not display images
-- generates svg though
-#+begin_src elisp
-(use-package org-excalidraw
-  :ensure t
-  :vc (:fetcher github :repo wdavew/org-excalidraw)
-  :config
-  (setq org-excalidraw-directory "~/Pictures/org-excalidraw")
-  
-  (file-notify-add-watch org-excalidraw-directory '(change)
-			 'org-excalidraw--handle-file-change)
-  ;; (add-to-list 'org-file-apps
-  ;; 	       '("\\.excalidraw.svg\\'" . (lambda (path link)
-  ;; 					    (org-excalidraw--open-file-from-svg
-  ;; 					     path))))
-  )
-#+end_src
 
-** Snippets
-*** yasnippet
-#+begin_src elisp
 (use-package yasnippet
   :ensure t
   :diminish
   :config
   (yas-global-mode 1))
-#+end_src
 
-** Appearance
-*** rainbow-mode
-#+begin_src elisp
 (use-package rainbow-mode
   :ensure t
   :diminish
   :hook org-mode prog-mode)
-#+end_src
 
-*** COMMENT gruvbox-theme
-#+begin_src elisp
-(use-package gruvbox-theme
-  :ensure t
-  :config
-  (load-theme 'gruvbox))
-
-;;; good theme for customization
-;; (load-theme 'modus-vivendi)
-#+end_src
-
-*** beacon (highlight my cursor)
-#+begin_src elisp
 (use-package beacon
   :ensure t
   :diminish
   :config
   (beacon-mode 1))
-#+end_src
 
-** Popup windows
-*** popper
-#+begin_src elisp
 (use-package popper
   :ensure t
   :bind (("C-`"   . popper-toggle)
@@ -1854,11 +1632,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   (popper-echo-mode +1)
   :config
   )
-#+end_src
 
-** Completion
-*** marginalia (completion annotations)
-#+begin_src elisp
 ;; Enable rich annotations using the Marginalia package
 (use-package marginalia
   ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
@@ -1894,16 +1668,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   ;;     (setq-local marginalia-annotator-registry nil)))
   ;; (add-hook 'completion-list-mode-hook #'disable-marginalia)
   )
-#+end_src
 
-*** company (text completion)
-*Note:* there is a strange error where emacs keeps asking ~Visit tags table
- (default TAGS): …~ in the echo area when trying to visit a link in
- org-mode, even if TAGS aren’t used. This seems to be related to company
- mode somehow.
-- [[https://github.com/haskell/haskell-mode/issues/1234][Emacs keeps asking for a TAGS file when TAGS aren't used #1234]]
-
-#+begin_src elisp
 (use-package company
   :ensure t
   :defer t
@@ -1915,61 +1680,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 ;;   :after company
 ;;   :diminish
 ;;   :hook (company-mode . company-box-mode))
-#+end_src
 
-** Cross-references
-*** COMMENT dumb-jump (jump to definition, etc. (file searchers for xref)
-Needed because eglot?
-#+begin_src elisp
-(use-package dumb-jump
-  :ensure t
-  :diminish
-  :init (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
-
-;;; Compiler Warnings:
-;; Warning (bytecomp): ‘point-at-bol’ is an obsolete function (as of 29.1); use ‘line-beginning-position’ or ‘pos-bol’ instead.
-;; Warning (bytecomp): the function ‘xref-make-file-location’ is not known to be defined.
-;; Warning (bytecomp): the function ‘xref-make’ is not known to be defined.
-;; Warning (bytecomp): the function ‘first’ is not known to be defined.
-;; Warning (bytecomp): the function ‘tramp-dissect-file-name’ is not known to be defined.
-;; Warning (bytecomp): the function ‘tramp-file-name-localname’ is not known to be defined.
-;; Warning (bytecomp): the function ‘helm-make-source’ is not known to be defined.
-;; Warning (bytecomp): the function ‘ivy-read’ is not known to be defined.
-#+end_src
-
-** Linter
-*** flycheck/
-**** COMMENT +My flycheck-prefer-eldoc
-Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc][masteringemacs]]
-#+begin_src elisp
-(defun ph/flycheck-eldoc (callback &rest _ignored)
-  "Print flycheck messages at point by calling CALLBACK."
-  (when-let ((flycheck-errors (and flycheck-mode (flycheck-overlay-errors-at (point)))))
-    (mapc
-     (lambda (err)
-       (funcall callback
-		(format "%s: %s"
-			(let ((level (flycheck-error-level err)))
-			  (pcase level
-			    ('info (propertize "I" 'face 'flycheck-error-list-info))
-			    ('error (propertize "E" 'face 'flycheck-error-list-error))
-			    ('warning (propertize "W" 'face 'flycheck-error-list-warning))
-			    (_ level)))
-			(flycheck-error-message err))
-		:thing (or (flycheck-error-id err)
-			   (flycheck-error-group err))
-		:face 'font-lock-doc-face))
-     flycheck-errors)))
-
-(defun ph/flycheck-prefer-eldoc ()
-  (add-hook 'eldoc-documentation-functions #'ph/flycheck-eldoc nil t)
-  (setq eldoc-documentation-strategy 'eldoc-documentation-compose-eagerly)
-  (setq flycheck-display-errors-function nil)
-  (setq flycheck-help-echo-function nil))
-
-#+end_src
-**** flycheck
-#+begin_src elisp
 (use-package flycheck
   :ensure t
   :defer t
@@ -1984,17 +1695,13 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
 	    (lambda ()
 	      (setq-local flycheck-disabled-checkers
 			  '(emacs-lisp-checkdoc)))))
-#+end_src
-**** flycheck-color-mode-line
-#+begin_src elisp
+
 (use-package flycheck-color-mode-line
   :ensure t
   :diminish
   :after flycheck
   :hook flycheck-mode)
-#+end_src
-**** flycheck-clj-kondo
-#+begin_src elisp
+
 (use-package flycheck-clj-kondo
   :ensure t
   :after (flycheck clojure-mode)
@@ -2002,17 +1709,13 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   :config
   ;; ? how to disable elisp undefined warnings
   )
-#+end_src
-**** flycheck-janet
-#+begin_src elisp
+
 (use-package flycheck-janet
   :ensure t
   :after (flycheck janet-ts-mode)
   :diminish
   :vc (:fetcher github :repo sogaiu/flycheck-janet))
-#+end_src
-**** flycheck-rjan (for Janet)
-#+begin_src elisp
+
 (use-package flycheck-rjan
   :ensure t
   :after (flycheck janet-ts-mode flycheck-janet)
@@ -2020,10 +1723,7 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   :vc (:fetcher github :repo sogaiu/flycheck-rjan)
   :config
   (flycheck-add-next-checker 'janet-rjan 'janet-janet))
-#+end_src
-** Structural editing
-*** smartparens
-#+begin_src elisp
+
 (use-package smartparens
   :ensure t
   :after janet-ts-mode
@@ -2047,10 +1747,7 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   ;; (sp-pair "`" "`")
   ;; (sp-pair "$" "$")
   )
-#+end_src
 
-Custom commands:
-#+begin_src elisp
 (defun ph/sp-outermost ()
   "Moves outside to top-level sexp."
   (interactive)
@@ -2083,16 +1780,6 @@ chacking if a region is active or not."
   (if (region-active-p)
       (meow-save)
     (sp-kill-sexp arg t)))
-
-#+end_src
-*** symex/
-**** symex replacements with meow insert (workaround)
-Symex’s insert-related commands do not interface with meows insert
-state, so I copied the relevant parts from source, using ~meow-insert~
-instead.
-- *Note:* this may become obsolete with further development and
-  decoupling in symex
-#+begin_src elisp
 
 (defun ph/symex-ts-insert-at-end ()
   "Insert at end of symex."
@@ -2327,9 +2014,7 @@ instead.
   (if (symex-tree-sitter-p)
       (ph/symex-ts-open-line-before)
     (ph/symex-lisp--open-line-before)))
-#+end_src
-**** symex replacements for eval
-#+begin_src elisp
+
 (defun ph/symex-eval-janet ()
   "Eval last sexp."
   (interactive)
@@ -2367,9 +2052,7 @@ instead.
         (ph/symex--evaluate)
         (symex--go-forward)
         (setq i (1+ i))))))
-#+end_src
-**** symex replacements for copy/paste
-#+begin_src elisp
+
 ;; ! may need adjustment
 (defun ph/symex-ts--paste (count direction)
   "Paste before or after symex, COUNT times, according to DIRECTION.
@@ -2467,17 +2150,6 @@ DIRECTION should be either the symbol `before' or `after'."
       (dotimes (_ count)
         (ph/symex-lisp--paste-after)))))
 
-#+end_src
-**** symex
-Issues waiting to be resolved (maybe in 2.0 release?):
-- remove tree-sitter dependency (this is now built-in in Emacs 29+)
-- remove evil dependency (no need for that with meow)
-- hopefully trim other dependencies like lispy too
-
-[[https://github.com/drym-org/symex.el/blob/c3f000e037c62523267d3a89f14ac24cd8acc9fb/symex-hydra.el][Example-integration of symex with hydra]]
-- also see [[https://github.com/drym-org/symex.el/pull/118][Replace evil -- first pass #118 (GitHub)]]
-
-#+begin_src elisp
 (use-package symex
   :ensure t
   :after janet-ts-mode
@@ -2504,26 +2176,7 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 	 (not (member major-mode symex-clojure-modes))))
 
   )
-#+end_src
 
-*** COMMENT lispy
-#+begin_src elisp
-(use-package lispy
-  :ensure t
-  :hook ((emacs-lisp-mode clojure-mode lisp-mode) . lispy-mode)
-  ;; :config
-  ;; (eval-after-load "lispy"
-  ;;   `(progn
-  ;;      (lispy-define-key lispy-mode-map "S" 'special-lispy-visit)))
-  )
-#+end_src
-** tree-sitter/
-*** tree-sitter /(built-in)/
-Part of core since Emacs 29, so no need to install.
-*** treesit-auto
-Automatically installs TS grammars and uses corresponding ts-modes.
-- might become obsolete with Emacs versions above 29
-#+begin_src elisp
 (use-package treesit-auto
   :ensure t
   :after tree-sitter
@@ -2537,16 +2190,7 @@ Automatically installs TS grammars and uses corresponding ts-modes.
   (setq treesit-auto-install 'prompt)
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
-#+end_src
-** LSP support
-*** eldoc /(built-in -> shadowed)/
-- installed manually from ~describe-package eldoc~, because built-in version
-  is outdated
-  - somehow Emacs still uses the built-in version instead of the newer
-    one, cannot fix this with the obvious approaches, no luck finding
-    answers or asking AI
-  - see https://elpa.gnu.org/packages/eldoc.html
-#+begin_src elisp
+
   (use-package eldoc
     :ensure t
     :pin elpa
@@ -2577,32 +2221,6 @@ Automatically installs TS grammars and uses corresponding ts-modes.
     ;; (setq eldoc-echo-area-use-multiline-p nil)
     )
 
-#+end_src
-*** COMMENT eldoc-box
-#+begin_src elisp
-(use-package eldoc-box
-  :ensure t
-  :after eldoc
-  :diminish
-  :config
-  )
-#+end_src
-*** COMMENT +My eglot-eldoc
-Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc][masteringemacs]]
-#+begin_src elisp
-(defun ph/eglot-eldoc ()
-  (setq eldoc-documentation-strategy
-        'eldoc-documentation-compose-eagerly))
-#+end_src
-*** eglot /(built-in)/
-Part of core since Emacs 29, so no need to install.
-
-janet-lsp
-- continuously displays an error, which may be related to:
-  - https://github.com/joaotavora/eglot/issues/597
-  - becomes almost unusable due to small freezes
-
-#+begin_src elisp
 (use-package eglot
   ;; :hook ((eglot-managed-mode . ph/eglot-eldoc)) 
   :config
@@ -2625,25 +2243,12 @@ janet-lsp
   ;; (add-to-list 'eglot-stay-out-of 'flymake)
   )
 
-#+end_src
-** :lang Haskell
-*** haskell-mode
-#+begin_src elisp
 (use-package haskell-mode
   :ensure t)
 
-#+end_src
-** :lang Lua
-*** lua-mode
-#+begin_src elisp
 (use-package lua-mode
   :ensure t)
 
-#+end_src
-
-** :lang Clojure
-*** cider
-#+begin_src elisp
   (use-package cider
     :ensure t
     :config
@@ -2682,10 +2287,6 @@ janet-lsp
     (defun cider--completing-read-host (hosts)
       '("localhost")))
 
-#+end_src
-
-*** clj-refactor
-#+begin_src elisp
   (use-package clj-refactor
     :ensure t
     :after cider
@@ -2706,10 +2307,6 @@ janet-lsp
 			     ("re-frame" . "re-frame.core")))
       (add-to-list 'cljr-magic-require-namespaces magic-require)))
 
-#+end_src
-
-*** +Clerk helper
-#+begin_src elisp
 ;; (defun clerk-show ()
 ;;   (interactive)
 ;;   (when-let
@@ -2782,18 +2379,12 @@ janet-lsp
 (add-hook 'find-file-hook
 	  (lambda ()
 	    (activate-hook-for-dir 'clerk-mode "notebooks")))
-#+end_src
 
-** :lang Scheme
-*** geiser
-#+begin_src elisp
 (use-package geiser-chicken
   :ensure t
   :config
   (setq geiser-default-implementation 'chicken))
-#+end_src
-*** racket-mode
-#+begin_src elisp
+
 (use-package racket-mode
   :ensure t
   :config
@@ -2803,23 +2394,11 @@ janet-lsp
 		 (display-buffer-in-side-window)
 		 (side . right)
 		 (window-width . 0.5))))
-#+end_src
-** :lang Janet
-*** COMMENT janet-mode
-#+begin_src elisp
-(use-package janet-mode
-  :ensure t)
 
-#+end_src
-*** janet-ts-mode
-#+begin_src elisp
 (use-package janet-ts-mode
   :vc (:fetcher github :repo sogaiu/janet-ts-mode)
   :ensure t)
 
-#+end_src
-*** ajrepl
-#+begin_src elisp
 (use-package ajrepl
   :ensure t
   :after janet-ts-mode
@@ -2828,19 +2407,6 @@ janet-lsp
   (add-hook 'janet-ts-mode-hook
             #'ajrepl-interaction-mode))
 
-#+end_src
-*** a-janet-spork-client
-Janet Spork Netrepl client.
-- [[https://github.com/sogaiu/a-janet-spork-client/blob/master/ajsc.el][Instructions]]
-- needs [[https://github.com/janet-lang/spork][Spork]] utility library: ~sudo jpm install spork~
-- there is also [[https://github.com/sogaiu/snr][snr]] (which I haven’t tested)
-
-1. in console, call:
-   : janet -e '(import spork/netrepl) (netrepl/server)'
-   (or create/use ~janetrepl~ alias)
-2. ~M-x ajsc~ to connect to the nrepl server with specified port
-
-#+begin_src elisp
 (use-package ajsc
   :ensure t
   :after (janet-ts-mode ajrepl)
@@ -2848,10 +2414,7 @@ Janet Spork Netrepl client.
   :config
   (add-hook 'janet-ts-mode-hook
             #'ajsc-interaction-mode))
-#+end_src
-** :lang markdown
-*** markdown-mode
-#+begin_src elisp
+
 (use-package markdown-mode
   :ensure t
   :mode ("README\\.md\\'" . gfm-mode)
@@ -2864,9 +2427,7 @@ Janet Spork Netrepl client.
                ("cljs" . clojure-mode)
                ("cljc" . clojure-mode)))
     (add-to-list 'markdown-code-lang-modes x)))
-#+end_src
-*** separedit
-#+begin_src elisp
+
 (use-package separedit
   :ensure t
   :after markdown-mode
@@ -2890,24 +2451,7 @@ Janet Spork Netrepl client.
   ;; (setq separedit-write-file-when-execute-save t)
   ;; (setq separedit-remove-trailing-spaces-in-comment t)
   )
-#+end_src
-** :lang Logo
-*** COMMENT logo-mode
-Works kind-of, but with multiple issues.
-- see: https://www.emacswiki.org/emacs/LogoMode
-- overrides Emacs font face/color configs
-#+begin_src elisp
-(use-package logo-mode
-  :ensure t
-  :vc (:fetcher github :repo brianharvey/UCBLogo
-		;; How to specify source files?
-		;; :files ("source/emacs/*" "source/helpfiles/*" "source/docs/*")
-		))
 
-#+end_src
-* Customization
-** Modifier keys
-#+begin_src elisp
 (setq mac-command-modifier 'meta)          ;; left cmd = right cmd
 (setq mac-right-command-modifier 'left)
 (setq mac-option-modifier nil)             ;; keeps Umlauts, etc. accessible
@@ -2915,10 +2459,6 @@ Works kind-of, but with multiple issues.
 (setq mac-control-modifier 'hyper)         ;; in case hyper is needed
 (setq mac-right-control-modifier 'control) ;; also works for caps-lock as ctrl
 
-#+end_src
-
-** Minibuffer / Completion
-#+begin_src elisp
 ;;; Remember history of minibuffer prompts
 (setq history-length 25)
 (savehist-mode 1)
@@ -2950,11 +2490,7 @@ Works kind-of, but with multiple issues.
 ;; because M-x <up> is awkward:
 (keymap-set icomplete-fido-mode-map "C-r"
 	    #'minibuffer-complete-history)
-#+end_src
 
-** Text editing
-*** lines
-#+begin_src elisp
 (defun ph/newline-empty-below ()
   "Creates a newline below the point that is always empty."
   (interactive)
@@ -2998,10 +2534,6 @@ Works kind-of, but with multiple issues.
 ;; (keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
 ;; (keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
 
-#+end_src
-
-*** regions
-#+begin_src elisp
 (defun ph/wrap-with-char (start end)
   "Wraps a region with given input character."
   (interactive "r")
@@ -3035,30 +2567,18 @@ Works kind-of, but with multiple issues.
     (goto-char start)
     (delete-char 1)))
 
-#+end_src
-
-*** insertions
-#+begin_src elisp
 (defun ph/insert-date ()
   "Insert current date."
   (interactive)
   (insert (format-time-string "%Y-%m-%d")))
 
-#+end_src
-** Wrap with char
-** Shells & Terminals
-shell-mode:
-#+begin_src elisp
 ;;; TODO: bind to local key
 (defun ph/comint-kill-output ()
   "In shell-mode, kills output instead of deleting, as in
 comint-delete-output by default (C-c C-o)."
   (interactive)
   (comint-delete-output t))
-#+end_src
 
-eshell:
-#+begin_src elisp
 (setq eshell-history-size 5000
       eshell-buffer-maximum-lines 5000
       ; eshell-hist-ignoredups t
@@ -3066,13 +2586,7 @@ eshell:
       ; eshell-destroy-buffer-when-process-dies t  ;; WARNING: see variable info
       ; eshell-visual-commands'("bash" "htop" "ssh" "top" "zsh")
       )
-#+end_src
 
-** Colors
-
-Find nearest color
-Source: https://www.masteringemacs.org/article/find-nearest-colors-emacs-24
-#+begin_src elisp
 (defun ph/find-nearest-color (color &optional use-hsv)
   "Finds the nearest color by RGB distance to COLOR.
 
@@ -3096,10 +2610,7 @@ If called interactively, PT is the value immediately under `point'."
                            ;; `thing-at-point' find HTML color codes.
                            (modify-syntax-entry ?# "w")
                            (thing-at-point 'word))))
-#+end_src
 
-** Windows
-#+begin_src elisp
 ;; (defun window-full ()
 ;;   (interactive)
 ;;   (enlarge-window 1))
@@ -3113,10 +2624,7 @@ If called interactively, PT is the value immediately under `point'."
 ;; (keymap-global-set "C-L" #'enlarge-window-horizontally)
 ;; (keymap-global-set "C-I" #'enlarge-window)
 ;; (keymap-global-set "C-K" #'shrink-window)
-#+end_src
 
-** Dired
-#+begin_src elisp
 ;;; Source: https://gist.github.com/rmuslimov/72bf5a1561c7b60eb535
 (setq
  ph/scripts-dired-reveal-in-finder
@@ -3143,11 +2651,7 @@ end tell")
       (message "File does not exist!"))))
 
 (keymap-set dired-mode-map "O" #'ph/dired-open-in-finder)
-#+end_src
 
-** Popup windows & Help buffers
-? not needed anymore due to popwin, maybe delete
-#+begin_src elisp
 (defun ph/close-all-popups ()
   "Closes all open popup windows."
   (interactive)
@@ -3170,10 +2674,7 @@ end tell")
         (kill-buffer buf)))))
 
 ;; (keymap-global-set "C-`" #'ph/kill-all-help-buffers)
-#+end_src
 
-** xwidget-webkit
-#+begin_src elisp
 (add-hook 'xwidget-webkit-mode-hook
 	  (lambda ()
 	    (display-line-numbers-mode 0)))
@@ -3197,13 +2698,6 @@ end tell")
   (interactive)
   (set-frame-size nil 210 (frame-height)))
 
-
-#+end_src
-
-** Misc
-Increment/decrement numbers like in Vim:
-- see https://www.emacswiki.org/emacs/IncrementNumber
-#+begin_src elisp
 (defun ph/change-number-at-point (change increment)
   (let ((number (number-at-point))
         (point (point)))
@@ -3231,11 +2725,6 @@ Increment/decrement numbers like in Vim:
   "Open `path' using the built-in `open' command from MacOS."
   (shell-command (concat "open " path)))
 
-#+end_src
-
-* Appearance
-** Fonts
-#+begin_src elisp
 (set-face-attribute 'default nil
                     :font "Berkeley Mono"
                     :height 130 ;; 12 pt
@@ -3258,10 +2747,7 @@ Increment/decrement numbers like in Vim:
                     :slant 'normal)
 
 (setq-default line-spacing 0.12)
-#+end_src
 
-** Theme
-#+begin_src elisp
 (add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
 (load-theme 'pmacs t)
 
@@ -3288,56 +2774,3 @@ Increment/decrement numbers like in Vim:
  ;; :foreground "#83be9d"
  :background "#2d3c33"
  )
-#+end_src
-
-* TODO
-
-To fix:
-- [X] sometime ~org-store-link~ does not work until config is reloaded
-  - UPDATE: doesn’t seem to happen anymore, will continue to observe
-- [X] sometimes some configurations are not loaded correctly, so I have to
-  rebuild the init file
-  - e.g. ~C-`~ to toggle the help buffer doesn’t work
-  - happens since the new setup =init.org= and lexical bindings
-  - UPDATE: doesn’t seem to happen anymore, will continue to observe
-
-To learn:
-- [ ] how does Yasnippet work and is it useful?
-- [ ] CIDER
-- [ ] how to pin packages to specific versions?
-  - https://www.reddit.com/r/emacs/comments/qrythw/pin_a_specific_version_of_a_package/
-  - use https://github.com/quelpa/quelpa ?
-- [ ] how to eval elisp in orgmode without special edit mode
-- [ ] what exactly is ~org-babel-tangle~ and how does it help with transpiling
-  =.org= files into =.el= (such as my config)?
-  - how does the package ~org-auto-tangle~ help?
-- [ ] does it make sense to put all backup files in Trash can?
-  - seen on YouTube:
-    : (setq backup-directory-alist '((".*" . "~/.Trash")))
-  
-Think about more often:
-- ~org-capture~ (~C-c c~)
-
-Packages to try:
-- [ ] ~perspective~ to manage workspaces (incl. window management)
-- [ ] ~embark~ for a list of minibuffer keybinds/actions on the current thing
-- [ ] consider ~vertico~ as a performant and minimalistic ivy replacement
-  - I think I like fido mode better
-- [ ] Swiper (depends on ivy) for isearch with regex
-- [ ] sudo-edit if need arises to use sudo to open files
-- [ ] consider vterm instead of ~M-x shell~
-  - seems to be compiled instead of elisp -> faster
-  - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#vterm][DistroTube]] for config
-  - also install vterm-toggle
-- [ ] does dump-jump (installed) work?
-- [ ] org-babel-clojure for Clojure eval in org-mode comments
-  - https://orgmode.org/worg//org-contrib/babel/languages/ob-doc-clojure.html
-- [ ] neil  
-- [ ] html-to-hiccup
-- [ ] flycheck-color-mode-line.el
-- [ ] [[https://www.youtube.com/watch?v=cM8zXJKdC8o][Emmet mode]] (HTML tag editing macros)
-  - also see [[https://www.youtube.com/watch?v=EiCDLVp6O5A][HTML mode]]
-- [ ] [[https://www.youtube.com/watch?v=OczjiV9eZwA][Olivetti Mode]] (centers window, makes it smaller to focus read)
-- [ ] [[https://github.com/tarsius/hl-todo][hl-todo]] (todo keyword highlighting)
-  - see https://youtu.be/pPzD6FlZ4ss?t=929
-  
