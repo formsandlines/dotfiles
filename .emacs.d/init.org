@@ -178,6 +178,9 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 ;;; Follow symlinks for version control:
 (setq vc-follow-symlinks t)
 
+;;; Can just type C-SPC without C-u to pop the mark multiple times:
+(setq set-mark-command-repeat-pop t)
+
 ;;; Record state of window configuration to undo/redo:
 ;;; - C-c <left> to undo window configuration
 ;;; - C-c <right> to redo
@@ -722,12 +725,15 @@ calls `meow-eval-last-exp'."
    '("/ TAB" . org-indent-item)  ; org-mode replaces <tab>
    '("/ <backtab>" . org-outdent-item)  ; org-mode replaces <backtab>
 
+   ;;; SPECIAL CHARS
+   '("/ SPC" . (lambda () (interactive) (insert-char ?\s)))  
+
    ;;; GOTO 
    '("/ge" . end-of-buffer)
    '("/G" . end-of-buffer)
    '("/gj" . end-of-buffer)
    '("/gk" . beginning-of-buffer)
-   '("/gg" . beginning-of-buffer)
+   '("/gg" . beginning-of-buffer)	;
    '("/gl" . meow-goto-line)
    '("/gc" . move-to-column)
    '("/gp" . goto-char)
@@ -878,12 +884,14 @@ calls `meow-eval-last-exp'."
    ;; '("]" . indent-rigidly-right-to-tab-stop)
 
 
+
    '("-" . negative-argument)
    '("'" . repeat)			; dot-mode-execute
    '("\"" . meow-end-or-call-kmacro)    
    '("C-]" . meow-paren-mode) ;; ? -> C-]
    '("C-;" . meow-symex-mode)
-   '("C-:" . meow-table-mode)
+   '("C-=" . meow-table-mode) ;; C-: -> C-=
+   '("C-." . ph/meow-overwrite-enter)
    '("§" . cider-doc) ;; ! replace with generic selector
 
    ;; ignore escape
@@ -1351,13 +1359,20 @@ calls `meow-eval-last-exp'."
   "Same as the original, but does not move the cursor."
   (interactive)
   (save-excursion
-    (call-interactively 'org-table-copy-region)))
+    (call-interactively 'org-table-copy-region)
+    (call-interactively 'meow-cancel-selection)))
 
 (defun ph/meow-org-table-field-replace ()
   "Copies table field content before replacing it with the insertion."
   (interactive)
   (ph/org-table-cut-region)
   (meow-insert))
+
+(defun ph/org-table-eval-align ()
+  "(Re)evaluates formulas and realigns table."
+  (interactive)
+  (org-table-recalculate)
+  (org-table-align))
 
 (use-package meow
   :config
@@ -1379,6 +1394,12 @@ calls `meow-eval-last-exp'."
     '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
 
+    ;; normal meow movements do not form regions with mark, so use defaults:
+    '("k" . previous-line)
+    '("j" . next-line)
+    '("h" . backward-char)
+    '("l" . forward-char)
+    
     '("K" . org-table-move-row-up)
     '("J" . org-table-move-row-down)
     '("H" . org-table-move-column-left)
@@ -1412,7 +1433,50 @@ calls `meow-eval-last-exp'."
 
     '("?" . org-table-field-info)
 
+    '("+" . ph/org-table-eval-align)
+    '("=" . org-table-eval-formula)
+
     )
+
+  ;;
+  )
+#+end_src
+**** +My meow overwrite state
+#+begin_src elisp
+(defun ph/meow-overwrite-enter ()
+  (interactive)
+  (overwrite-mode 1)
+  (meow-overwrite-mode))
+
+(defun ph/meow-overwrite-exit ()
+  (interactive)
+  (overwrite-mode -1)
+  (meow-normal-mode))
+
+(use-package meow
+  :config
+
+  (setq meow-overwrite-keymap (make-keymap))
+  (meow-define-state overwrite
+    "meow state wrapper for Emacs’s overwrite-mode."
+    :lighter " [O]"
+    :keymap meow-overwrite-keymap)
+
+  (setq meow-cursor-type-overwrite 'hollow)
+
+  ;; (apply 'meow-define-keys 'overwrite ph/meow-prefix-slash)  
+  ;; (apply 'meow-define-keys 'overwrite ph/meow-prefix-backslash)  
+  (apply 'meow-define-keys 'overwrite ph/meow-common)
+
+  (meow-define-keys 'overwrite
+    '("H-SPC" . meow-keypad)
+    '("C-M-§" . ph/meow-overwrite-exit)
+
+    ;; '("S-<backspace>" . ph/kill-whole-line-move-prev)
+    ;; '("C-;" . meow-symex-mode)
+    ;; '("C-]" . meow-paren-mode) ;; temporary workaround
+    ;; '("C-=" . meow-table-mode)
+    '("C-y" . meow-yank))
 
   ;;
   )
@@ -1431,7 +1495,7 @@ calls `meow-eval-last-exp'."
     '("S-<backspace>" . ph/kill-whole-line-move-prev)
     '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
-    '("C-:" . meow-table-mode)
+    '("C-=" . meow-table-mode) ;; C-: -> C-=
     '("C-y" . meow-yank))
   
   (apply 'meow-define-keys 'insert ph/meow-common)
@@ -1574,6 +1638,11 @@ calls `meow-eval-last-exp'."
   ;; 		 (window-height . 0.5)))
 )
 #+end_src
+*** +Resolve conflicts with other packages
+See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve conflicts with:
+- ~yasnippet.el~ (tab key bindings)
+- ~windmove.el~ (S-<cursor> bindings)
+
 *** +My custom keybindings for org-mode
 #+begin_src elisp
 (defun ph/org-insert-child-heading ()
@@ -1673,6 +1742,10 @@ calls `meow-eval-last-exp'."
   (org-id-get-create)
   (call-interactively 'org-store-link))
 
+(defun ph/org-top-parent-heading ()
+  (interactive)
+  (while (org-up-heading-safe)))
+
 (defun ph/org-capture-fw-ref ()
   (interactive)
   (org-capture nil "f"))
@@ -1685,9 +1758,32 @@ calls `meow-eval-last-exp'."
   (setq org-capture-templates
 	'(("t" "Task" entry (file+headline "" "Tasks")
 	   "* TODO %?\n  %u\n  %a")
+	  ;; ("x" "XXX" entry (file+headline "" "Test")
+	  ;;  "* TODO %^{Task}\n  %^{Description}\n  %\\1\n")
 	  ("f" "FW Reference" entry (file "~/org/fw-refs.org")
-	   "* %?\n:PROPERTIES:\n:AUTHOR: %n\n:CREATED: %U\n:LAST_EDITED: nil\n:CAPTURED: %T\n:ORIGIN_CAPTURED: %a\n:END:\n"
-	   :before-finalize ph/org-id-store-create))))
+	   "* %^{Label}\n:PROPERTIES:\n:AUTHOR: %n\n:CAPTURED: %T\n:ORIGIN_CAPTURED: %a\n:END:\n- %\\1 :: %^{RefSign|→|→|>|⇔} %^{Referent}\n** Drafts\n*** %<%Y-%m-%d>\n1. %\\2 %\\3%?\n** Notes"
+	   :before-finalize (lambda ()
+			      (ph/org-top-parent-heading)
+			      (ph/org-id-store-create)))))
+
+  ;;
+  )
+
+(defun ph/org-transclude-ref ()
+  (interactive)
+  (let ((context (org-element-lineage
+                  (org-element-context)'(link) t)))
+    (let* ((contents-beg (org-element-property :contents-begin context))
+	   (contents-end (org-element-property :contents-end context))
+	   (contents (when contents-beg
+		       (buffer-substring-no-properties
+			contents-beg contents-end)))
+	   (link (org-element-link-interpreter context contents)))
+      (save-excursion
+	(org-transclusion-search-or-add-next-empty-line)
+	(insert (format "#+transclude: %s :only-contents :exclude-elements \"headline drawer\"\n" link))
+	(org-transclusion-add)
+	(forward-line -1)))))
 #+end_src
 
 *** +My fix for ~org-fill-paragraph~ in ~org-indent-mode~
@@ -1995,7 +2091,37 @@ Persists history over Emacs restarts. Vertico sorts by history position.
   ;; (add-hook 'completion-list-mode-hook #'disable-marginalia)
   )
 #+end_src
-*** company (text completion)
+*** corfu (in-buffer completion)
+#+begin_src elisp
+(use-package corfu
+  :ensure t
+  ;; Optional customizations
+  :custom
+  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  ;; (corfu-auto t)                 ;; Enable auto completion
+  (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+  :init
+  (global-corfu-mode)
+  ;;
+  )
+
+;; as recommended in https://github.com/minad/corfu
+(use-package emacs
+  :init
+  ;; TAB cycle if there are only few candidates
+  (setq completion-cycle-threshold 3)
+
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (setq tab-always-indent 'complete))
+#+end_src
+*** COMMENT company (text completion)
 *Note:* there is a strange error where emacs keeps asking ~Visit tags table
  (default TAGS): …~ in the echo area when trying to visit a link in
  org-mode, even if TAGS aren’t used. This seems to be related to company
@@ -2137,10 +2263,10 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
 
   (sp-with-modes 'org-mode
     (sp-local-pair "*" nil :actions nil)
-    ;; (sp-local-pair "_" nil :actions nil)
-    ;; (sp-local-pair "/" nil :actions nil)
-    ;; (sp-local-pair "~" nil :actions nil)
-    ;; (sp-local-pair "=" nil :actions nil)
+    (sp-local-pair "_" nil :actions nil)
+    (sp-local-pair "/" nil :actions nil)
+    (sp-local-pair "~" nil :actions nil)
+    (sp-local-pair "=" nil :actions nil)
     (sp-local-pair "'" nil :actions nil))
 
   ;; (sp-pair "`" "`")
@@ -2724,6 +2850,12 @@ janet-lsp
   ;; (add-to-list 'eglot-stay-out-of 'flymake)
   )
 
+#+end_src
+** Graphics
+*** gnuplot
+#+begin_src elisp
+(use-package gnuplot
+  :ensure t)
 #+end_src
 ** :lang Haskell
 *** haskell-mode
@@ -3357,8 +3489,6 @@ Increment/decrement numbers like in Vim:
 * TODO
 
 To fix:
-- [X] sometime ~org-store-link~ does not work until config is reloaded
-  - UPDATE: doesn’t seem to happen anymore, will continue to observe
 - [X] sometimes some configurations are not loaded correctly, so I have to
   rebuild the init file
   - e.g. ~C-`~ to toggle the help buffer doesn’t work
@@ -3367,6 +3497,13 @@ To fix:
 - [ ] orderless: how to make it so that typing ~'~ at the end of a search string
   enables fuzzy completion style like in fido?
   - seen [[https://youtu.be/SOxlQ7ogplA?t=2669][here]] (YouTube), but for initials
+- [ ] Org mode: ~RET~ before the first headline throws error and doesn’t carry
+  down the cursor
+- [X] meow: strange bug that messes with region functionality when setting the
+  mark and moving the cursor around (no highlight, some functions don’t work
+  properly)
+  - *UPDATE:* might be a non-issue, since normal emacs movement keys work fine,
+    just the meow movement keys fail
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?

@@ -129,6 +129,9 @@
 ;;; Follow symlinks for version control:
 (setq vc-follow-symlinks t)
 
+;;; Can just type C-SPC without C-u to pop the mark multiple times:
+(setq set-mark-command-repeat-pop t)
+
 ;;; Record state of window configuration to undo/redo:
 ;;; - C-c <left> to undo window configuration
 ;;; - C-c <right> to redo
@@ -607,12 +610,15 @@ calls `meow-eval-last-exp'."
    '("/ TAB" . org-indent-item)  ; org-mode replaces <tab>
    '("/ <backtab>" . org-outdent-item)  ; org-mode replaces <backtab>
 
+   ;;; SPECIAL CHARS
+   '("/ SPC" . (lambda () (interactive) (insert-char ?\s)))  
+
    ;;; GOTO 
    '("/ge" . end-of-buffer)
    '("/G" . end-of-buffer)
    '("/gj" . end-of-buffer)
    '("/gk" . beginning-of-buffer)
-   '("/gg" . beginning-of-buffer)
+   '("/gg" . beginning-of-buffer)	;
    '("/gl" . meow-goto-line)
    '("/gc" . move-to-column)
    '("/gp" . goto-char)
@@ -757,12 +763,14 @@ calls `meow-eval-last-exp'."
    ;; '("]" . indent-rigidly-right-to-tab-stop)
 
 
+
    '("-" . negative-argument)
    '("'" . repeat)			; dot-mode-execute
    '("\"" . meow-end-or-call-kmacro)    
    '("C-]" . meow-paren-mode) ;; ? -> C-]
    '("C-;" . meow-symex-mode)
-   '("C-:" . meow-table-mode)
+   '("C-=" . meow-table-mode) ;; C-: -> C-=
+   '("C-." . ph/meow-overwrite-enter)
    '("§" . cider-doc) ;; ! replace with generic selector
 
    ;; ignore escape
@@ -1219,13 +1227,20 @@ calls `meow-eval-last-exp'."
   "Same as the original, but does not move the cursor."
   (interactive)
   (save-excursion
-    (call-interactively 'org-table-copy-region)))
+    (call-interactively 'org-table-copy-region)
+    (call-interactively 'meow-cancel-selection)))
 
 (defun ph/meow-org-table-field-replace ()
   "Copies table field content before replacing it with the insertion."
   (interactive)
   (ph/org-table-cut-region)
   (meow-insert))
+
+(defun ph/org-table-eval-align ()
+  "(Re)evaluates formulas and realigns table."
+  (interactive)
+  (org-table-recalculate)
+  (org-table-align))
 
 (use-package meow
   :config
@@ -1247,6 +1262,12 @@ calls `meow-eval-last-exp'."
     '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
 
+    ;; normal meow movements do not form regions with mark, so use defaults:
+    '("k" . previous-line)
+    '("j" . next-line)
+    '("h" . backward-char)
+    '("l" . forward-char)
+    
     '("K" . org-table-move-row-up)
     '("J" . org-table-move-row-down)
     '("H" . org-table-move-column-left)
@@ -1280,7 +1301,48 @@ calls `meow-eval-last-exp'."
 
     '("?" . org-table-field-info)
 
+    '("+" . ph/org-table-eval-align)
+    '("=" . org-table-eval-formula)
+
     )
+
+  ;;
+  )
+
+(defun ph/meow-overwrite-enter ()
+  (interactive)
+  (overwrite-mode 1)
+  (meow-overwrite-mode))
+
+(defun ph/meow-overwrite-exit ()
+  (interactive)
+  (overwrite-mode -1)
+  (meow-normal-mode))
+
+(use-package meow
+  :config
+
+  (setq meow-overwrite-keymap (make-keymap))
+  (meow-define-state overwrite
+    "meow state wrapper for Emacs’s overwrite-mode."
+    :lighter " [O]"
+    :keymap meow-overwrite-keymap)
+
+  (setq meow-cursor-type-overwrite 'hollow)
+
+  ;; (apply 'meow-define-keys 'overwrite ph/meow-prefix-slash)  
+  ;; (apply 'meow-define-keys 'overwrite ph/meow-prefix-backslash)  
+  (apply 'meow-define-keys 'overwrite ph/meow-common)
+
+  (meow-define-keys 'overwrite
+    '("H-SPC" . meow-keypad)
+    '("C-M-§" . ph/meow-overwrite-exit)
+
+    ;; '("S-<backspace>" . ph/kill-whole-line-move-prev)
+    ;; '("C-;" . meow-symex-mode)
+    ;; '("C-]" . meow-paren-mode) ;; temporary workaround
+    ;; '("C-=" . meow-table-mode)
+    '("C-y" . meow-yank))
 
   ;;
   )
@@ -1296,7 +1358,7 @@ calls `meow-eval-last-exp'."
     '("S-<backspace>" . ph/kill-whole-line-move-prev)
     '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
-    '("C-:" . meow-table-mode)
+    '("C-=" . meow-table-mode) ;; C-: -> C-=
     '("C-y" . meow-yank))
   
   (apply 'meow-define-keys 'insert ph/meow-common)
@@ -1518,6 +1580,10 @@ calls `meow-eval-last-exp'."
   (org-id-get-create)
   (call-interactively 'org-store-link))
 
+(defun ph/org-top-parent-heading ()
+  (interactive)
+  (while (org-up-heading-safe)))
+
 (defun ph/org-capture-fw-ref ()
   (interactive)
   (org-capture nil "f"))
@@ -1530,9 +1596,39 @@ calls `meow-eval-last-exp'."
   (setq org-capture-templates
 	'(("t" "Task" entry (file+headline "" "Tasks")
 	   "* TODO %?\n  %u\n  %a")
+	  ;; ("x" "XXX" entry (file+headline "" "Test")
+	  ;;  "* TODO %^{Task}\n  %^{Description}\n  %\\1\n")
 	  ("f" "FW Reference" entry (file "~/org/fw-refs.org")
-	   "* %?\n:PROPERTIES:\n:AUTHOR: %n\n:CREATED: %U\n:LAST_EDITED: nil\n:CAPTURED: %T\n:ORIGIN_CAPTURED: %a\n:END:\n"
-	   :before-finalize ph/org-id-store-create))))
+	   "* %^{Label}\n:PROPERTIES:\n:AUTHOR: %n\n:CAPTURED: %T\n:ORIGIN_CAPTURED: %a\n:END:\n- %\\1 :: %^{RefSign|→|→|>|⇒|⇐|⇔} %^{Referent}\n** Drafts\n*** %<%Y-%m-%d>\n1. %\\2 %\\3%?\n** Notes"
+	   :before-finalize (lambda ()
+			      (ph/org-top-parent-heading)
+			      (ph/org-id-store-create)))))
+
+  ;; (setq org-capture-templates
+  ;; 	'(("t" "Task" entry (file+headline "" "Tasks")
+  ;; 	   "* TODO %?\n  %u\n  %a")
+  ;; 	  ("f" "FW Reference" entry (file "~/org/fw-refs.org")
+  ;; 	   "* %?\n:PROPERTIES:\n:AUTHOR: %n\n:CREATED: %U\n:LAST_EDITED: nil\n:CAPTURED: %T\n:ORIGIN_CAPTURED: %a\n:END:\n"
+  ;; 	   :before-finalize ph/org-id-store-create)))
+
+  ;;
+  )
+
+(defun ph/org-transclude-ref ()
+  (interactive)
+  (let ((context (org-element-lineage
+                  (org-element-context)'(link) t)))
+    (let* ((contents-beg (org-element-property :contents-begin context))
+	   (contents-end (org-element-property :contents-end context))
+	   (contents (when contents-beg
+		       (buffer-substring-no-properties
+			contents-beg contents-end)))
+	   (link (org-element-link-interpreter context contents)))
+      (save-excursion
+	(org-transclusion-search-or-add-next-empty-line)
+	(insert (format "#+transclude: %s :only-contents :exclude-elements \"headline drawer\"\n" link))
+	(org-transclusion-add)
+	(forward-line -1)))))
 
 (use-package org
   :config
@@ -1720,17 +1816,33 @@ Subtracts right margin and org indentation level from fill-column"
   ;; (add-hook 'completion-list-mode-hook #'disable-marginalia)
   )
 
-(use-package company
+(use-package corfu
   :ensure t
-  :defer t
-  :diminish
-  :init (add-hook 'after-init-hook 'global-company-mode))
+  ;; Optional customizations
+  :custom
+  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  ;; (corfu-auto t)                 ;; Enable auto completion
+  (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+  :init
+  (global-corfu-mode)
+  ;;
+  )
 
-;;; ? needed
-;; (use-package company-box
-;;   :after company
-;;   :diminish
-;;   :hook (company-mode . company-box-mode))
+;; as recommended in https://github.com/minad/corfu
+(use-package emacs
+  :init
+  ;; TAB cycle if there are only few candidates
+  (setq completion-cycle-threshold 3)
+
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (setq tab-always-indent 'complete))
 
 (use-package flycheck
   :ensure t
@@ -1789,10 +1901,10 @@ Subtracts right margin and org indentation level from fill-column"
 
   (sp-with-modes 'org-mode
     (sp-local-pair "*" nil :actions nil)
-    ;; (sp-local-pair "_" nil :actions nil)
-    ;; (sp-local-pair "/" nil :actions nil)
-    ;; (sp-local-pair "~" nil :actions nil)
-    ;; (sp-local-pair "=" nil :actions nil)
+    (sp-local-pair "_" nil :actions nil)
+    (sp-local-pair "/" nil :actions nil)
+    (sp-local-pair "~" nil :actions nil)
+    (sp-local-pair "=" nil :actions nil)
     (sp-local-pair "'" nil :actions nil))
 
   ;; (sp-pair "`" "`")
@@ -2293,6 +2405,9 @@ DIRECTION should be either the symbol `before' or `after'."
   ;; (add-to-list 'eglot-ignored-server-capabilities :inlayHintProvider)
   ;; (add-to-list 'eglot-stay-out-of 'flymake)
   )
+
+(use-package gnuplot
+  :ensure t)
 
 (use-package haskell-mode
   :ensure t)
