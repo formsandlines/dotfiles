@@ -321,7 +321,18 @@ one, an error is signaled."
 ;; (define-key minibuffer-mode-map (kbd "C-M-k") 'describe-keybinding)
 
 #+end_src
+
 * Keybindings
+MacOS-specific rebinds:
+#+begin_src elisp
+;;; because C-M-d activates the dictionary in MacOS (hard to change):
+(keymap-global-set "C-M-'" #'down-list) 
+
+;;; because M-% takes a screenshot in MacOS:
+(keymap-global-set "C-%" #'query-replace) 
+#+end_src
+
+General bindings:
 #+begin_src elisp
 ;; (global-set-key (kbd "C-c C-r") 'recentf-open-files)
 ;; (global-set-key (kbd "C-c r") 'recentf-open)
@@ -333,8 +344,9 @@ one, an error is signaled."
 
 (global-set-key [remap list-buffers] 'ibuffer)
 
-;;; because C-M-d activates the dictionary in MacOS (hard to change):
-(keymap-global-set "C-M-'" #'down-list) 
+;; Toggles the GNU Emacs Calculator:
+(keymap-global-set "C-c m" #'calc)
+(keymap-global-set "C-c M" #'quick-calc)
 
 (defun ph/visit-config ()
   "Opens my init.org file."
@@ -383,6 +395,9 @@ one, an error is signaled."
 (setq mouse-wheel-scroll-amount '(0.07))
 ;;; https://stackoverflow.com/a/445881
 (setq mouse-wheel-progressive-speed nil)
+
+;; Make Emacs Calculator window larger:
+(setq calc-window-height 16)
 
 #+end_src
 
@@ -546,24 +561,36 @@ To prevent ~use-package-autoremove~ from deleting it.
     ("v" split-window-right)   ;; C-x 3
     ("w" other-window)	  ;; C-x o
     ("=" balance-windows)
+    ;; Move to windows, keeping hydra open
+    ("h" windmove-left :color blue)
+    ("j" windmove-down :color blue)
+    ("k" windmove-up :color blue)
+    ("l" windmove-right :color blue)
     ;; Move to windows
-    ("h" windmove-left)
-    ("j" windmove-down)
-    ("k" windmove-up)
-    ("l" windmove-right)
+    ("H" windmove-left)
+    ("J" windmove-down)
+    ("K" windmove-up)
+    ("L" windmove-right)
     ;; Move windows
-    ("H" ph/buf-move-left)
-    ("J" ph/buf-move-down)
-    ("K" ph/buf-move-up)
-    ("L" ph/buf-move-right)
+    ("C-H" ph/buf-move-left)
+    ("C-J" ph/buf-move-down)
+    ("C-K" ph/buf-move-up)
+    ("C-L" ph/buf-move-right)
     ;; Resize windows
-    ("C-h" shrink-window-horizontally)
-    ("C-l" enlarge-window-horizontally)
-    ("C-k" enlarge-window)
-    ("C-j" shrink-window)
+    ("M-h" shrink-window-horizontally)
+    ("M-l" enlarge-window-horizontally)
+    ("M-k" enlarge-window)
+    ("M-j" shrink-window)
 
+    ("?" (hydra-set-property 'hydra-window :verbosity 1) :exit nil)
     ("SPC" nil "cancel"))
-  )
+  ;; wrapper to hide minibuffer help since it makes movement bouncy
+  (defun hydra-window-silent ()
+    (interactive)
+    (hydra-set-property 'hydra-window :verbosity 0)
+    (hydra-window/body))
+
+)
 #+end_src
 *** COMMENT dot-mode
 #+begin_src elisp
@@ -740,7 +767,7 @@ calls `meow-eval-last-exp'."
 
    ;;; SEARCH
    '("/v" . meow-visit)	        ; / -> ? -> / -> ns -> /s -> /v
-   '("/s" . query-replace-regexp)
+   '("/s" . isearch-forward-thing-at-point)
 
    ;;; EVAL
    '("/e" . ph/meow-eval-dwim)  ; just C-x C-e or ph/meow-eval-region
@@ -758,15 +785,23 @@ calls `meow-eval-last-exp'."
 ;; prefix ; -> \
 (defconst ph/meow-prefix-backslash
   (list
-   ;;; BUFFER
+   ;; BUFFER
    '("\\\\" . switch-to-buffer)
    '("\\|" . ibuffer)
    '("\\q" . meow-quit)
    '("\\w" . save-buffer)
    '("\\W" . save-some-buffers)
-   '("\\r" . meow-query-replace-regexp)
+   '("\\r" . meow-query-replace) ; calls 'query-replace'
+   '("\\R" . meow-query-replace-regexp) ; calls 'query-replace-regexp'
    
-   ;;; PROJECT
+   ;; EXTERNAL
+   '("\\=" . quick-calc)
+   '("\\m" . calc)
+   '("\\M" . calc-other-window)
+   '("\\c" . calc-embedded)
+   '("\\C" . calc-embedded-word)
+
+   ;; PROJECT
    '("\\f" . project-find-file)
    '("\\b" . project-switch-to-buffer)
    '("\\p" . project-switch-project)
@@ -858,7 +893,7 @@ calls `meow-eval-last-exp'."
 
    '("d" . meow-kill)
    '("D" . meow-kill-whole-line)
-   '("S-<backspace>" . ph/kill-whole-line-move-prev)
+   '("S-<backspace>" . ph/kill-whole-line-move-prev) ;
    '("r" . ph/meow-change-save)	; f -> c -> r
    '("R" . meow-replace)
    '("x" . meow-delete)		; t -> x
@@ -891,6 +926,7 @@ calls `meow-eval-last-exp'."
    '("C-]" . meow-paren-mode) ;; ? -> C-]
    '("C-;" . meow-symex-mode)
    '("C-=" . meow-table-mode) ;; C-: -> C-=
+   '("C-+" . meow-calc-mode)
    '("C-." . ph/meow-overwrite-enter)
    '("§" . cider-doc) ;; ! replace with generic selector
 
@@ -919,15 +955,20 @@ calls `meow-eval-last-exp'."
   ;;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
   ;; (define-key input-decode-map [?\C-i] [C-i])
   ;; (define-key input-decode-map [?\C-\S-i] [C-S-i])
+  ;;
 
-  (add-hook 'meow-paren-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-symex-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-normal-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-insert-mode-hook
-	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash)))
+  ;; (add-to-list 'meow-mode-state-list
+  ;; 	       '(( . motion)))
+
+
+  (advice-add 'org-goto-location :before
+	      (lambda (&rest r)
+		(meow-motion-mode)))
+
+  (advice-add 'org-goto :after
+	      (lambda (&rest r)
+		(meow-normal-mode)))
+
   ;;
   )
   #+end_src
@@ -1481,9 +1522,71 @@ calls `meow-eval-last-exp'."
   ;;
   )
 #+end_src
+**** +My meow calc state
+#+begin_src elisp
+(use-package meow
+  :config
+
+  (setq meow-calc-keymap (make-keymap))
+  (meow-define-state calc
+    "Emacs’s calculator mode uses many unprefixed keys, so this meow
+state (other than motion state) doesn’t bind anything."
+    :lighter " [C]"
+    :keymap meow-calc-keymap)
+
+  ;; (setq meow-cursor-type-calc 'hollow)
+
+  (apply 'meow-define-keys 'calc ph/meow-prefix-backslash)  
+
+  (meow-define-keys 'calc
+    '("H-SPC" . meow-keypad)
+    '("C-M-§" . meow-normal-mode)  ; == C-[
+    )
+
+
+  ;; (add-hook 'calc-start-hook
+  ;; 	    (lambda ()
+  ;; 	      (meow-calc-mode)))
+
+  ;; (add-hook 'calc-end-hook
+  ;; 	    (lambda ()
+  ;; 	      (meow-normal-mode)))
+
+  ;; Hook doesn’t work when switching to an already open Calc window, but
+  ;; this advice always works:
+  (advice-add 'calc-mode :after (lambda () (meow-calc-mode)))
+
+  ;; NOTE: this also works for calc-embedded-word, which calls calc-embedded
+  (advice-add 'calc-embedded :after
+	      (lambda (&rest r)
+		(if calc-embedded-info
+		    (meow-calc-mode)
+		  (meow-normal-mode))))
+
+  ;; Maybe this also works, haven’t tested yet:
+  ;; (add-to-list 'meow-mode-state-list
+  ;; 	       '((calc-mode . calc)
+  ;; 		 (calc-embedded . calc)))
+
+
+  (defface ph/meow-calc-cursor
+    '((t (:background "green")))
+    "Cursor face for meow calc state.")
+
+  (add-to-list 'meow-update-cursor-functions-alist
+	       '((lambda () (meow-calc-mode-p))
+		 . (lambda ()
+		     (progn
+		       (meow--set-cursor-type 'box)
+		       (meow--set-cursor-color 'ph/meow-calc-cursor)))))
+  ;;
+  )
+#+end_src
 **** +My meow bindings
 
 #+begin_src elisp
+;; (defun ph/)
+
 (use-package meow
   :config
 
@@ -1496,7 +1599,8 @@ calls `meow-eval-last-exp'."
     '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-=" . meow-table-mode) ;; C-: -> C-=
-    '("C-y" . meow-yank))
+    '("C-M-y" . meow-yank)
+    )
   
   (apply 'meow-define-keys 'insert ph/meow-common)
 
@@ -1511,6 +1615,7 @@ calls `meow-eval-last-exp'."
    '("V" . ph/scroll-down-half)
    '("{" . backward-paragraph)
    '("}" . forward-paragraph)
+   '("C-+" . meow-calc-mode) ; sometimes its not activated automatically
    '("<escape>" . ignore))
   
   (apply 'meow-motion-overwrite-define-key ph/meow-prefix-backslash)
@@ -1571,6 +1676,22 @@ calls `meow-eval-last-exp'."
    ;; '("{" . "H-{")
    ;; '("}" . "H-}")
    )
+  ;;
+  )
+#+end_src
+
+**** +meow clj-refactor slash fix
+#+begin_src elisp
+(use-package meow
+  :config
+  (add-hook 'meow-paren-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-symex-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-normal-mode-hook
+	    (lambda () (keymap-unset clj-refactor-map "/")))
+  (add-hook 'meow-insert-mode-hook
+	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash)))
   ;;
   )
 #+end_src
@@ -1636,7 +1757,11 @@ calls `meow-eval-last-exp'."
   ;; (add-to-list 'display-buffer-alist
   ;; 	       '("^\\*Org Src" display-buffer-at-bottom
   ;; 		 (window-height . 0.5)))
-)
+  
+  (setq org-goto-auto-isearch nil)
+
+  ;;
+  )
 #+end_src
 *** +Resolve conflicts with other packages
 See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve conflicts with:
@@ -1722,7 +1847,16 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
   (keymap-set org-mode-map "C-c M-x" #'ph/meow-org-add-lower-todo-item)
 
   ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
-  (keymap-set org-mode-map "C-c d" #'org-table-blank-field))
+  (keymap-set org-mode-map "C-c d" #'org-table-blank-field)
+
+  ;; org-goto keybindings:
+  ;; (keymap-set org-goto-map "j" #'outline-next-visible-heading)
+  ;; (keymap-set org-goto-map "k" #'outline-previous-visible-heading)
+  ;; (keymap-set org-goto-map "h" #'org-goto-left)
+  ;; (keymap-set org-goto-map "l" #'org-goto-right)
+
+  ;;
+  )
 #+end_src
 *** +My custom links for org-mode
 #+begin_src elisp
@@ -1809,6 +1943,22 @@ Subtracts right margin and org indentation level from fill-column"
 
 *** org-appear
 #+begin_src elisp
+;; somehow disabling `org-appear-mode' hides emphasis markers completely,
+;; otherwise they only show permanently if the cursor is on the same line
+(defun ph/toggle-org-emphasis-markers ()
+  (interactive)
+  (if org-hide-emphasis-markers
+      (progn
+	(message "Emphasis markers VISIBLE")
+	(setq org-hide-emphasis-markers nil)
+	;; (org-appear-mode 1)
+	)
+    (progn
+      (message "Emphasis markers HIDDEN")
+      (setq org-hide-emphasis-markers t)
+      ;; (org-appear-mode -1)
+      )))
+
 (use-package org-appear
   :ensure t
   :diminish
@@ -1817,7 +1967,11 @@ Subtracts right margin and org indentation level from fill-column"
   :config
   (setq org-appear-autoentities t)
   (setq org-appear-autolinks t)
-  (setq org-appear-autosubmarkers t))
+  (setq org-appear-autosubmarkers t)
+
+  (keymap-set org-mode-map "C-c e" #'ph/toggle-org-emphasis-markers)
+  ;;
+  )
 #+end_src
 *** org-transclusion
 #+begin_src elisp
@@ -1936,9 +2090,26 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 (use-package popper
   :ensure t
   :bind (("C-`"   . popper-toggle)
-         ("M-§"   . popper-cycle) ;; was handle-switch-frame
-         ("C-M-`" . popper-toggle-type))
+	 ("M-§"   . popper-cycle) ;; was handle-switch-frame
+	 ("C-M-`" . popper-toggle-type))
   :init
+  (setq popper-display-control t)
+  (setq popper-display-function
+	(lambda (buffer &optional alist)
+	  (if (string= (buffer-name buffer) "*Org Help*")
+	      ;; popper auto-focusses the help buffer for `org-goto', which is
+	      ;; not what I want, so I prevent it here
+
+	      ;; NOTE: there may be other 'Org Help' buffers where I would want
+	      ;; that, but I don’t know yet how to test for the org-goto help
+	      ;; buffer only
+	      
+	      ;; using this doesn’t worK:
+	      ;; (popper-display-popup-at-bottom buffer alist)
+	      ;; but this does:
+	      nil
+	    (popper-select-popup-at-bottom buffer alist))))
+
   (setq popper-reference-buffers
         '("\\*Messages\\*"
           "Output\\*$"
@@ -1948,7 +2119,9 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
           compilation-mode))
   (popper-mode +1)
   (popper-echo-mode +1)
+  
   :config
+  ;;
   )
 #+end_src
 
@@ -3341,7 +3514,7 @@ end tell")
 (keymap-set dired-mode-map "O" #'ph/dired-open-in-finder)
 #+end_src
 
-** Popup windows & Help buffers
+** COMMENT Popup windows & Help buffers
 ? not needed anymore due to popwin, maybe delete
 #+begin_src elisp
 (defun ph/close-all-popups ()
@@ -3504,6 +3677,9 @@ To fix:
   properly)
   - *UPDATE:* might be a non-issue, since normal emacs movement keys work fine,
     just the meow movement keys fail
+- [X] org-goto: bug that prevents automatic switching to ~*org-goto*~ buffer
+  - this was due to the Popper package and was a little annoying to fix
+- [X] org-goto: how do I switch back to `meow-normal-state` on exit?
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?
@@ -3524,6 +3700,7 @@ Think about more often:
 
 Packages to try:
 - [ ] ~perspective~ to manage workspaces (incl. window management)
+- [ ] is there something similar to ~counsel-org-goto~ but for vertico?
 - [ ] ~embark~ for a list of minibuffer keybinds/actions on the current thing
 - [X] consider ~vertico~ as a performant and minimalistic ivy replacement
   - +I think I like fido mode better+ → vertico is actually much better
