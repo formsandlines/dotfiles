@@ -397,7 +397,61 @@ General bindings:
 (setq mouse-wheel-progressive-speed nil)
 
 ;; Make Emacs Calculator window larger:
-(setq calc-window-height 16)
+(setq calc-window-height 20)
+
+;; Frame height has to be adjusted exactly, because Calculator window reacts
+;; very sensitively to font size and line height, otherwise the trail cursor
+;; will not follow new entries (window bottom MUST end after a full line). It
+;; seems like this only works with pixel values instead of line count, but if
+;; font/face settings have been changed, I must determine a new frame height.
+(defvar ph/my-frame-1x-width 87)
+(defvar ph/my-frame-1x-width-px 700)
+(defvar ph/my-frame-2x-width 176)
+(defvar ph/my-frame-2x-width-px 1400)
+
+(defvar ph/my-frame-lg-height 90) ;; lg -> my external 27" LG monitor
+(defvar ph/my-frame-lg-height-px 1367)
+(defvar ph/my-frame-mb-height 70) ;; mb -> my macbook 16" monitor
+(defvar ph/my-frame-mb-height-px 1007)
+
+(defun ph/set-frame-size-balance (w h &optional pixelwise)
+  (set-frame-size nil w h pixelwise)
+  (balance-windows))
+
+(defun ph/my-set-frame-lg-1x ()
+  (interactive)
+  (ph/set-frame-size-balance
+   ph/my-frame-1x-width-px
+   ph/my-frame-lg-height-px
+   t))
+
+(defun ph/my-set-frame-lg-2x ()
+  (interactive)
+  (ph/set-frame-size-balance
+   ph/my-frame-2x-width-px
+   ph/my-frame-lg-height-px
+   t))
+
+(defun ph/my-set-frame-mb-1x ()
+  (interactive)
+  (ph/set-frame-size-balance
+   ph/my-frame-1x-width-px
+   ph/my-frame-mb-height-px
+   t))
+
+(defun ph/my-set-frame-mb-2x ()
+  (interactive)
+  (ph/set-frame-size-balance
+   ph/my-frame-2x-width-px
+   ph/my-frame-mb-height-px
+   t))
+
+;; (defun ph/set-frame-size-1x-mb ()
+;;   (interactive)
+;;   (ph/set-frame-size-balance ph/my-frame-))
+
+;; (keymap-global-set "C-c d d" #'ph/set-frame-size-lg)
+;; (keymap-global-set "C-c d D" #'ph/set-frame-size-mb)
 
 #+end_src
 
@@ -572,15 +626,20 @@ To prevent ~use-package-autoremove~ from deleting it.
     ("K" windmove-up)
     ("L" windmove-right)
     ;; Move windows
-    ("C-H" ph/buf-move-left)
-    ("C-J" ph/buf-move-down)
-    ("C-K" ph/buf-move-up)
-    ("C-L" ph/buf-move-right)
+    ("C-h" ph/buf-move-left)
+    ("C-j" ph/buf-move-down)
+    ("C-k" ph/buf-move-up)
+    ("C-l" ph/buf-move-right)
     ;; Resize windows
-    ("M-h" shrink-window-horizontally)
-    ("M-l" enlarge-window-horizontally)
-    ("M-k" enlarge-window)
-    ("M-j" shrink-window)
+    ("C-M-h" shrink-window-horizontally)
+    ("C-M-l" enlarge-window-horizontally)
+    ("C-M-k" enlarge-window)
+    ("C-M-j" shrink-window)
+    ;; Resize frame
+    ("[" ph/my-set-frame-lg-1x :color blue)
+    ("]" ph/my-set-frame-lg-2x :color blue)
+    ("{" ph/my-set-frame-mb-1x :color blue)
+    ("}" ph/my-set-frame-mb-2x :color blue)
 
     ("?" (hydra-set-property 'hydra-window :verbosity 1) :exit nil)
     ("SPC" nil "cancel"))
@@ -591,14 +650,6 @@ To prevent ~use-package-autoremove~ from deleting it.
     (hydra-window/body))
 
 )
-#+end_src
-*** COMMENT dot-mode
-#+begin_src elisp
-(use-package dot-mode
-  :ensure t
-  :diminish
-  :config
-  (global-dot-mode t))
 #+end_src
 *** meow/
 **** Custom meow commands
@@ -1539,7 +1590,7 @@ state (other than motion state) doesn’t bind anything."
   (apply 'meow-define-keys 'calc ph/meow-prefix-backslash)  
 
   (meow-define-keys 'calc
-    '("H-SPC" . meow-keypad)
+    '("SPC" . meow-keypad) ; was H-SPC
     '("C-M-§" . meow-normal-mode)  ; == C-[
     )
 
@@ -1734,6 +1785,12 @@ state (other than motion state) doesn’t bind anything."
   ;;; Show entities as UTF8 characters
   (setq org-pretty-entities t)
 
+  ;;; Avoid splitting of lines on M-RET (default was '(08.04.2024, 11:45)')
+  (setq org-M-RET-may-split-line nil)
+
+  ;;; Do not fold the subtree when yanked/pasted:
+  (setq org-yank-folded-subtrees nil)
+
   ;; (setq org-startup-with-latex-preview t)
 
   ;; (setq org-edit-src-content-indentation 0)
@@ -1750,7 +1807,11 @@ state (other than motion state) doesn’t bind anything."
   ;; Emacs overwrites the bindings C-<tab> and C-c <tab> on Mac with
   ;; `mac-next-tab-or-toggle-tab-bar` and `mac-previous-tab-or-toggle-tab-bar`,
   ;; but I don’t really use the tab bar.
-  (keymap-set org-mode-map "C-c <tab>" #'org-fold-show-children)
+
+  ;; - Note: disabled C-c <tab> binding for now since it is being used by with
+  ;; 'org-table-toggle-column-width'
+  
+  ;; (keymap-set org-mode-map "C-c <tab>" #'org-fold-show-children)
   (keymap-set org-mode-map "C-<tab>" #'org-kill-note-or-show-branches)
   (keymap-set org-mode-map "C-M-<tab>" #'org-fold-show-all)
 
@@ -1785,6 +1846,14 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
   (interactive)
   (ph/org-insert-child-heading)
   (meow-insert))
+
+(defun ph/meow-org-insert-heading-above ()
+  (interactive)
+  (let ((start-level (funcall outline-level)))
+    (when (> start-level 0)
+      (org-back-to-heading))
+    (org-insert-heading)
+    (meow-insert)))
 
 
 ;;; TODO maybe extract a more general function to make these DRYer:
@@ -1836,8 +1905,8 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
 
   ;; Local bindings:
   (keymap-set org-mode-map "C-c j" #'ph/meow-org-insert-heading)
-  (keymap-set org-mode-map "C-c J" #'ph/meow-org-insert-child-heading)
-  (keymap-set org-mode-map "C-c M-j" #'ph/org-insert-child-heading)
+  (keymap-set org-mode-map "C-c J" #'ph/meow-org-insert-heading-above)
+  (keymap-set org-mode-map "C-c M-j" #'ph/meow-org-insert-child-heading)
   
   (keymap-set org-mode-map "C-c i" #'ph/meow-org-add-list-item)
   (keymap-set org-mode-map "C-c I" #'ph/meow-org-add-above-list-item)
@@ -3607,7 +3676,7 @@ Increment/decrement numbers like in Vim:
 #+begin_src elisp
 (set-face-attribute 'default nil
                     :font "Berkeley Mono"
-                    :height 130 ;; 12 pt
+                    :height 130 ;; was 130 / 12 pt
                     :weight 'regular)
 
 (set-face-attribute 'variable-pitch nil
@@ -3617,7 +3686,7 @@ Increment/decrement numbers like in Vim:
 
 (set-face-attribute 'fixed-pitch nil
                     :font "Berkeley Mono"
-                    :height 130
+                    :height 130 ;; was 130
                     :weight 'regular)
 
 (set-face-attribute 'font-lock-comment-face nil
@@ -3626,7 +3695,9 @@ Increment/decrement numbers like in Vim:
 (set-face-attribute 'font-lock-keyword-face nil
                     :slant 'normal)
 
-(setq-default line-spacing 0.12)
+;; (setq-default line-spacing 0.12)
+
+
 #+end_src
 
 ** Theme
@@ -3680,6 +3751,8 @@ To fix:
 - [X] org-goto: bug that prevents automatic switching to ~*org-goto*~ buffer
   - this was due to the Popper package and was a little annoying to fix
 - [X] org-goto: how do I switch back to `meow-normal-state` on exit?
+- [ ] fix calc trail window that doesn’t select the last trail item when
+  typing ~t ]~
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?
