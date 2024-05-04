@@ -30,11 +30,21 @@ alias xemacs='open -a /Applications/Emacs.app'
 alias demacs='open -n -a /Applications/Emacs.app --args --init-directory "~/.emacs.d.doom"'
 # alias lemacs='open -n -a /Applications/Emacs.app --args --init-directory "~/.emacs.d.learn"'
 # alias lemacs='open -n -a /Applications/Emacs.app --args --no-desktop -q -l ~/.emacs.d.learn/init.el'
+alias emacs-debug="open -a /Applications/Emacs.app --args -q"
+alias opem="open $1 -a /Applications/Emacs.app"
+
+# emacs-open() {
+#   path="$1"
+#   open "$path" -a emacs
+# }
 
 focusApp() {
   app="$1"
   osascript -e 'tell application "System Events" to set frontmost of process "'$app'" to true'
 }
+
+# fzf shell integration (according to setup instructions)
+eval "$(fzf --zsh)"
 
 fuzz() { file=$(fzf) && nvim "$file"; }
 # fuzz() {

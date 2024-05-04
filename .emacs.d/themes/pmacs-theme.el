@@ -93,6 +93,8 @@
    `(meow-motion-cursor ((,class (:inherit ,font-lock-builtin-face))))
    `(meow-normal-cursor ((,class (:inherit ,font-lock-builtin-face))))
    `(meow-unknown-cursor ((,class (:inherit ,font-lock-builtin-face))))
+   `(org-cite ((t (:foreground ,fg4))))
+   `(org-cite-key ((t (:foreground ,builtin :slant italic))))
    ;;
    `(isearch ((,class (:bold t :foreground ,warning :background ,bg3))))
    `(mode-line ((,class (:box (:line-width 1 :color nil) :bold t :foreground ,fg4 :background ,bg2))))

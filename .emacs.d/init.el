@@ -1,3 +1,9 @@
+;; For debugging:
+(setq debug-on-error t)
+;; If packages are not getting installed, it may be due to outdated package
+;; descriptions. Refresh them with this command:
+;; (package-refresh-contents)
+
 ;;; -*- lexical-binding: t; -*-
 
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
@@ -141,6 +147,11 @@
 (windmove-mode 1)
 
 (setq initial-major-mode 'lisp-interaction-mode)
+
+;; (defvar ph/bib-files "~/Documents/Org-roam/bibliography/master-lib.bib")
+
+;;; work-around  for org-ctags obnoxious behavior
+(with-eval-after-load 'org-ctags (setq org-open-link-functions nil))
 
 ;;;###autoload
 (defun ph/buf-move-up ()
@@ -333,19 +344,56 @@ one, an error is signaled."
 ;; will not follow new entries (window bottom MUST end after a full line). It
 ;; seems like this only works with pixel values instead of line count, but if
 ;; font/face settings have been changed, I must determine a new frame height.
-(defvar ph/my-frame-1x-width 87)
+;; (defvar ph/my-frame-1x-width 87)
 (defvar ph/my-frame-1x-width-px 700)
-(defvar ph/my-frame-2x-width 176)
+;; (defvar ph/my-frame-2x-width 176)
 (defvar ph/my-frame-2x-width-px 1400)
+;; (defvar ph/my-frame-2x+sidebar-width 176) ;; TODO: adjust
+(defvar ph/my-frame-2x+sidebar-width-px 1700)
 
-(defvar ph/my-frame-lg-height 90) ;; lg -> my external 27" LG monitor
+;; (defvar ph/my-frame-lg-height 90) ;; lg -> my external 27" LG monitor
 (defvar ph/my-frame-lg-height-px 1367)
-(defvar ph/my-frame-mb-height 70) ;; mb -> my macbook 16" monitor
+;; (defvar ph/my-frame-mb-height 70) ;; mb -> my macbook 16" monitor
 (defvar ph/my-frame-mb-height-px 1007)
 
 (defun ph/set-frame-size-balance (w h &optional pixelwise)
   (set-frame-size nil w h pixelwise)
   (balance-windows))
+
+(defun ph/select-rightmost-window ()
+  "Select the rightmost window"
+  (interactive)
+  (while (ignore-errors (windmove-right) t)))
+
+;; ! will fix BUFFER, so balancing doesn’t work if > 1 window has that buffer
+;; needs a different solution or a temporary buffer to fix
+(defun ph/my-set-frame-2x+sidebar (height)
+  (set-frame-size
+   nil
+   ph/my-frame-2x+sidebar-width-px
+   ph/my-frame-mb-height-px
+   t))
+
+;; (defun ph/my-set-frame-2x+sidebar (height)
+;;   (set-frame-size
+;;    nil
+;;    ph/my-frame-2x+sidebar-width-px
+;;    ph/my-frame-mb-height-px
+;;    t)
+;;   (ph/select-rightmost-window)
+;;   (let* ((sidebar-window (selected-window))
+;; 	 (sidebar-width-px (- ph/my-frame-2x+sidebar-width-px
+;; 			      ph/my-frame-2x-width-px))
+;; 	 (delta (- sidebar-width-px
+;; 		   (window-size sidebar-window t t))))
+;;     (when (window-size-fixed-p sidebar-window t)
+;;       (setq window-size-fixed nil))
+;;     (window-resize sidebar-window delta t nil t)
+;;     (setq window-size-fixed 'width)
+;;     (balance-windows)
+;;     ;; (setq window-size-fixed nil)
+;;     ))
+
 
 (defun ph/my-set-frame-lg-1x ()
   (interactive)
@@ -361,6 +409,10 @@ one, an error is signaled."
    ph/my-frame-lg-height-px
    t))
 
+(defun ph/my-set-frame-lg-2x+sidebar ()
+  (interactive)
+  (ph/my-set-frame-2x+sidebar ph/my-frame-lg-height-px))
+
 (defun ph/my-set-frame-mb-1x ()
   (interactive)
   (ph/set-frame-size-balance
@@ -374,6 +426,10 @@ one, an error is signaled."
    ph/my-frame-2x-width-px
    ph/my-frame-mb-height-px
    t))
+
+(defun ph/my-set-frame-mb-2x+sidebar ()
+  (interactive)
+  (ph/my-set-frame-2x+sidebar ph/my-frame-mb-height-px))
 
 ;; (defun ph/set-frame-size-1x-mb ()
 ;;   (interactive)
@@ -535,6 +591,9 @@ one, an error is signaled."
     ("]" ph/my-set-frame-lg-2x :color blue)
     ("{" ph/my-set-frame-mb-1x :color blue)
     ("}" ph/my-set-frame-mb-2x :color blue)
+    ;; Undo/Redo window configuration
+    ("u" winner-undo)
+    ("o" winner-redo)
 
     ("?" (hydra-set-property 'hydra-window :verbosity 1) :exit nil)
     ("SPC" nil "cancel"))
@@ -713,6 +772,10 @@ calls `meow-eval-last-exp'."
    '("/b" . ph/meow-eval-buffer)
    ;; '("/r" . ph/meow-eval-region)
    '("/d" . "C-M-x")  ; = eval-defun & friends
+
+   ;; CITATION
+   ;; '("/'" . org-cite-insert)  ; not helpful when in insert-mode
+   ;; '("/\"" . org-cite-insert)
    
    ;; '("/j" . ph/meow-join-with)
    ;; '("/k" . ph/meow-split-at)
@@ -860,7 +923,7 @@ calls `meow-eval-last-exp'."
    '("C-;" . meow-symex-mode)
    '("C-=" . meow-table-mode) ;; C-: -> C-=
    '("C-+" . meow-calc-mode)
-   '("C-." . ph/meow-overwrite-enter)
+   '("C->" . ph/meow-overwrite-enter)
    '("§" . cider-doc) ;; ! replace with generic selector
 
    ;; ignore escape
@@ -1187,8 +1250,9 @@ calls `meow-eval-last-exp'."
     ;; '("D" . symex-delete-backwards) ;; X -> D
     ;; '("D" . symex-delete-remaining) ;; D -> ? (doesn’t work)
     '("r" . ph/symex-change) ;; c -> r
+    '("R" . ph/symex-replace-by-yank)
+    '("_" . ph/symex-replace) ;; like change, but inside parens  s -> R
     ;; '("R" . ph/symex-change-remaining) ;; C -> R (doesn’t work)
-    '("R" . ph/symex-replace) ;; same as change? s -> R
     '("q" . symex-change-delimiter) ;; S -> /W -> q
     '("D" . symex-clear) ;; C-- -> D
     
@@ -1526,6 +1590,11 @@ state (other than motion state) doesn’t bind anything."
    '("j" . meow-next)
    '("h" . meow-left)
    '("l" . meow-right)
+   '("K" . meow-prev-expand)
+   '("J" . meow-next-expand)
+   '("H" . meow-left-expand)
+   '("L" . meow-right-expand)
+
    '("v" . ph/scroll-up-half)
    '("V" . ph/scroll-down-half)
    '("{" . backward-paragraph)
@@ -1623,7 +1692,7 @@ state (other than motion state) doesn’t bind anything."
   (setq org-id-link-to-org-use-id 'use-existing)
 
   ;;; Hide emphasis marker characters
-  (setq org-use-speed-commands t)
+  ;; (setq org-use-speed-commands t)
 
   ;;; Enable org-indent-mode on startup
   (setq org-startup-indented t)
@@ -1631,6 +1700,10 @@ state (other than motion state) doesn’t bind anything."
   (setq org-hide-emphasis-markers t)
   ;;; Show entities as UTF8 characters
   (setq org-pretty-entities t)
+  ;; I don’t want sub-/superscripts to display after every '^'/'_', since they
+  ;; are often ambiguous and hard to read at small font size
+  ;; - they still work when wrapped in '{}'
+  (setq org-use-sub-superscripts '{})
 
   ;;; Avoid splitting of lines on M-RET (default was '(08.04.2024, 11:45)')
   (setq org-M-RET-may-split-line nil)
@@ -1829,12 +1902,28 @@ state (other than motion state) doesn’t bind anything."
   (defun current-fill-column ()
     "Return the fill-column to use for this line.
 Subtracts right margin and org indentation level from fill-column"
-    (let ((indent-level (if (bound-and-true-p org-indent-mode)
+    (let ((indent-level (if (and (bound-and-true-p org-indent-mode)
+				 (org-current-level)) ;; -> not level 0
 			    (* org-indent-indentation-per-level
 			       (org-current-level))
 			  0))
 	  (margin (or (get-text-property (point) 'right-margin) 0)))
       (- fill-column indent-level margin))))
+
+(use-package org-cite
+  :custom
+  ;; Using my global bib exclusively in Org-roam, so I should be able to resolve
+  ;; the references there even when I lose my config.
+  (org-cite-global-bibliography
+   '("~/Documents/Org-roam/bibliography/master-lib.bib"))
+  (org-cite-csl-styles-dir "~/Zotero/styles")
+  ;; Not yet sure if I want to keep this style, but using it for now.
+  (org-cite-export-processors
+   '((t . (csl "chicago-fullnote-bibliography.csl"))))
+  ;; :bind
+  ;; (:map org-mode-map :package org ("C-c b" . #'org-cite-insert))
+  ;;
+  )
 
 ;; somehow disabling `org-appear-mode' hides emphasis markers completely,
 ;; otherwise they only show permanently if the cursor is on the same line
@@ -1857,11 +1946,11 @@ Subtracts right margin and org indentation level from fill-column"
   :diminish
   :after org
   :hook org-mode
+  :custom
+  (org-appear-autoentities t)
+  (org-appear-autolinks t)
+  (org-appear-autosubmarkers nil)
   :config
-  (setq org-appear-autoentities t)
-  (setq org-appear-autolinks t)
-  (setq org-appear-autosubmarkers t)
-
   (keymap-set org-mode-map "C-c e" #'ph/toggle-org-emphasis-markers)
   ;;
   )
@@ -1908,6 +1997,84 @@ Subtracts right margin and org indentation level from fill-column"
   ;; 	    #'org-transclusion-content-insert-add-overlay)
   )
 
+(use-package emacsql-sqlite-builtin
+  :ensure t)
+
+(use-package org-roam
+  :ensure t
+  :after emacsql-sqlite-builtin
+  ;; :after (org emacsql-sqlite-builtin)
+  :custom
+  (org-roam-directory (file-truename "~/Documents/Org-roam"))
+  (org-roam-dailies-directory "daily/")
+  (org-roam-completion-everywhere t)
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+	 ("C-c n f" . org-roam-node-find)
+	 ("C-c n g" . org-roam-graph)
+	 ("C-c n i" . org-roam-node-insert)
+	 ("C-c n c" . org-roam-capture)
+	 
+	 ;; Dailies
+	 ("C-c n j" . org-roam-dailies-capture-today)
+	 ("C-c n J" . org-roam-dailies-capture-yesterday)
+	 ("C-c n M-j" . org-roam-dailies-capture-date)
+	 
+	 ("C-c n o" . org-roam-dailies-goto-today)
+	 ("C-c n O" . org-roam-dailies-goto-yesterday)
+	 ("C-c n M-o" . org-roam-dailies-goto-date)
+	 
+	 ("C-c n p" . org-roam-dailies-goto-previous-note)
+	 ("C-c n n" . org-roam-dailies-goto-next-note)
+	 :map org-mode-map
+	 ("C-M-i" . completion-at-point))
+  :config
+  ;; (org-roam-database-connector 'sqlite)
+  ;; If you're using a vertical completion framework, you might want a more informative completion interface
+  (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
+
+  (setq org-roam-dailies-capture-templates
+        '(("d" "default" entry
+           "* %?"
+           :target (file+head "%<%Y-%m-%d>.org"
+                              "#+title: %<%Y-%m-%d>\n"))))
+
+  (org-roam-db-autosync-mode)
+  ;; If using org-roam-protocol
+  (require 'org-roam-protocol)
+
+  (setq org-roam-graph-executable "dot")
+  ;; (setq org-roam-graph-viewer "")
+
+  ;; (add-to-list 'display-buffer-alist
+  ;;              '("\\*org-roam\\*"
+  ;; 		 (display-buffer-pop-up-frame)
+  ;; 		 (inhibit-switch-frame)
+  ;; 		 (pop-up-frame-parameters
+  ;; 		  (width . 40))
+  ;; 		 ))
+
+  (add-to-list 'display-buffer-alist
+	       '("\\*org-roam\\*"
+		 (display-buffer-in-direction)
+		 (direction . right)
+		 (window-width . 0.33)
+		 (window-height . fit-window-to-buffer)))
+  
+  )
+
+(use-package org-roam-ui
+  :ensure t
+  :after org-roam
+  ;;         normally we'd recommend hooking orui after org-roam, but since
+  ;;         org-roam does not have a hookable mode anymore, you're advised to
+  ;;         pick something yourself if you don't care about startup time, use
+  ;;         :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+	org-roam-ui-follow t
+	org-roam-ui-update-on-save t
+	org-roam-ui-open-on-start t))
+
 (use-package yasnippet
   :ensure t
   :diminish
@@ -1924,6 +2091,14 @@ Subtracts right margin and org indentation level from fill-column"
   :diminish
   :config
   (beacon-mode 1))
+
+(use-package nerd-icons
+  :ensure t
+  :custom
+  ;; The Nerd Font you want to use in GUI
+  ;; "Symbols Nerd Font Mono" is the default and is recommended
+  ;; but you can use any other Nerd Font if you want
+  (nerd-icons-font-family "BerkeleyMono Nerd Font Mono"))
 
 (use-package popper
   :ensure t
@@ -1965,7 +2140,7 @@ Subtracts right margin and org indentation level from fill-column"
 (use-package savehist
   :diminish
   :init
-  (setq history-length 25)
+  (setq history-length 50)
   (savehist-mode 1))
 
 (use-package vertico
@@ -2048,6 +2223,31 @@ Subtracts right margin and org indentation level from fill-column"
   ;;     (setq-local marginalia-annotator-registry nil)))
   ;; (add-hook 'completion-list-mode-hook #'disable-marginalia)
   )
+
+(use-package embark
+  :ensure t
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+  :init
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  ;; Show the Embark target at point via Eldoc. You may adjust the
+  ;; Eldoc strategy, if you want to see the documentation from
+  ;; multiple providers. Beware that using this can be a little
+  ;; jarring since the message shown in the minibuffer can be more
+  ;; than one line, causing the modeline to move up and down:
+
+  ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
 
 (use-package corfu
   :ensure t
@@ -2411,44 +2611,6 @@ chacking if a region is active or not."
       (ph/symex-ts-open-line-before)
     (ph/symex-lisp--open-line-before)))
 
-(defun ph/symex-eval-janet ()
-  "Eval last sexp."
-  (interactive)
-  (ajrepl-send-expression-at-point))
-
-;; changed significantly (trimmed down)
-(defun ph/symex--evaluate ()
-  "Evaluate symex."
-  (save-excursion
-    (forward-sexp)
-    (cond ((equal major-mode 'janet-ts-mode)
-	   (ph/symex-eval-janet))
-	  ((member major-mode symex-racket-modes)
-	   (symex-eval-racket))
-	  ((member major-mode symex-elisp-modes)
-	   (symex-eval-elisp))
-	  ((equal major-mode 'scheme-mode)
-	   (symex-eval-scheme))
-	  ((member major-mode symex-clojure-modes)
-	   (symex-eval-clojure))
-	  ((member major-mode symex-common-lisp-modes)
-	   (symex-eval-common-lisp))
-	  ((equal major-mode 'arc-mode)
-	   (symex-eval-arc))
-	  (t (error "Symex mode: Lisp flavor not recognized!")))))
-
-(defun ph/symex-evaluate (count)
-  "Evaluate COUNT symexes."
-  (interactive "p")
-  (save-excursion
-    (let ((i 0)
-          (movedp t))
-      (while (or (not movedp)
-                 (< i count))
-        (ph/symex--evaluate)
-        (symex--go-forward)
-        (setq i (1+ i))))))
-
 ;; ! may need adjustment
 (defun ph/symex-ts--paste (count direction)
   "Paste before or after symex, COUNT times, according to DIRECTION.
@@ -2546,6 +2708,35 @@ DIRECTION should be either the symbol `before' or `after'."
       (dotimes (_ count)
         (ph/symex-lisp--paste-after)))))
 
+;; ? Not sure if this has unforeseen side-effects
+(defun ph/pop-item-kill-ring ()
+  "Pops the most recently killed item in kill ring and sets the
+pointer accordingly."
+  (when kill-ring
+    (let ((top-kill (car kill-ring)))
+      (setf kill-ring (cdr kill-ring))
+      (setf kill-ring-yank-pointer kill-ring)
+      top-kill)))
+
+(defun ph/push-item-kill-ring (item)
+  "Pushes given `item' to kill-ring as the recently killed item and
+sets the pointer accordingly."
+  (when kill-ring
+    (setf kill-ring (cons item kill-ring))
+    (setf kill-ring-yank-pointer kill-ring)))
+
+(defun ph/symex-replace-by-yank ()
+  "Replaces selected sexp by the top item in `kill-ring', keeping it
+on top while pushing the killed sexp below it. This way, the same
+replacement can be made multiple times and the replaced sexps
+still remain accessible by `yank-pop'."
+  (interactive)
+  (ph/symex-paste-before 1)
+  (call-interactively #'symex-go-forward)
+  (let ((yank-item (ph/pop-item-kill-ring)))
+    (symex-delete 1)
+    (ph/push-item-kill-ring yank-item)))
+
 (use-package symex
   :ensure t
   :after janet-ts-mode
@@ -2640,7 +2831,110 @@ DIRECTION should be either the symbol `before' or `after'."
   )
 
 (use-package gnuplot
-  :ensure t)
+  :ensure t
+  :init
+  (autoload 'gnuplot-mode "gnuplot" "Gnuplot major mode" t)
+  (autoload 'gnuplot-make-buffer "gnuplot" "open a buffer in gnuplot-mode" t)
+  (add-to-list 'auto-mode-alist '("\\.gp$" . gnuplot-mode))
+  ;;
+  )
+
+(add-to-list 'load-path "~/Dev/emacs-obsidian-excalidraw")
+
+(use-package emacs-obsidian-excalidraw
+  :ensure nil
+  :config
+  (setq emacs-obsidian-excalidraw-vault "figures-excalidraw")
+  (setq emacs-obsidian-excalidraw-vault-dir "~/Documents/Org-roam/figures-excalidraw")
+  (setq emacs-obsidian-excalidraw-image-format "png")
+  (setq emacs-obsidian-excalidraw-default-name "figure")
+  (setq emacs-obsidian-excalidraw-relative-paths t)
+  (setq emacs-obsidian-excalidraw-timestamp t)
+  ;; you should enable correspond format auto export in excalidraw
+;;
+  )
+
+(use-package citeproc
+  :ensure t
+  ;;
+  )
+
+(use-package citar
+  :ensure t
+  :after nerd-icons
+  :custom
+  (org-cite-insert-processor 'citar)
+  (org-cite-follow-processor 'citar)
+  (org-cite-activate-processor 'citar)
+  (citar-bibliography org-cite-global-bibliography)
+  (citar-open-entry-function #'citar-open-entry-in-zotero)
+  ;; default is 'citar-open-entry-in-file'
+  :hook
+  (LaTeX-mode . citar-capf-setup)
+  (org-mode . citar-capf-setup)
+  :config
+  (defvar citar-indicator-files-icons
+    (citar-indicator-create
+     :symbol (nerd-icons-faicon
+	      "nf-fa-file_o"
+	      :face 'nerd-icons-green
+	      :v-adjust -0.1)
+     :function #'citar-has-files
+     :padding "  " ; need this because the default padding is too low for these icons
+     :tag "has:files"))
+  (defvar citar-indicator-links-icons
+    (citar-indicator-create
+     :symbol (nerd-icons-faicon
+	      "nf-fa-link"
+	      :face 'nerd-icons-orange
+	      :v-adjust 0.01)
+     :function #'citar-has-links
+     :padding "  "
+     :tag "has:links"))
+  (defvar citar-indicator-notes-icons
+    (citar-indicator-create
+     :symbol (nerd-icons-codicon
+	      "nf-cod-note"
+	      :face 'nerd-icons-blue
+	      :v-adjust -0.3)
+     :function #'citar-has-notes
+     :padding "    "
+     :tag "has:notes"))
+  (defvar citar-indicator-cited-icons
+    (citar-indicator-create
+     :symbol (nerd-icons-faicon
+	      "nf-fa-circle_o"
+	      :face 'nerd-icon-green)
+     :function #'citar-is-cited
+     :padding "  "
+     :tag "is:cited"))
+
+  (setq citar-indicators
+	(list citar-indicator-files-icons
+	      citar-indicator-links-icons
+	      citar-indicator-notes-icons
+	      citar-indicator-cited-icons)) 
+
+  (setq citar-templates
+	'((main . "${author editor:30%sn}     ${date year issued:4}     ${title:48}")
+          (suffix . "          ${=key= id:15}    ${=type=:12}    ${tags keywords:*}")
+          (preview . "${author editor:%etal} (${year issued date}) ${title}, ${journal journaltitle publisher container-title collection-title}.\n")
+          (note . "Notes on ${author editor:%etal}, ${title}")))
+  ;;
+  )
+
+(use-package citar-embark
+  :ensure t
+  :after citar embark
+  :no-require
+  ;; :bind
+  ;; (("C-." . embark-act))
+  :config (citar-embark-mode))
+
+(use-package citar-org-roam
+  :ensure t
+  :after (citar org-roam)
+  :config (citar-org-roam-mode))
 
 (use-package haskell-mode
   :ensure t)
@@ -2901,6 +3195,28 @@ DIRECTION should be either the symbol `before' or `after'."
 ;; (keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
 ;; (keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
 
+;; Copied from source: https://www.emacswiki.org/emacs/UnwrapLine
+(defun ph/unwrap-line ()
+  "Remove all newlines until we get to two consecutive ones.
+    Or until we reach the end of the buffer."
+  (interactive)
+  (let ((start (point))
+	(end (copy-marker (or (search-forward "\n\n" nil t)
+			      (point-max))))
+	(fill-column (point-max)))
+    (fill-region start end)
+    ;; (goto-char end)
+    ;; (newline)
+    ;; (goto-char start)
+    ))
+
+(keymap-global-set "C-c q" #'ph/unwrap-line)
+
+;; WIP: should unwrap a whole region
+(defun ph/unwrap-region ()
+  (interactive)
+  nil)
+
 (defun ph/wrap-with-char (start end)
   "Wraps a region with given input character."
   (interactive "r")
@@ -3071,6 +3387,7 @@ end tell")
 
 (set-face-attribute 'default nil
                     :font "Berkeley Mono"
+                    ;; :font "BerkeleyMono Nerd Font Mono"
                     :height 130 ;; was 130 / 12 pt
                     :weight 'regular)
 
@@ -3081,6 +3398,7 @@ end tell")
 
 (set-face-attribute 'fixed-pitch nil
                     :font "Berkeley Mono"
+                    ;; :font "BerkeleyMono Nerd Font Mono"
                     :height 130 ;; was 130
                     :weight 'regular)
 
