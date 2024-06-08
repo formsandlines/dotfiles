@@ -40,7 +40,7 @@
 	      1 'font-lock-variable-name-face)))))
  '(org-agenda-files '("~/.dotfiles/.emacs.d/init.org"))
  '(package-selected-packages
-   '(emacs-obsidian-excalidraw citar-org-roam citar-embark embark nerd-icons citar citeproc gnuplot-mode org-roam-ui emacsql-sqlite-builtin rainbow-mode emacsql-sqlite emacsql org-roam gnuplot corfu orderless vertico treesit-auto markdown-mode ajsc ajrepl janet-ts-mode racket-mode geiser-chicken cider smartparens flycheck-rjan flycheck-janet marginalia popper yasnippet diff-hl meow hydra which-key separedit symex flycheck-color-mode-line vc-use-package beacon org-transclusion eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode org-appear evil-surround gruvbox-theme evil))
+   '(css emacs-obsidian-excalidraw citar-org-roam citar-embark embark nerd-icons citar citeproc gnuplot-mode org-roam-ui emacsql-sqlite-builtin rainbow-mode emacsql-sqlite emacsql org-roam gnuplot corfu orderless vertico treesit-auto markdown-mode ajsc ajrepl janet-ts-mode racket-mode geiser-chicken cider smartparens flycheck-rjan flycheck-janet marginalia popper yasnippet diff-hl meow hydra which-key separedit symex flycheck-color-mode-line vc-use-package beacon org-transclusion eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode org-appear evil-surround gruvbox-theme evil))
  '(package-vc-selected-packages
    '((emacs-obsidian-excalidraw :vc-backend Git :url "https://github.com/hsingko/emacs-obsidian-excalidraw")
      (ajsc :vc-backend Git :url "https://github.com/sogaiu/a-janet-spork-client")

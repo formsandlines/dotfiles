@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # Use like this:
-# $ prj-cljs <project-name>
+# $ prj-cljs <project-name> <framework> <editor>
 
 status_msg() {
   msg="$1"
@@ -40,11 +40,7 @@ add_yarn_deps() {
 create_shadow-cljs() {
   name="$1"
   framework="$2"
-
-  # last tested with:
-  # - devtools 1.0.5
-  # - reagent 1.2.0
-  # - helix 0.1.10
+  devenv="$3"
 
   case $framework in
     helix)
@@ -65,6 +61,14 @@ EOF
       ;;
   esac
 
+  if [ "$devenv" = 'cider' ]; then
+      devenv_middleware='cider.nrepl/cider-middleware'
+  else
+      devenv_middleware=''
+  fi
+
+  ## TODO: add cider middleware
+  
   tee "shadow-cljs.edn" <<EOF > /dev/null
 {:source-paths ["src"]
  :dependencies [[binaryage/devtools "RELEASE"]
@@ -81,8 +85,72 @@ EOF
 EOF
 }
 
-create_bb-edn() {
-  tee "bb.edn" <<EOF > /dev/null
+create_shadow-cljs_and_deps-edn() {
+  name="$1"
+  framework="$2"
+  devenv="$3"
+
+  case $framework in
+    helix)
+      fw_dep='lilactown/helix {:mvn/version "RELEASE"}'
+      devtools=$(cat <<EOF
+{:reload-strategy :full
+                                                    :preloads [flow-storm.api $name.dev]
+                                                    :after-load $name.core/init!}
+EOF
+)
+      ;;
+    reagent)
+      fw_dep='reagent/reagent {:mvn/version "RELEASE"}'
+      devtools=$(cat <<EOF
+{:after-load $name.core/init!}
+EOF
+)
+      ;;
+  esac
+
+  if [ "$devenv" = 'cider' ]; then
+      devenv_middleware='cider.nrepl/cider-middleware'
+  else
+      devenv_middleware=''
+  fi
+  
+  tee "deps.edn" <<EOF > /dev/null
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        org.clojure/clojurescript {:mvn/version "1.11.132"}
+        $fw_dep}
+ :aliases
+ {:dev
+  {:extra-paths ["dev"]
+   :extra-deps {binaryage/devtools {:mvn/version "1.0.7"}
+                thheller/shadow-cljs {:mvn/version "2.28.6"}}}}}
+EOF
+    
+  tee "shadow-cljs.edn" <<EOF > /dev/null
+{:deps         {:aliases [:dev]}
+ :npm-deps     {:install false}
+ :nrepl        {:middleware [$devenv_middleware
+                             flow-storm.nrepl.middleware/wrap-flow-storm]
+                :port 8777}
+ :builds       {:app {:target     :browser
+                      :output-dir "public/js"
+                      :asset-path "/js"
+                      :modules    {:app {:entries [$name.core]}}
+                      :devtools   $devtools}}
+ 
+ :dev-http     {3000 {:root "public"}}}
+EOF
+}
+
+setup_dev-env() {
+  devenv="$1"
+
+  case $devenv in
+    iced)
+      # Uses a Babashka script
+  
+      tee "bb.edn" <<EOF > /dev/null
 {:paths ["src"]
  :tasks
  {dev   {:doc "Runs shadow-cljs build & watch with nREPL for vim-iced"
@@ -90,6 +158,25 @@ create_bb-edn() {
   debug {:doc "Runs flowstorm debugger"
          :task (shell "clj -Sforce -Sdeps '{:deps {com.github.jpmonettas/flow-storm-dbg {:mvn/version "RELEASE"}}}' -X flow-storm.debugger.main/start-debugger :port 8777 :repl-type :shadow :build-id :app")}}}
 EOF
+
+      ;;
+    cider)
+      # Setup some Emacs variables for Cider
+
+      tee ".dir-locals.el" <<EOF > /dev/null
+((clojurescript-mode
+  ;; You use a shadow-cljs to build the project
+  ;; This answers the question "which command should be used?"
+  (cider-preferred-build-tool . shadow-cljs)
+  ;; This sets a default repl type & answers the question "select cljs repl type".
+  (cider-default-cljs-repl . shadow)
+  ;; This tells shadow cljs what to build & should match a key in shadow-cljs.edn
+  ;; build map. e.g :builds {:<some-key> {...}}
+  ;; pramas passed to shadow-cljs to start nrepl via cider-jack-in
+  (cider-shadow-default-options . "app")))
+EOF
+      ;;
+    esac
 }
 
 create_src() {
@@ -194,13 +281,36 @@ create_index() {
 EOF
 }
 
+setup_git() {
+  if [ ! -d '.git' ]; then
+    git init
+  fi
+
+  if [ ! -f '.gitignore' ]; then
+    touch .gitignore
+  fi
+  echo 'node_modules/' >> .gitignore
+}
+
 run() {
   name="$1"
   framework="$2"
+  depconfig="$3"
+  devenv="$4"
 
   if [ "$framework" != 'reagent' ] && [ "$framework" != 'helix' ]; then
-    error_msg "Unrecognized front-end framework: $framework"
-    exit 1
+      error_msg "Unrecognized front-end framework: $framework"
+      exit 1
+  fi
+
+  if [ "$depconfig" != 'deps' ] && [ "$depconfig" != 'shadow' ]; then
+      error_msg "Unrecognized dependency configuration: $depconfig"
+      exit 1
+  fi
+
+  if [ "$devenv" != 'iced' ] && [ "$devenv" != 'cider' ]; then
+      error_msg "Unrecognized development environment: $devenv"
+      exit 1
   fi
 
   mkdir "$1"
@@ -212,11 +322,16 @@ run() {
   status_msg 'Adding yarn deps…'
   add_yarn_deps $framework
 
-  status_msg 'Creating shadow.cljs…'
-  create_shadow-cljs $name $framework
-
-  status_msg 'Creating bb.edn…'
-  create_bb-edn
+  if [ "$depconfig" = 'shadow' ]; then
+      status_msg 'Creating shadow.cljs…'
+      create_shadow-cljs $name $framework $devenv
+  elif [ "$depconfig" = 'deps' ]; then
+      status_msg 'Creating shadow.cljs & deps.edn…'
+      create_shadow-cljs_and_deps-edn $name $framework $devenv
+  fi
+  
+  status_msg 'Setting up dev environment…'
+  setup_dev-env $devenv
 
   status_msg 'Creating source files…'
   create_src $name $framework
@@ -224,8 +339,11 @@ run() {
   status_msg 'Creating index.html…'
   create_index $name
 
+  status_msg 'Creating git repo (if it does not exist)…'
+  setup_git
+
   status_msg 'All done, have fun! :)'
 }
 
-run $1 $2
+run $1 $2 $3 $4
 

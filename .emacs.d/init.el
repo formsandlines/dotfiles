@@ -603,7 +603,46 @@ one, an error is signaled."
     (hydra-set-property 'hydra-window :verbosity 0)
     (hydra-window/body))
 
-)
+ 
+  ;; Hydras for meow table-mode
+
+  (defun ph/org-table-insert-row-below ()
+    "Like org-table-insert-row, but inserts below the current line."
+    (interactive)
+    ;; Universal argument reverses the direction of insertion:
+    (org-table-insert-row '(4)))
+
+  (defun ph/org-table-insert-column-right ()
+    "Like org-table-insert-column, but inserts to the right instead."
+    (interactive)
+    (org-table-insert-column)
+    (org-table-move-column))
+  
+  (defhydra hydra-table-insert (:color blue)
+    "insert table row/column"
+    ("k" org-table-insert-row)
+    ("j" ph/org-table-insert-row-below)
+    ("h" org-table-insert-column)
+    ("l" ph/org-table-insert-column-right)
+    
+    ("SPC" nil "cancel"))
+
+  (defhydra hydra-table-move ()
+    "insert table row/column"
+    ("k" org-table-move-row-up)
+    ("j" org-table-move-row-down)
+    ("h" org-table-move-column-left)
+    ("l" org-table-move-column-right)
+    
+    ("K" org-table-move-cell-up)
+    ("J" org-table-move-cell-down)
+    ("H" org-table-move-cell-left)
+    ("L" org-table-move-cell-right)
+    
+    ("t" nil "cancel")
+    ("SPC" nil "cancel"))
+  
+  )
 
 ;; Let 'a' in 'normal' mode behave like 'a' in Vi:
 ;; - https://github.com/meow-edit/meow/discussions/497#discussioncomment-6713192
@@ -1129,6 +1168,7 @@ calls `meow-eval-last-exp'."
   )
 
 (use-package meow
+  :after symex
   :config
 
   (setq meow-symex-keymap (make-keymap))
@@ -1387,7 +1427,8 @@ calls `meow-eval-last-exp'."
   (interactive)
   (save-excursion
     (call-interactively 'org-table-copy-region)
-    (call-interactively 'meow-cancel-selection)))
+    (when meow--selection
+      (call-interactively 'meow-cancel-selection))))
 
 (defun ph/meow-org-table-field-replace ()
   "Copies table field content before replacing it with the insertion."
@@ -1427,24 +1468,25 @@ calls `meow-eval-last-exp'."
     '("h" . backward-char)
     '("l" . forward-char)
     
-    '("K" . org-table-move-row-up)
-    '("J" . org-table-move-row-down)
-    '("H" . org-table-move-column-left)
-    '("L" . org-table-move-column-right)
+    '("K" . meow-prev-expand)
+    '("J" . meow-next-expand)
+    '("H" . meow-left-expand)
+    '("L" . meow-right-expand)
 
+    '("t" . hydra-table-move/body) ;; hjkl to move row/col / HJKL to move cell
+    
     '("U" . org-shifttab)
     '("O" . org-cycle)
 
-    ;; '("S" . org-table-beginning-of-field) ;; U/O move to beginning
+    '("S" . org-table-beginning-of-field)
     '("E" . org-table-end-of-field)
 
     '("I" . ph/meow-org-table-field-insert)
     '("A" . ph/meow-org-table-field-append)
 
-    '("s" . org-table-insert-row) ;; above
-    '("d" . ph/meow-org-table-kill) ;; current
-    '("S" . org-table-insert-column) ;; to the left
-    '("D" . org-table-delete-column) ;; current
+    '("s" . hydra-table-insert/body) ;; hjkl for insertion of row/col
+    '("d" . ph/meow-org-table-kill)
+    '("D" . org-table-delete-column)
 
     ;; '("v" . org-table-copy-down) ;; already on S-RET
     
@@ -1629,7 +1671,7 @@ state (other than motion state) doesn’t bind anything."
   (meow-leader-define-key
    ;; Hydras
    '("w" . hydra-window/body)
-   '("v" . hydra-view-silent)
+   '("V" . hydra-view-silent)
    '("z" . hydra-zoom/body)
    '("o" . hydra-org-silent)
 
@@ -1741,6 +1783,27 @@ state (other than motion state) doesn’t bind anything."
   
   (setq org-goto-auto-isearch nil)
 
+  ;; This enables to set the size for each image
+  (setq org-image-actual-width nil)
+
+  ;; Do not display images from web urls (doesn’t seem to work anyways)
+  (setq org-display-remote-inline-images 'skip)
+
+  ;; Eval code blocks without confirmation:
+  (setq org-confirm-babel-evaluate nil)
+
+  ;; Enable more languages for code block evaluation:
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (R . t)
+     (dot . t)
+     (shell . t)
+     (clojure . t)))
+
+  ;; (setq org-babel-clojure-backend 'babashka)
+  (setq org-babel-clojure-backend 'cider)
+  
   ;;
   )
 
@@ -1809,6 +1872,27 @@ state (other than motion state) doesn’t bind anything."
   (org-indent-item)  
   (meow-append))
 
+
+;; Adapted from https://emacs.stackexchange.com/a/64640 (user NickD)
+
+(defun ph/org-redisplay-inline-image-at-point ()
+  (interactive)
+  (let* ((context (org-element-context (org-element-at-point)))
+	 (type (org-element-type context))
+	 (beg  (plist-get (cadr context) :begin))
+	 (end  (plist-get (cadr context) :end)))
+    (when (eq type 'link)
+      (org-display-inline-images nil t beg end))))
+
+(defun ph/org-toggle-inline-image-at-point ()
+  (interactive)
+  (let* ((context (org-element-context (org-element-at-point)))
+	 (type (org-element-type context))
+	 (beg  (plist-get (cadr context) :begin))
+	 (end  (plist-get (cadr context) :end)))
+    (when (eq type 'link)
+      (org-toggle-inline-images nil beg end))))
+
 (use-package org
   :config
   ;; Global bindings as recommended by the org manual:
@@ -1828,6 +1912,9 @@ state (other than motion state) doesn’t bind anything."
   (keymap-set org-mode-map "C-c X" #'ph/meow-org-add-above-todo-item)
   (keymap-set org-mode-map "C-c M-x" #'ph/meow-org-add-lower-todo-item)
 
+  (keymap-set org-mode-map "C-c v v" #'ph/org-toggle-inline-image-at-point)
+  (keymap-set org-mode-map "C-c v r" #'ph/org-redisplay-inline-image-at-point)
+  
   ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
   (keymap-set org-mode-map "C-c d" #'org-table-blank-field)
 
@@ -2611,6 +2698,44 @@ chacking if a region is active or not."
       (ph/symex-ts-open-line-before)
     (ph/symex-lisp--open-line-before)))
 
+(defun ph/symex-eval-janet ()
+  "Eval last sexp."
+  (interactive)
+  (ajrepl-send-expression-at-point))
+
+;; changed significantly (trimmed down)
+(defun ph/symex--evaluate ()
+  "Evaluate symex."
+  (save-excursion
+    (forward-sexp)
+    (cond ((equal major-mode 'janet-ts-mode)
+	   (ph/symex-eval-janet))
+	  ((member major-mode symex-racket-modes)
+	   (symex-eval-racket))
+	  ((member major-mode symex-elisp-modes)
+	   (symex-eval-elisp))
+	  ((equal major-mode 'scheme-mode)
+	   (symex-eval-scheme))
+	  ((member major-mode symex-clojure-modes)
+	   (symex-eval-clojure))
+	  ((member major-mode symex-common-lisp-modes)
+	   (symex-eval-common-lisp))
+	  ((equal major-mode 'arc-mode)
+	   (symex-eval-arc))
+	  (t (error "Symex mode: Lisp flavor not recognized!")))))
+
+(defun ph/symex-evaluate (count)
+  "Evaluate COUNT symexes."
+  (interactive "p")
+  (save-excursion
+    (let ((i 0)
+          (movedp t))
+      (while (or (not movedp)
+                 (< i count))
+        (ph/symex--evaluate)
+        (symex--go-forward)
+        (setq i (1+ i))))))
+
 ;; ! may need adjustment
 (defun ph/symex-ts--paste (count direction)
   "Paste before or after symex, COUNT times, according to DIRECTION.
@@ -2763,20 +2888,6 @@ still remain accessible by `yank-pop'."
 	 (not (member major-mode symex-clojure-modes))))
 
   )
-
-(use-package treesit-auto
-  :ensure t
-  :after tree-sitter
-  :diminish
-  :init
-  ;; Needs to be set before config of the package:
-  (setq treesit-language-source-alist
-	'((janet-simple
-	   . ("https://github.com/sogaiu/tree-sitter-janet-simple"))))
-  :config
-  (setq treesit-auto-install 'prompt)
-  (treesit-auto-add-to-auto-mode-alist 'all)
-  (global-treesit-auto-mode))
 
   (use-package eldoc
     :ensure t
@@ -3121,28 +3232,16 @@ still remain accessible by `yank-pop'."
                ("cljc" . clojure-mode)))
     (add-to-list 'markdown-code-lang-modes x)))
 
-(use-package separedit
-  :ensure t
-  :after markdown-mode
-  ;; :init
+(use-package js
   :config
-  ;; Default major-mode for edit buffer
-  ;; can also be other mode e.g. ‘org-mode’.
-  (setq separedit-default-mode 'markdown-mode)
-  
-  ;; Key binding for modes you want edit
-  ;; or simply bind ‘global-map’ for all.
-  (define-key prog-mode-map        (kbd "C-c '") #'separedit)
-  (define-key minibuffer-local-map (kbd "C-c '") #'separedit)
-  (define-key help-mode-map        (kbd "C-c '") #'separedit)
-  (define-key helpful-mode-map     (kbd "C-c '") #'separedit)
-  (define-key clojure-mode-map     (kbd "C-c '") #'separedit)
+  (add-to-list 'auto-mode-alist '("\\.js$" . javascript-mode))  
+  ;;
+  )
 
-  ;; Feature options
-  ;; (setq separedit-preserve-string-indentation t)
-  ;; (setq separedit-continue-fill-column t)
-  ;; (setq separedit-write-file-when-execute-save t)
-  ;; (setq separedit-remove-trailing-spaces-in-comment t)
+(use-package css-mode
+  :config
+  (add-to-list 'auto-mode-alist '("\\.css$" . css-mode))  
+  ;;
   )
 
 (setq mac-command-modifier 'meta)          ;; left cmd = right cmd

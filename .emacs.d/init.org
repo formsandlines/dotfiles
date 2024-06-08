@@ -714,7 +714,46 @@ To prevent ~use-package-autoremove~ from deleting it.
     (hydra-set-property 'hydra-window :verbosity 0)
     (hydra-window/body))
 
-)
+ 
+  ;; Hydras for meow table-mode
+
+  (defun ph/org-table-insert-row-below ()
+    "Like org-table-insert-row, but inserts below the current line."
+    (interactive)
+    ;; Universal argument reverses the direction of insertion:
+    (org-table-insert-row '(4)))
+
+  (defun ph/org-table-insert-column-right ()
+    "Like org-table-insert-column, but inserts to the right instead."
+    (interactive)
+    (org-table-insert-column)
+    (org-table-move-column))
+  
+  (defhydra hydra-table-insert (:color blue)
+    "insert table row/column"
+    ("k" org-table-insert-row)
+    ("j" ph/org-table-insert-row-below)
+    ("h" org-table-insert-column)
+    ("l" ph/org-table-insert-column-right)
+    
+    ("SPC" nil "cancel"))
+
+  (defhydra hydra-table-move ()
+    "insert table row/column"
+    ("k" org-table-move-row-up)
+    ("j" org-table-move-row-down)
+    ("h" org-table-move-column-left)
+    ("l" org-table-move-column-right)
+    
+    ("K" org-table-move-cell-up)
+    ("J" org-table-move-cell-down)
+    ("H" org-table-move-cell-left)
+    ("L" org-table-move-cell-right)
+    
+    ("t" nil "cancel")
+    ("SPC" nil "cancel"))
+  
+  )
 #+end_src
 *** meow/
 **** Custom meow commands
@@ -1262,6 +1301,7 @@ calls `meow-eval-last-exp'."
 **** +My meow symex state:
 #+begin_src elisp
 (use-package meow
+  :after symex
   :config
 
   (setq meow-symex-keymap (make-keymap))
@@ -1522,7 +1562,8 @@ calls `meow-eval-last-exp'."
   (interactive)
   (save-excursion
     (call-interactively 'org-table-copy-region)
-    (call-interactively 'meow-cancel-selection)))
+    (when meow--selection
+      (call-interactively 'meow-cancel-selection))))
 
 (defun ph/meow-org-table-field-replace ()
   "Copies table field content before replacing it with the insertion."
@@ -1562,24 +1603,25 @@ calls `meow-eval-last-exp'."
     '("h" . backward-char)
     '("l" . forward-char)
     
-    '("K" . org-table-move-row-up)
-    '("J" . org-table-move-row-down)
-    '("H" . org-table-move-column-left)
-    '("L" . org-table-move-column-right)
+    '("K" . meow-prev-expand)
+    '("J" . meow-next-expand)
+    '("H" . meow-left-expand)
+    '("L" . meow-right-expand)
 
+    '("t" . hydra-table-move/body) ;; hjkl to move row/col / HJKL to move cell
+    
     '("U" . org-shifttab)
     '("O" . org-cycle)
 
-    ;; '("S" . org-table-beginning-of-field) ;; U/O move to beginning
+    '("S" . org-table-beginning-of-field)
     '("E" . org-table-end-of-field)
 
     '("I" . ph/meow-org-table-field-insert)
     '("A" . ph/meow-org-table-field-append)
 
-    '("s" . org-table-insert-row) ;; above
-    '("d" . ph/meow-org-table-kill) ;; current
-    '("S" . org-table-insert-column) ;; to the left
-    '("D" . org-table-delete-column) ;; current
+    '("s" . hydra-table-insert/body) ;; hjkl for insertion of row/col
+    '("d" . ph/meow-org-table-kill)
+    '("D" . org-table-delete-column)
 
     ;; '("v" . org-table-copy-down) ;; already on S-RET
     
@@ -1774,7 +1816,7 @@ state (other than motion state) doesn’t bind anything."
   (meow-leader-define-key
    ;; Hydras
    '("w" . hydra-window/body)
-   '("v" . hydra-view-silent)
+   '("V" . hydra-view-silent)
    '("z" . hydra-zoom/body)
    '("o" . hydra-org-silent)
 
@@ -1900,6 +1942,27 @@ state (other than motion state) doesn’t bind anything."
   
   (setq org-goto-auto-isearch nil)
 
+  ;; This enables to set the size for each image
+  (setq org-image-actual-width nil)
+
+  ;; Do not display images from web urls (doesn’t seem to work anyways)
+  (setq org-display-remote-inline-images 'skip)
+
+  ;; Eval code blocks without confirmation:
+  (setq org-confirm-babel-evaluate nil)
+
+  ;; Enable more languages for code block evaluation:
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (R . t)
+     (dot . t)
+     (shell . t)
+     (clojure . t)))
+
+  ;; (setq org-babel-clojure-backend 'babashka)
+  (setq org-babel-clojure-backend 'cider)
+  
   ;;
   )
 #+end_src
@@ -1975,6 +2038,27 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
   (org-indent-item)  
   (meow-append))
 
+
+;; Adapted from https://emacs.stackexchange.com/a/64640 (user NickD)
+
+(defun ph/org-redisplay-inline-image-at-point ()
+  (interactive)
+  (let* ((context (org-element-context (org-element-at-point)))
+	 (type (org-element-type context))
+	 (beg  (plist-get (cadr context) :begin))
+	 (end  (plist-get (cadr context) :end)))
+    (when (eq type 'link)
+      (org-display-inline-images nil t beg end))))
+
+(defun ph/org-toggle-inline-image-at-point ()
+  (interactive)
+  (let* ((context (org-element-context (org-element-at-point)))
+	 (type (org-element-type context))
+	 (beg  (plist-get (cadr context) :begin))
+	 (end  (plist-get (cadr context) :end)))
+    (when (eq type 'link)
+      (org-toggle-inline-images nil beg end))))
+
 (use-package org
   :config
   ;; Global bindings as recommended by the org manual:
@@ -1994,6 +2078,9 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
   (keymap-set org-mode-map "C-c X" #'ph/meow-org-add-above-todo-item)
   (keymap-set org-mode-map "C-c M-x" #'ph/meow-org-add-lower-todo-item)
 
+  (keymap-set org-mode-map "C-c v v" #'ph/org-toggle-inline-image-at-point)
+  (keymap-set org-mode-map "C-c v r" #'ph/org-redisplay-inline-image-at-point)
+  
   ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
   (keymap-set org-mode-map "C-c d" #'org-table-blank-field)
 
@@ -3056,7 +3143,7 @@ instead.
         (ph/symex--evaluate)
         (symex--go-forward)
         (setq i (1+ i))))))
-        #+end_src '
+#+end_src
 **** symex replacements for copy/paste
 #+begin_src elisp
 ;; ! may need adjustment
@@ -3241,7 +3328,7 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 ** tree-sitter/
 *** tree-sitter /(built-in)/
 Part of core since Emacs 29, so no need to install.
-*** treesit-auto
+*** COMMENT treesit-auto
 Automatically installs TS grammars and uses corresponding ts-modes.
 - might become obsolete with Emacs versions above 29
 #+begin_src elisp
@@ -3257,6 +3344,11 @@ Automatically installs TS grammars and uses corresponding ts-modes.
   :config
   (setq treesit-auto-install 'prompt)
   (treesit-auto-add-to-auto-mode-alist 'all)
+
+  ;; Because js-ts-mode and css-ts-mode crash too often
+  (delete 'javascript treesit-auto-langs)
+  (delete 'css treesit-auto-langs)
+
   (global-treesit-auto-mode))
 #+end_src
 ** LSP support
@@ -3727,7 +3819,7 @@ Janet Spork Netrepl client.
                ("cljc" . clojure-mode)))
     (add-to-list 'markdown-code-lang-modes x)))
 #+end_src
-*** separedit
+*** COMMENT separedit
 #+begin_src elisp
 (use-package separedit
   :ensure t
@@ -3765,6 +3857,26 @@ Works kind-of, but with multiple issues.
 		;; How to specify source files?
 		;; :files ("source/emacs/*" "source/helpfiles/*" "source/docs/*")
 		))
+
+#+end_src
+** :lang Javascript
+#+begin_src elisp
+(use-package js
+  :config
+  (add-to-list 'auto-mode-alist '("\\.js$" . javascript-mode))  
+  ;;
+  )
+
+
+#+end_src
+** :lang CSS
+#+begin_src elisp
+(use-package css-mode
+  :config
+  (add-to-list 'auto-mode-alist '("\\.css$" . css-mode))  
+  ;;
+  )
+
 
 #+end_src
 * Customization
@@ -4180,6 +4292,16 @@ To fix:
   table” instead of just moving to the destination
   - see [[https://emacs.stackexchange.com/a/76352]] for a workaround
     - seems like this is a known bug in Org-mode that has not been fixed yet
+- [ ] FOR SOME UNKNOWN REASON tree-sitter grammars are all crashing now when
+  certain keystrokes are hit
+  - [ ] ~js-ts-mode~ crashes Emacs completely when pressing TAB
+    (~indent-for-tab-command~) on a top-level definition
+    - does not happen in ~js-mode~
+    - to reproduce: tab on ~const global = {~ line in ~styles.js~ (form-tric.)
+  - [ ] ~css-ts-mode~ also crashes Emacs completely on some input
+  - [ ] ~janet-ts-mode~ also crashes, didn’t do that before
+    - somehow the ~treesit-auto~ wants to install the grammar even though it has
+      actually been installed and I specifically told it to ignore Janet
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?
