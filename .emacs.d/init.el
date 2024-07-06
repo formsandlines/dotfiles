@@ -2921,8 +2921,21 @@ still remain accessible by `yank-pop'."
   ;; (setq treesit-language-source-alist
   ;; 	(treesit-auto--build-treesit-source-alist))
 
-  
   (treesit-auto-add-to-auto-mode-alist 'all)
+
+  ;; treesit seems to want to load `janet-simple' instead of `janet' lang
+  ;; so I add the grammar again as `janet-simple'
+  (setq janet-simple-tsauto-config
+	(make-treesit-auto-recipe
+	 :lang 'janet-simple
+	 :ts-mode 'janet-ts-mode
+	 :remap 'janet-mode
+	 :url "https://github.com/sogaiu/tree-sitter-janet-simple"
+	 :ext "\\.janet\\'"))
+
+  (add-to-list 'treesit-auto-recipe-list janet-simple-tsauto-config)
+  (delete 'janet treesit-auto-langs)
+
   (global-treesit-auto-mode)
 
   ;; Fix language sources not being added to `treesit-language-source-alist`
@@ -3241,6 +3254,92 @@ still remain accessible by `yank-pop'."
 		 (side . right)
 		 (window-width . 0.5))))
 
+(use-package janet-ts-mode
+  ;; :ensure t
+  :vc (:fetcher github :repo sogaiu/janet-ts-mode))
+
+(use-package ajrepl
+  ;; :ensure t
+  :after janet-ts-mode
+  :vc (:fetcher github :repo sogaiu/ajrepl)
+  :config
+  (add-hook 'janet-ts-mode-hook
+            #'ajrepl-interaction-mode))
+
+(use-package gruvbox-theme
+  :ensure t)
+
+(use-package modus-themes
+  :ensure t
+  :pin elpa
+  :config
+
+  (setq modus-themes-italic-constructs t
+	modus-themes-bold-constructs t
+
+	;; modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted)
+
+	modus-themes-completions
+	'((matches . (regular normal))
+          (selection . (semibold normal)))
+	)
+
+  (setq modus-themes-common-palette-overrides
+        '(
+	  ;; Mode line: appear borderless (border = bg color)
+	  (border-mode-line-active bg-mode-line-active)
+          (border-mode-line-inactive bg-mode-line-inactive)
+
+	  ;; Mode line: sage background
+	  (bg-mode-line-active bg-sage)
+          (fg-mode-line-active fg-main)
+          (border-mode-line-active bg-green-intense)
+
+	  ;; Links: subtle underlines
+	  (underline-link border)
+          (underline-link-visited border)
+          (underline-link-symbolic border)	
+
+	  (bg-paren-match bg-hover)
+	  (underline-paren-match fg-main)
+
+	  (bg-prose-block-contents bg-dim)
+	  
+          (fg-line-number-active "gray50")
+          (bg-line-number-active bg-inactive)
+          ;;
+          ))
+
+  (setq modus-operandi-tinted-palette-overrides
+	'(
+	  ;; (bg-hl-line bg-green-nuanced)
+	  (bg-main "#faf8f4") ; fbf8f3
+	  (bg-hl-line "#ffffff")
+	  (bg-dim "#f3efe6") ; #f4f0e7
+          (bg-hover "#c3f5e7")
+	  (bg-region "#ece9e5")
+
+	  ;; Syntax
+	  (comment "#a9a19b")
+          (string yellow-cooler)
+          (docstring "#87786e")
+          (keyword green-intense)
+          (fnname blue)
+          (variable magenta-warmer)
+          (constant green)
+          (identifier yellow-cooler)
+          (builtin magenta)
+          (type red)
+          
+	  (cursor "#00d599")
+	  ;;
+	  ))
+
+  )
+
+(use-package ef-themes
+  :ensure t)
+
 (setq mac-command-modifier 'meta)          ;; left cmd = right cmd
 (setq mac-right-command-modifier 'left)
 (setq mac-option-modifier nil)             ;; keeps Umlauts, etc. accessible
@@ -3513,3 +3612,30 @@ end tell")
                     :slant 'normal)
 
 ;; (setq-default line-spacing 0.12)
+
+(add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
+
+(defun load-only-theme ()
+  "Disable all themes and then load a single theme interactively."
+  (interactive)
+  (while custom-enabled-themes
+    (disable-theme (car custom-enabled-themes)))
+  (call-interactively 'load-theme))
+;; credits: user bakuretsu on reddit
+;; source: https://www.reddit.com/r/emacs/comments/30b67j/comment/cpr8bsn/
+
+
+;; to prevent Emacs from enabling all required themes on startup:
+(mapc #'disable-theme custom-enabled-themes)
+
+(load-theme 'modus-operandi t)
+
+;; Activate my desired themes
+;; (load-theme 'modus-operandi t t)
+;; (load-theme 'modus-vivendi t t)
+(load-theme 'modus-operandi-tinted t t)
+(load-theme 'modus-vivendi-tinted t t)
+
+;; Enable my preferred theme
+;; (enable-theme 'modus-operandi)
+(enable-theme 'modus-operandi-tinted)

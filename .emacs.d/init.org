@@ -3374,8 +3374,21 @@ Automatically installs TS grammars and uses corresponding ts-modes.
   ;; (setq treesit-language-source-alist
   ;; 	(treesit-auto--build-treesit-source-alist))
 
-  
   (treesit-auto-add-to-auto-mode-alist 'all)
+
+  ;; treesit seems to want to load `janet-simple' instead of `janet' lang
+  ;; so I add the grammar again as `janet-simple'
+  (setq janet-simple-tsauto-config
+	(make-treesit-auto-recipe
+	 :lang 'janet-simple
+	 :ts-mode 'janet-ts-mode
+	 :remap 'janet-mode
+	 :url "https://github.com/sogaiu/tree-sitter-janet-simple"
+	 :ext "\\.janet\\'"))
+
+  (add-to-list 'treesit-auto-recipe-list janet-simple-tsauto-config)
+  (delete 'janet treesit-auto-langs)
+
   (global-treesit-auto-mode)
 
   ;; Fix language sources not being added to `treesit-language-source-alist`
@@ -3817,23 +3830,17 @@ janet-lsp
 		 (window-width . 0.5))))
 #+end_src
 ** :lang Janet
-*** COMMENT janet-mode
-#+begin_src elisp
-(use-package janet-mode
-  :ensure t)
-
-#+end_src
-*** COMMENT janet-ts-mode
+*** janet-ts-mode
 #+begin_src elisp
 (use-package janet-ts-mode
-  :vc (:fetcher github :repo sogaiu/janet-ts-mode)
-  :ensure t)
+  ;; :ensure t
+  :vc (:fetcher github :repo sogaiu/janet-ts-mode))
 
 #+end_src
-*** COMMENT ajrepl
+*** ajrepl
 #+begin_src elisp
 (use-package ajrepl
-  :ensure t
+  ;; :ensure t
   :after janet-ts-mode
   :vc (:fetcher github :repo sogaiu/ajrepl)
   :config
@@ -3946,7 +3953,7 @@ Works kind-of, but with multiple issues.
 
 
 #+end_src
-** COMMENT Themes
+** Themes
 *** gruvbox-theme
 #+begin_src elisp
 (use-package gruvbox-theme
@@ -3972,7 +3979,8 @@ Replacing the built-in version (3.0.0) with the current one.
 	)
 
   (setq modus-themes-common-palette-overrides
-	'(;; Mode line: appear borderless (border = bg color)
+        '(
+	  ;; Mode line: appear borderless (border = bg color)
 	  (border-mode-line-active bg-mode-line-active)
           (border-mode-line-inactive bg-mode-line-inactive)
 
@@ -3986,17 +3994,38 @@ Replacing the built-in version (3.0.0) with the current one.
           (underline-link-visited border)
           (underline-link-symbolic border)	
 
-	  ;; Syntax
-	  (comment yellow-warmer)
-          (string green-cooler)
-
-	  (bg-paren-match bg-green-intense)
+	  (bg-paren-match bg-hover)
 	  (underline-paren-match fg-main)
 
-	  (fg-line-number-inactive "gray50")
+	  (bg-prose-block-contents bg-dim)
+	  
           (fg-line-number-active "gray50")
           (bg-line-number-active bg-inactive)
-	  
+          ;;
+          ))
+
+  (setq modus-operandi-tinted-palette-overrides
+	'(
+	  ;; (bg-hl-line bg-green-nuanced)
+	  (bg-main "#faf8f4") ; fbf8f3
+	  (bg-hl-line "#ffffff")
+	  (bg-dim "#f3efe6") ; #f4f0e7
+          (bg-hover "#c3f5e7")
+	  (bg-region "#ece9e5")
+
+	  ;; Syntax
+	  (comment "#a9a19b")
+          (string yellow-cooler)
+          (docstring "#87786e")
+          (keyword green-intense)
+          (fnname blue)
+          (variable magenta-warmer)
+          (constant green)
+          (identifier yellow-cooler)
+          (builtin magenta)
+          (type red)
+          
+	  (cursor "#00d599")
 	  ;;
 	  ))
 
@@ -4362,7 +4391,7 @@ Increment/decrement numbers like in Vim:
 
 #+end_src
 
-** COMMENT Themes
+** Themes
 #+begin_src elisp
 (add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
 
@@ -4382,13 +4411,14 @@ Increment/decrement numbers like in Vim:
 (load-theme 'modus-operandi t)
 
 ;; Activate my desired themes
-(load-theme 'modus-operandi t t)
-(load-theme 'modus-vivendi t t)
-;; (load-theme 'modus-operandi-tinted t t)
-;; (load-theme 'modus-vivendi-tinted t t)
+;; (load-theme 'modus-operandi t t)
+;; (load-theme 'modus-vivendi t t)
+(load-theme 'modus-operandi-tinted t t)
+(load-theme 'modus-vivendi-tinted t t)
 
 ;; Enable my preferred theme
-(enable-theme 'modus-operandi)
+;; (enable-theme 'modus-operandi)
+(enable-theme 'modus-operandi-tinted)
 #+end_src
 
 *** COMMENT pmacs
@@ -4485,6 +4515,14 @@ To fix:
     interfere with processing of comments from treesit
   - the problem seems to be in my config file, because it works perfectly fine
     when starting from a clean config with just the grammar installed
+- [ ] for whatever reason Evil activated ~evil-local~ minor mode in one(?) of my
+  buffers (or I did it?) which caused all the keybindings to weirdly remap to
+  evil commands
+  - observe if that still persists after deactivating the mode
+    - still persists
+    - switched back on after executing some commands
+      - like ~C-u SPC~ or ~C-c C-x p~, but these by themselves don’t trigger the
+        mode
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?
