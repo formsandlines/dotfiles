@@ -692,6 +692,9 @@ To prevent ~use-package-autoremove~ from deleting it.
     ("C-j" ph/buf-move-down)
     ("C-k" ph/buf-move-up)
     ("C-l" ph/buf-move-right)
+    ;; Rotate windows/layout
+    ("r" rotate-window)
+    ("R" rotate-layout)
     ;; Resize windows
     ("C-M-h" shrink-window-horizontally)
     ("C-M-l" enlarge-window-horizontally)
@@ -2404,17 +2407,6 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   :hook org-mode prog-mode)
 #+end_src
 
-*** COMMENT gruvbox-theme
-#+begin_src elisp
-(use-package gruvbox-theme
-  :ensure t
-  :config
-  (load-theme 'gruvbox))
-
-;;; good theme for customization
-;; (load-theme 'modus-vivendi)
-#+end_src
-
 *** beacon (highlight my cursor)
 #+begin_src elisp
 (use-package beacon
@@ -2435,7 +2427,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   (nerd-icons-font-family "BerkeleyMono Nerd Font Mono"))
 #+end_src
 
-** Popup windows
+** Layout
 *** popper
 #+begin_src elisp
 (use-package popper
@@ -2474,6 +2466,11 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   :config
   ;;
   )
+#+end_src
+*** rotate
+#+begin_src elisp
+(use-package rotate
+  :ensure t)
 #+end_src
 
 ** Minibuffer / Completion
@@ -2779,7 +2776,7 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   ;; ? how to disable elisp undefined warnings
   )
 #+end_src
-**** flycheck-janet
+**** COMMENT flycheck-janet
 #+begin_src elisp
 (use-package flycheck-janet
   :ensure t
@@ -2787,7 +2784,7 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   :diminish
   :vc (:fetcher github :repo sogaiu/flycheck-janet))
 #+end_src
-**** flycheck-rjan (for Janet)
+**** COMMENT flycheck-rjan (for Janet)
 #+begin_src elisp
 (use-package flycheck-rjan
   :ensure t
@@ -3288,7 +3285,7 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 #+begin_src elisp
 (use-package symex
   :ensure t
-  :after janet-ts-mode
+  ;; :after janet-ts-mode
   :config
   (symex-initialize)
   ;; (global-set-key (kbd "s-;") 'symex-mode-interface)
@@ -3313,6 +3310,30 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 
   )
 #+end_src
+**** meow-tree-sitter
+#+begin_src elisp
+(use-package meow-tree-sitter
+  :ensure t
+  :after meow
+  :custom
+  (meow-tree-sitter-queries-dir
+   (expand-file-name "meow-tree-sitter/queries" user-emacs-directory))
+  :config
+  ;; (meow-tree-sitter-register-defaults)
+  ;; (meow-tree-sitter-register-thing ?F "function")
+  ;; (meow-tree-sitter-register-thing ?b "function")
+  ;; (meow-tree-sitter-register-thing ?B "parameter")
+
+  (dolist (bind '((?c . "class")
+		  (?v . "function")
+		  (?t . "test")
+		  (?y . "entry")
+		  (?, . "parameter")
+		  (?/ . "comment")))
+    (meow-tree-sitter-register-thing (car bind) (cdr bind)))
+  ;;
+  )
+#+end_src
 
 *** COMMENT lispy
 #+begin_src elisp
@@ -3326,31 +3347,44 @@ Issues waiting to be resolved (maybe in 2.0 release?):
   )
 #+end_src
 ** tree-sitter/
-*** tree-sitter /(built-in)/
-Part of core since Emacs 29, so no need to install.
-*** COMMENT treesit-auto
+*** treesit /(built-in)/
+*NOTE:* ~tree-sitter~ is the third-party package, ~treesit~ is the built-in one!
+
+#+begin_src elisp
+(use-package treesit
+  :config
+  (setq-default treesit-font-lock-level 4)
+  ;;
+  )
+#+end_src
+
+*** treesit-auto
 Automatically installs TS grammars and uses corresponding ts-modes.
 - might become obsolete with Emacs versions above 29
 #+begin_src elisp
 (use-package treesit-auto
   :ensure t
-  :after tree-sitter
+  ;; :after treesit
   :diminish
-  :init
-  ;; Needs to be set before config of the package:
-  (setq treesit-language-source-alist
-	'((janet-simple
-	   . ("https://github.com/sogaiu/tree-sitter-janet-simple"))))
+  :custom
+  (treesit-auto-install 'prompt)
   :config
-  (setq treesit-auto-install 'prompt)
+
+  ;; Construct `treesit-language-source-alist` using all known recipes:
+  ;; (setq treesit-language-source-alist
+  ;; 	(treesit-auto--build-treesit-source-alist))
+
+  
   (treesit-auto-add-to-auto-mode-alist 'all)
+  (global-treesit-auto-mode)
 
-  ;; Because js-ts-mode and css-ts-mode crash too often
-  (delete 'javascript treesit-auto-langs)
-  (delete 'css treesit-auto-langs)
-
-  (global-treesit-auto-mode))
+  ;; Fix language sources not being added to `treesit-language-source-alist`
+  (setq treesit-language-source-alist
+	(treesit-auto--build-treesit-source-alist))
+  ;;
+  )
 #+end_src
+
 ** LSP support
 *** eldoc /(built-in -> shadowed)/
 - installed manually from ~describe-package eldoc~, because built-in version
@@ -3427,8 +3461,8 @@ janet-lsp
   ;;; Disable documentation-on-hover, which is still accessible with `M-x
   ;;; eldoc':
   ;;; https://github.com/joaotavora/eglot/discussions/691#discussioncomment-719373
-  (add-hook 'eglot-managed-mode-hook
-	    (lambda () (eldoc-mode -1)))
+  ;; (add-hook 'eglot-managed-mode-hook
+  ;; 	    (lambda () (eldoc-mode -1)))
 
   ;; (setq eglot-strict-mode nil)
 
@@ -3437,6 +3471,30 @@ janet-lsp
   ;; (add-to-list 'eglot-ignored-server-capabilities :inlayHintProvider)
   ;; (add-to-list 'eglot-stay-out-of 'flymake)
   )
+
+#+end_src
+*** COMMENT lsp-mode
+#+begin_src elisp
+(use-package lsp-mode
+  :ensure t
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+         (typescript-ts-mode . lsp)
+         ;; if you want which-key integration
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+;; optionally
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode)
+;; (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+
+;; optionally if you want to use debugger
+;; (use-package dap-mode)
+;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 
 #+end_src
 ** Graphics
@@ -3487,16 +3545,16 @@ janet-lsp
   )
 
 #+end_src
-* Citations
-*** [[#org-cite][org-cite (built-in)]]
-*** citeproc
+** Citations
+**** [[#org-cite][org-cite (built-in)]]
+**** citeproc
 #+begin_src elisp
 (use-package citeproc
   :ensure t
   ;;
   )
 #+end_src
-*** citar
+**** citar
 #+begin_src elisp
 (use-package citar
   :ensure t
@@ -3562,7 +3620,7 @@ janet-lsp
   ;;
   )
 #+end_src
-*** citar-embark
+**** citar-embark
 #+begin_src elisp
 (use-package citar-embark
   :ensure t
@@ -3573,7 +3631,7 @@ janet-lsp
   :config (citar-embark-mode))
 
 #+end_src
-*** citar-org-roam
+**** citar-org-roam
 #+begin_src elisp
 (use-package citar-org-roam
   :ensure t
@@ -3765,14 +3823,14 @@ janet-lsp
   :ensure t)
 
 #+end_src
-*** janet-ts-mode
+*** COMMENT janet-ts-mode
 #+begin_src elisp
 (use-package janet-ts-mode
   :vc (:fetcher github :repo sogaiu/janet-ts-mode)
   :ensure t)
 
 #+end_src
-*** ajrepl
+*** COMMENT ajrepl
 #+begin_src elisp
 (use-package ajrepl
   :ensure t
@@ -3783,7 +3841,7 @@ janet-lsp
             #'ajrepl-interaction-mode))
 
 #+end_src
-*** a-janet-spork-client
+*** COMMENT a-janet-spork-client
 Janet Spork Netrepl client.
 - [[https://github.com/sogaiu/a-janet-spork-client/blob/master/ajsc.el][Instructions]]
 - needs [[https://github.com/janet-lang/spork][Spork]] utility library: ~sudo jpm install spork~
@@ -3804,7 +3862,9 @@ Janet Spork Netrepl client.
             #'ajsc-interaction-mode))
 #+end_src
 ** :lang markdown
-*** markdown-mode
+*** COMMENT markdown-mode
+*NOTE:* had to disable this due to eglot throwing errors when parsing
+ comment forms in javascript with treesit grammar!
 #+begin_src elisp
 (use-package markdown-mode
   :ensure t
@@ -3859,7 +3919,7 @@ Works kind-of, but with multiple issues.
 		))
 
 #+end_src
-** :lang Javascript
+** COMMENT :lang JavaScript
 #+begin_src elisp
 (use-package js
   :config
@@ -3867,9 +3927,16 @@ Works kind-of, but with multiple issues.
   ;;
   )
 
-
 #+end_src
-** :lang CSS
+** COMMENT :lang TypeScript
+#+begin_src elisp
+(use-package typescript-ts-mode
+  :mode (("\\.ts\\'" . typescript-ts-mode)
+	 ("\\.tsx\\'" . tsx-ts-mode))
+  :config
+  (add-hook! '(typescript-ts-mode-hook tsx-ts-mode-hook) #'lsp!))
+#+end_src
+** COMMENT :lang CSS
 #+begin_src elisp
 (use-package css-mode
   :config
@@ -3879,6 +3946,69 @@ Works kind-of, but with multiple issues.
 
 
 #+end_src
+** COMMENT Themes
+*** gruvbox-theme
+#+begin_src elisp
+(use-package gruvbox-theme
+  :ensure t)
+#+end_src
+
+*** modus-themes /(built-in → updated)/
+Replacing the built-in version (3.0.0) with the current one.
+#+begin_src elisp
+(use-package modus-themes
+  :ensure t
+  :pin elpa
+  :config
+
+  (setq modus-themes-italic-constructs t
+	modus-themes-bold-constructs t
+
+	;; modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted)
+
+	modus-themes-completions
+	'((matches . (regular normal))
+          (selection . (semibold normal)))
+	)
+
+  (setq modus-themes-common-palette-overrides
+	'(;; Mode line: appear borderless (border = bg color)
+	  (border-mode-line-active bg-mode-line-active)
+          (border-mode-line-inactive bg-mode-line-inactive)
+
+	  ;; Mode line: sage background
+	  (bg-mode-line-active bg-sage)
+          (fg-mode-line-active fg-main)
+          (border-mode-line-active bg-green-intense)
+
+	  ;; Links: subtle underlines
+	  (underline-link border)
+          (underline-link-visited border)
+          (underline-link-symbolic border)	
+
+	  ;; Syntax
+	  (comment yellow-warmer)
+          (string green-cooler)
+
+	  (bg-paren-match bg-green-intense)
+	  (underline-paren-match fg-main)
+
+	  (fg-line-number-inactive "gray50")
+          (fg-line-number-active "gray50")
+          (bg-line-number-active bg-inactive)
+	  
+	  ;;
+	  ))
+
+  )
+#+end_src
+
+*** ef-themes
+#+begin_src elisp
+(use-package ef-themes
+  :ensure t)
+#+end_src
+
 * Customization
 ** Modifier keys
 #+begin_src elisp
@@ -3894,24 +4024,32 @@ Works kind-of, but with multiple issues.
 ** Text editing
 *** lines
 #+begin_src elisp
-(defun ph/newline-empty-below ()
-  "Creates a newline below the point that is always empty."
+(defun ph/newline-below ()
+  "Always inserts a newline below the point."
   (interactive)
-  (let ((beg (point)))
+  (save-excursion
     (move-end-of-line nil)
-    (open-line 1)
-    (goto-char beg)))
+    (open-line 1)))
 
-(defun ph/newline-empty-above ()
-  "Creates a newline above the point that is always empty."
+(defun ph/newline-above ()
+  "Always inserts a newline above the point."
   (interactive)
-  (let ((beg (point)))
-    (back-to-indentation)
-    (open-line 1)
-    (goto-char beg)))
+  (if (bolp)
+      (newline)
+      (save-excursion
+	(beginning-of-line)
+	(newline))))
 
-(keymap-global-set "C-}" #'ph/newline-empty-below)
-(keymap-global-set "C-{" #'ph/newline-empty-above)
+;; (defun ph/newline-empty-above ()
+;;   "Always inserts a newline above the point."
+;;   (interactive)
+;;   (let ((beg (point)))
+;;     (back-to-indentation)
+;;     (newline)
+;;     (goto-char beg)))
+
+(keymap-global-set "C-}" #'ph/newline-below)
+(keymap-global-set "C-{" #'ph/newline-above)
 
 
 (defun ph/join-with-next-line ()
@@ -4224,9 +4362,37 @@ Increment/decrement numbers like in Vim:
 
 #+end_src
 
-** Theme
+** COMMENT Themes
 #+begin_src elisp
 (add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
+
+(defun load-only-theme ()
+  "Disable all themes and then load a single theme interactively."
+  (interactive)
+  (while custom-enabled-themes
+    (disable-theme (car custom-enabled-themes)))
+  (call-interactively 'load-theme))
+;; credits: user bakuretsu on reddit
+;; source: https://www.reddit.com/r/emacs/comments/30b67j/comment/cpr8bsn/
+
+
+;; to prevent Emacs from enabling all required themes on startup:
+(mapc #'disable-theme custom-enabled-themes)
+
+(load-theme 'modus-operandi t)
+
+;; Activate my desired themes
+(load-theme 'modus-operandi t t)
+(load-theme 'modus-vivendi t t)
+;; (load-theme 'modus-operandi-tinted t t)
+;; (load-theme 'modus-vivendi-tinted t t)
+
+;; Enable my preferred theme
+(enable-theme 'modus-operandi)
+#+end_src
+
+*** COMMENT pmacs
+#+begin_src elisp
 (load-theme 'pmacs t)
 
 (set-face-attribute
@@ -4252,6 +4418,7 @@ Increment/decrement numbers like in Vim:
  ;; :foreground "#83be9d"
  :background "#2d3c33"
  )
+
 #+end_src
 
 * TODO
@@ -4292,16 +4459,32 @@ To fix:
   table” instead of just moving to the destination
   - see [[https://emacs.stackexchange.com/a/76352]] for a workaround
     - seems like this is a known bug in Org-mode that has not been fixed yet
-- [ ] FOR SOME UNKNOWN REASON tree-sitter grammars are all crashing now when
-  certain keystrokes are hit
-  - [ ] ~js-ts-mode~ crashes Emacs completely when pressing TAB
+- [X] tree-sitter grammars are all crashing when certain keystrokes are hit
+  - UPDATE: fixed it by re-building/installing Emacs
+    - see [[https://www.reddit.com/r/emacs/comments/1cdq488/do_not_upgrade_treesitter_or_else_emacs_crashes/?rdt=41524][Do not upgrade tree-sitter, or else Emacs crashes]] (Reddit thread)
+    - seems like this was related to a new version of tree-sitter that is
+      binary-incompatible with the previous version, while the ABI version
+      remains unchanged, which causes Emacs to crash
+    - rebuilding Emacs was suggested as a fix
+  - UPDATE: it is now clear that this is not due to my init file, since I
+    tested it without an ini, even in terminal mode it crashes
+  - ~js-ts-mode~ crashes Emacs completely when pressing TAB
     (~indent-for-tab-command~) on a top-level definition
     - does not happen in ~js-mode~
     - to reproduce: tab on ~const global = {~ line in ~styles.js~ (form-tric.)
-  - [ ] ~css-ts-mode~ also crashes Emacs completely on some input
-  - [ ] ~janet-ts-mode~ also crashes, didn’t do that before
+  - ~css-ts-mode~ also crashes Emacs completely on some input
+  - ~janet-ts-mode~ also crashes, didn’t do that before
     - somehow the ~treesit-auto~ wants to install the grammar even though it has
       actually been installed and I specifically told it to ignore Janet
+- [ ] janet-lsp doesn’t seem to work with Emacs right now
+  - gets a timeout after ~eglot~ has been executed for some reason
+  - https://github.com/CFiggers/janet-lsp
+- [X] ~eldoc~ (from ~eglot~) always returns a ~treesit-query-error~ when in
+  ~js-ts-mode~ using the ~javascript~ grammar file
+  - UPDATE: fixed it by removing ~markdown-mode~ from packages, which seemed to
+    interfere with processing of comments from treesit
+  - the problem seems to be in my config file, because it works perfectly fine
+    when starting from a clean config with just the grammar installed
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?

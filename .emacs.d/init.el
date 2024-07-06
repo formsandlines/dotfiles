@@ -581,6 +581,9 @@ one, an error is signaled."
     ("C-j" ph/buf-move-down)
     ("C-k" ph/buf-move-up)
     ("C-l" ph/buf-move-right)
+    ;; Rotate windows/layout
+    ("r" rotate-window)
+    ("R" rotate-layout)
     ;; Resize windows
     ("C-M-h" shrink-window-horizontally)
     ("C-M-l" enlarge-window-horizontally)
@@ -2224,6 +2227,9 @@ Subtracts right margin and org indentation level from fill-column"
   ;;
   )
 
+(use-package rotate
+  :ensure t)
+
 (use-package savehist
   :diminish
   :init
@@ -2392,20 +2398,6 @@ Subtracts right margin and org indentation level from fill-column"
   :config
   ;; ? how to disable elisp undefined warnings
   )
-
-(use-package flycheck-janet
-  :ensure t
-  :after (flycheck janet-ts-mode)
-  :diminish
-  :vc (:fetcher github :repo sogaiu/flycheck-janet))
-
-(use-package flycheck-rjan
-  :ensure t
-  :after (flycheck janet-ts-mode flycheck-janet)
-  :diminish
-  :vc (:fetcher github :repo sogaiu/flycheck-rjan)
-  :config
-  (flycheck-add-next-checker 'janet-rjan 'janet-janet))
 
 (use-package smartparens
   :ensure t
@@ -2864,7 +2856,7 @@ still remain accessible by `yank-pop'."
 
 (use-package symex
   :ensure t
-  :after janet-ts-mode
+  ;; :after janet-ts-mode
   :config
   (symex-initialize)
   ;; (global-set-key (kbd "s-;") 'symex-mode-interface)
@@ -2887,6 +2879,56 @@ still remain accessible by `yank-pop'."
 	 ;; present time.
 	 (not (member major-mode symex-clojure-modes))))
 
+  )
+
+(use-package meow-tree-sitter
+  :ensure t
+  :after meow
+  :custom
+  (meow-tree-sitter-queries-dir
+   (expand-file-name "meow-tree-sitter/queries" user-emacs-directory))
+  :config
+  ;; (meow-tree-sitter-register-defaults)
+  ;; (meow-tree-sitter-register-thing ?F "function")
+  ;; (meow-tree-sitter-register-thing ?b "function")
+  ;; (meow-tree-sitter-register-thing ?B "parameter")
+
+  (dolist (bind '((?c . "class")
+		  (?v . "function")
+		  (?t . "test")
+		  (?y . "entry")
+		  (?, . "parameter")
+		  (?/ . "comment")))
+    (meow-tree-sitter-register-thing (car bind) (cdr bind)))
+  ;;
+  )
+
+(use-package treesit
+  :config
+  (setq-default treesit-font-lock-level 4)
+  ;;
+  )
+
+(use-package treesit-auto
+  :ensure t
+  ;; :after treesit
+  :diminish
+  :custom
+  (treesit-auto-install 'prompt)
+  :config
+
+  ;; Construct `treesit-language-source-alist` using all known recipes:
+  ;; (setq treesit-language-source-alist
+  ;; 	(treesit-auto--build-treesit-source-alist))
+
+  
+  (treesit-auto-add-to-auto-mode-alist 'all)
+  (global-treesit-auto-mode)
+
+  ;; Fix language sources not being added to `treesit-language-source-alist`
+  (setq treesit-language-source-alist
+	(treesit-auto--build-treesit-source-alist))
+  ;;
   )
 
   (use-package eldoc
@@ -2930,8 +2972,8 @@ still remain accessible by `yank-pop'."
   ;;; Disable documentation-on-hover, which is still accessible with `M-x
   ;;; eldoc':
   ;;; https://github.com/joaotavora/eglot/discussions/691#discussioncomment-719373
-  (add-hook 'eglot-managed-mode-hook
-	    (lambda () (eldoc-mode -1)))
+  ;; (add-hook 'eglot-managed-mode-hook
+  ;; 	    (lambda () (eldoc-mode -1)))
 
   ;; (setq eglot-strict-mode nil)
 
@@ -3199,51 +3241,6 @@ still remain accessible by `yank-pop'."
 		 (side . right)
 		 (window-width . 0.5))))
 
-(use-package janet-ts-mode
-  :vc (:fetcher github :repo sogaiu/janet-ts-mode)
-  :ensure t)
-
-(use-package ajrepl
-  :ensure t
-  :after janet-ts-mode
-  :vc (:fetcher github :repo sogaiu/ajrepl)
-  :config
-  (add-hook 'janet-ts-mode-hook
-            #'ajrepl-interaction-mode))
-
-(use-package ajsc
-  :ensure t
-  :after (janet-ts-mode ajrepl)
-  :vc (:fetcher github :repo sogaiu/a-janet-spork-client)
-  :config
-  (add-hook 'janet-ts-mode-hook
-            #'ajsc-interaction-mode))
-
-(use-package markdown-mode
-  :ensure t
-  :mode ("README\\.md\\'" . gfm-mode)
-  :init (setq markdown-command "pandoc")
-  :bind (:map markdown-mode-map
-              ("C-c C-e" . markdown-do))
-  :config
-  (setq markdown-fontify-code-blocks-natively t)
-  (dolist (x '(("clj" . clojure-mode)
-               ("cljs" . clojure-mode)
-               ("cljc" . clojure-mode)))
-    (add-to-list 'markdown-code-lang-modes x)))
-
-(use-package js
-  :config
-  (add-to-list 'auto-mode-alist '("\\.js$" . javascript-mode))  
-  ;;
-  )
-
-(use-package css-mode
-  :config
-  (add-to-list 'auto-mode-alist '("\\.css$" . css-mode))  
-  ;;
-  )
-
 (setq mac-command-modifier 'meta)          ;; left cmd = right cmd
 (setq mac-right-command-modifier 'left)
 (setq mac-option-modifier nil)             ;; keeps Umlauts, etc. accessible
@@ -3251,24 +3248,32 @@ still remain accessible by `yank-pop'."
 (setq mac-control-modifier 'hyper)         ;; in case hyper is needed
 (setq mac-right-control-modifier 'control) ;; also works for caps-lock as ctrl
 
-(defun ph/newline-empty-below ()
-  "Creates a newline below the point that is always empty."
+(defun ph/newline-below ()
+  "Always inserts a newline below the point."
   (interactive)
-  (let ((beg (point)))
+  (save-excursion
     (move-end-of-line nil)
-    (open-line 1)
-    (goto-char beg)))
+    (open-line 1)))
 
-(defun ph/newline-empty-above ()
-  "Creates a newline above the point that is always empty."
+(defun ph/newline-above ()
+  "Always inserts a newline above the point."
   (interactive)
-  (let ((beg (point)))
-    (back-to-indentation)
-    (open-line 1)
-    (goto-char beg)))
+  (if (bolp)
+      (newline)
+      (save-excursion
+	(beginning-of-line)
+	(newline))))
 
-(keymap-global-set "C-}" #'ph/newline-empty-below)
-(keymap-global-set "C-{" #'ph/newline-empty-above)
+;; (defun ph/newline-empty-above ()
+;;   "Always inserts a newline above the point."
+;;   (interactive)
+;;   (let ((beg (point)))
+;;     (back-to-indentation)
+;;     (newline)
+;;     (goto-char beg)))
+
+(keymap-global-set "C-}" #'ph/newline-below)
+(keymap-global-set "C-{" #'ph/newline-above)
 
 
 (defun ph/join-with-next-line ()
@@ -3508,30 +3513,3 @@ end tell")
                     :slant 'normal)
 
 ;; (setq-default line-spacing 0.12)
-
-(add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
-(load-theme 'pmacs t)
-
-(set-face-attribute
- 'org-transclusion-fringe nil
- :foreground "#83be9d"
- ;; :background "#494a63"
- )
-
-(set-face-attribute
- 'org-transclusion-source-fringe nil
- :foreground "#83be9d"
- ;; :background "#494a63"
- )
-
-(set-face-attribute
- 'org-transclusion nil
- ;; :foreground "#83be9d"
- :background "#2d3c33"
- )
-
-(set-face-attribute
- 'org-transclusion-source nil
- ;; :foreground "#83be9d"
- :background "#2d3c33"
- )

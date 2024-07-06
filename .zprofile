@@ -47,6 +47,7 @@ PATH="$PATH:$JAVA_HOME/bin"
 PATH="$PATH:$HOME/Library/Application Support/Coursier/bin" # for Scala
 PATH="$PATH:$HOME/.dotfiles/scripts/bin"
 PATH="$PATH:$HOME/.roswell/bin"
+PATH="$PATH:/opt/homebrew/Cellar/janet/1.35.2/bin/"
 
 # Opam configuration (for OCaml)
 # test -r ~/.opam/opam-init/init.zsh && . ~/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
