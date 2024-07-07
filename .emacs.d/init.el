@@ -150,6 +150,9 @@
 
 ;; (defvar ph/bib-files "~/Documents/Org-roam/bibliography/master-lib.bib")
 
+;; Placeholder variable to be reset in themes
+(defvar ph/cursor-bg "#0000ff")
+
 ;;; work-around  for org-ctags obnoxious behavior
 (with-eval-after-load 'org-ctags (setq org-open-link-functions nil))
 
@@ -1595,17 +1598,19 @@ state (other than motion state) doesn’t bind anything."
   ;; 	       '((calc-mode . calc)
   ;; 		 (calc-embedded . calc)))
 
-
   (defface ph/meow-calc-cursor
-    '((t (:background "green")))
-    "Cursor face for meow calc state.")
-
+    '((t (:background "#ff0000"))) ;; to be customized by themes
+    "CALC cursor face."
+    :group 'meow)
+  
+  ;; Whenever calc-mode is activated, change cursor type and color
   (add-to-list 'meow-update-cursor-functions-alist
-	       '((lambda () (meow-calc-mode-p))
+	       '(meow-calc-mode-p
 		 . (lambda ()
 		     (progn
 		       (meow--set-cursor-type 'box)
 		       (meow--set-cursor-color 'ph/meow-calc-cursor)))))
+
   ;;
   )
 
@@ -3274,6 +3279,7 @@ still remain accessible by `yank-pop'."
   :pin elpa
   :config
 
+  
   (setq modus-themes-italic-constructs t
 	modus-themes-bold-constructs t
 
@@ -3284,8 +3290,12 @@ still remain accessible by `yank-pop'."
           (selection . (semibold normal)))
 	)
 
+  ;; I set this global because the `cursor' face may get changed dynamically
+  ;; and this allows me to keep its original value for future reference
+  (setq ph/cursor-bg "#00d599")
+
   (setq modus-themes-common-palette-overrides
-        '(
+        `(
 	  ;; Mode line: appear borderless (border = bg color)
 	  (border-mode-line-active bg-mode-line-active)
           (border-mode-line-inactive bg-mode-line-inactive)
@@ -3311,19 +3321,21 @@ still remain accessible by `yank-pop'."
           ))
 
   (setq modus-operandi-tinted-palette-overrides
-	'(
+	`(;; General
 	  ;; (bg-hl-line bg-green-nuanced)
 	  (bg-main "#faf8f4") ; fbf8f3
 	  (bg-hl-line "#ffffff")
 	  (bg-dim "#f3efe6") ; #f4f0e7
           (bg-hover "#c3f5e7")
 	  (bg-region "#ece9e5")
+	  (bg-search-lazy bg-hover)
 
 	  ;; Syntax
 	  (comment "#a9a19b")
           (string yellow-cooler)
           (docstring "#87786e")
-          (keyword green-intense)
+          (keyword cyan-intense)
+          ;; (keyword green-intense)
           (fnname blue)
           (variable magenta-warmer)
           (constant green)
@@ -3331,10 +3343,24 @@ still remain accessible by `yank-pop'."
           (builtin magenta)
           (type red)
           
-	  (cursor "#00d599")
-	  ;;
+	  (cursor ,ph/cursor-bg)
+          (bg-search-current bg-yellow-subtle)
+          
+          ;; Org-mode
+	  (fg-prose-code magenta-warmer)
+	  ;; (fg-prose-code cyan-intense)
+          (fg-heading-0 yellow)
+          (fg-heading-1 cyan-intense)
+          (fg-heading-2 cyan)
+          (fg-heading-3 cyan-warmer)
+          (fg-heading-4 blue)
+          (fg-heading-5 blue-warmer)
+          (fg-heading-6 fg-alt)
+          (fg-heading-7 fg-dim)
+          (fg-heading-8 fg-main)
+          ;;
 	  ))
-
+  
   )
 
 (use-package ef-themes
@@ -3639,3 +3665,45 @@ end tell")
 ;; Enable my preferred theme
 ;; (enable-theme 'modus-operandi)
 (enable-theme 'modus-operandi-tinted)
+
+(defface ph/cursor--copy
+  `((t (:background ,ph/cursor-bg)))
+  "Copy of the `cursor' face, in case it changed.")
+
+(set-face-attribute 'ph/meow-calc-cursor nil
+		    :background "#00caee") ; #83be9d
+
+(let ((faces '(meow-beacon-cursor
+	       meow-insert-cursor
+	       meow-keypad-cursor
+	       meow-kmacro-cursor
+	       meow-motion-cursor
+	       meow-normal-cursor
+	       meow-unknown-cursor)))
+  (dolist (face faces)
+    (set-face-attribute face nil :inherit 'ph/cursor--copy)))
+
+
+;; (set-face-attribute
+;;  'org-transclusion-fringe nil
+;;  :foreground "#83be9d"
+;;  ;; :background "#494a63"
+;;  )
+
+;; (set-face-attribute
+;;  'org-transclusion-source-fringe nil
+;;  :foreground "#83be9d"
+;;  ;; :background "#494a63"
+;;  )
+
+;; (set-face-attribute
+;;  'org-transclusion nil
+;;  ;; :foreground "#83be9d"
+;;  :background "#2d3c33"
+;;  )
+
+;; (set-face-attribute
+;;  'org-transclusion-source nil
+;;  ;; :foreground "#83be9d"
+;;  :background "#2d3c33"
+;;  )
