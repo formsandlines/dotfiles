@@ -4,4 +4,5 @@
 .clj-kondo
 .lsp
 .config/nvim/timeshift.vim/
+.zshrc.swp
 /.emacs.d/config.el

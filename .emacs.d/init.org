@@ -1102,7 +1102,7 @@ calls `meow-eval-last-exp'."
 (use-package meow
   :ensure t
   :demand t
-  :after (hydra clj-refactor symex)
+  :after (hydra symex) ;; clj-refactor
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
@@ -1133,6 +1133,21 @@ calls `meow-eval-last-exp'."
 	      (lambda (&rest r)
 		(meow-normal-mode)))
 
+  ;; Open `vterm' in insert mode; when switching to normal mode, activate
+  ;; `vterm-copy-mode' and back to `vterm' when going back to insert mode
+  (with-eval-after-load 'meow
+    (push '(vterm-mode . insert) meow-mode-state-list)
+    (add-hook 'vterm-mode-hook
+              (lambda ()
+		(add-hook 'meow-insert-enter-hook
+                          (lambda () (vterm-copy-mode -1))
+                          nil t)
+		(add-hook 'meow-insert-exit-hook
+                          (lambda () (vterm-copy-mode 1))
+                          nil t))))
+  ;; Source (thanks to user okamsn on GitHub):
+  ;; https://github.com/meow-edit/meow/discussions/519#discussioncomment-7353925
+  
   ;;
   )
   #+end_src
@@ -1855,7 +1870,7 @@ state (other than motion state) doesn’t bind anything."
   )
 #+end_src
 
-**** +meow clj-refactor slash fix
+**** COMMENT +meow clj-refactor slash fix
 #+begin_src elisp
 (use-package meow
   :config
@@ -1891,7 +1906,44 @@ state (other than motion state) doesn’t bind anything."
   (add-hook 'dired-mode-hook 'diff-hl-dired-mode))
 
 #+end_src
+** Shell/Terminal
+*** vterm
+#+begin_src elisp
+(use-package vterm
+  :ensure t
+  :config
+  (push (list "find-file-below"
+	      (lambda (path)
+		(if-let* ((buf (find-file-noselect path))
+			  (window (display-buffer-below-selected buf nil)))
+		    (select-window window)
+		  (message "Failed to open file: %s" path))))
+	vterm-eval-cmds)
+  ;;
+  )
 
+
+#+end_src
+*** vterm-toggle
+#+begin_src elisp
+(use-package vterm-toggle
+  :ensure t
+  :config
+  (keymap-global-set "C-c t t" #'vterm-toggle)
+  (keymap-global-set "C-c t c" #'vterm-toggle-cd)
+
+  ;; you can cd to the directory where your previous buffer file exists
+  ;; after you have toggle to the vterm buffer with `vterm-toggle'.
+  (keymap-set vterm-mode-map "C-RET" #'vterm-toggle-insert-cd)
+
+  ;; Switch to next vterm buffer
+  ;; (keymap-set vterm-mode-map "h-n" #'vterm-toggle-forward)
+  ;; Switch to previous vterm buffer
+  ;; (keymap-set vterm-mode-map "h-p" #'vterm-toggle-backward)
+
+  ;;
+  )
+#+end_src
 ** OrgMode
 *** org /(built-in)/
 #+begin_src elisp
@@ -1942,6 +1994,7 @@ state (other than motion state) doesn’t bind anything."
   ;; (keymap-set org-mode-map "C-c <tab>" #'org-fold-show-children)
   (keymap-set org-mode-map "C-<tab>" #'org-kill-note-or-show-branches)
   (keymap-set org-mode-map "C-M-<tab>" #'org-fold-show-all)
+  (keymap-set org-mode-map "C-c t e" #'org-table-export)
 
   ;; (add-to-list 'display-buffer-alist
   ;; 	       '("^\\*Org Src" display-buffer-at-bottom
@@ -2161,7 +2214,13 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
 	(org-transclusion-add)
 	(forward-line -1)))))
 #+end_src
-
+*** +My custom orgtbl converter
+#+begin_src elisp
+(defun ph/orgtbl-to-ssv (table params)
+  "Convert the `orgtbl-mode' TABLE to SEMICOLON separated material.
+Adapted from `orgtbl-to-tsv'."
+  (orgtbl-to-generic table (org-combine-plists '(:sep ";") params)))
+#+end_src
 *** +My fix for ~org-fill-paragraph~ in ~org-indent-mode~
 
 Fix for ~org-fill-paragraph~ in ~org-indent-mode~, which fails to integrate
@@ -2233,6 +2292,17 @@ Subtracts right margin and org indentation level from fill-column"
   (org-appear-autolinks t)
   (org-appear-autosubmarkers nil)
   :config
+  (setq org-appear-trigger 'manual)
+  (add-hook 'org-mode-hook (lambda ()
+                             (add-hook 'meow-insert-enter-hook
+                                       #'org-appear-manual-start
+                                       nil
+                                       t)
+                             (add-hook 'meow-insert-exit-hook
+                                       #'org-appear-manual-stop
+                                       nil
+                                       t)))
+
   (keymap-set org-mode-map "C-c e" #'ph/toggle-org-emphasis-markers)
   ;;
   )
@@ -2283,8 +2353,8 @@ Subtracts right margin and org indentation level from fill-column"
 #+end_src
 *** org-roam
 #+begin_src elisp
-(use-package emacsql-sqlite-builtin
-  :ensure t)
+;; (use-package emacsql-sqlite-builtin
+;;   :ensure t)
 
 (use-package org-roam
   :ensure t
@@ -2807,7 +2877,7 @@ Source: [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-docum
   :init (require 'smartparens-config)
   :config
   (smartparens-global-mode t) ;; These options can be t or nil.
-  (show-smartparens-global-mode t)
+  ;; (show-smartparens-global-mode t)
   (setq sp-show-pair-from-inside t)
   
   (sp-with-modes 'janet-ts-mode
@@ -3119,19 +3189,7 @@ instead.
     (forward-sexp)
     (cond ((equal major-mode 'janet-ts-mode)
 	   (ph/symex-eval-janet))
-	  ((member major-mode symex-racket-modes)
-	   (symex-eval-racket))
-	  ((member major-mode symex-elisp-modes)
-	   (symex-eval-elisp))
-	  ((equal major-mode 'scheme-mode)
-	   (symex-eval-scheme))
-	  ((member major-mode symex-clojure-modes)
-	   (symex-eval-clojure))
-	  ((member major-mode symex-common-lisp-modes)
-	   (symex-eval-common-lisp))
-	  ((equal major-mode 'arc-mode)
-	   (symex-eval-arc))
-	  (t (error "Symex mode: Lisp flavor not recognized!")))))
+          (t (funcall (symex-interface-get-method :eval))))))
 
 (defun ph/symex-evaluate (count)
   "Evaluate COUNT symexes."
@@ -3483,7 +3541,7 @@ janet-lsp
 
   ;; (setq eglot-strict-mode nil)
 
-  ;; (add-to-list 'eglot-ignored-server-capabilities :hoverProvider)
+  (add-to-list 'eglot-ignored-server-capabilities :hoverProvider)
 
   ;; (add-to-list 'eglot-ignored-server-capabilities :inlayHintProvider)
   ;; (add-to-list 'eglot-stay-out-of 'flymake)
@@ -3713,7 +3771,7 @@ janet-lsp
 
 #+end_src
 
-*** clj-refactor
+*** COMMENT clj-refactor
 #+begin_src elisp
   (use-package clj-refactor
     :ensure t
@@ -3754,16 +3812,26 @@ janet-lsp
 ;; Thanks to user 'dakra' for sharing this config:
 ;; - https://github.com/nextjournal/clerk/issues/170#issuecomment-1257013793
 
+(defun ph/--clerk-serve (port browse?)
+  (cider-interactive-eval (concat
+			   "(nextjournal.clerk/serve! {"
+			   ":render-nrepl {} "
+			   ":port " port " "
+			   ":browse? " browse? "})")))
+
 ;; Shortcut for clerk/show
+(defun clerk-serve-in-emacs ()
+  "Serve clerk notebooks and browse in Emacs."
+  (interactive)
+  (let ((port "7777"))
+    (ph/--clerk-serve port "false")
+    (ph/browse-url-in-split-window (concat "http://localhost:" port))))
+
 (defun clerk-serve ()
   "Serve clerk notebooks."
   (interactive)
   (let ((port "7777"))
-    (cider-interactive-eval (concat
-			     "(nextjournal.clerk/serve! {"
-			     ":port " port " "
-			     ":browse? false})"))
-    (ph/browse-url-in-split-window (concat "http://localhost:" port))))
+    (ph/--clerk-serve port "true")))
 
 (defun clerk-build ()
   "Build static html for the current clerk notebook."
@@ -3832,6 +3900,21 @@ janet-lsp
 		 (display-buffer-in-side-window)
 		 (side . right)
 		 (window-width . 0.5))))
+#+end_src
+
+** :lang Common Lisp
+*** SLIME
+See https://github.com/roswell/roswell/wiki/Initial-Recommended-Setup
+
+#+begin_src elisp
+(load (expand-file-name "~/.roswell/helper.el"))
+(setq inferior-lisp-program "ros -Q run")
+
+;; (use-package ???
+;;   :ensure t
+;;   :config
+;;   ;;
+;;   )
 #+end_src
 ** :lang Janet
 *** janet-ts-mode
@@ -4018,13 +4101,14 @@ Replacing the built-in version (3.0.0) with the current one.
 	  ;; (bg-hl-line bg-green-nuanced)
 	  (bg-main "#faf8f4") ; fbf8f3
 	  (bg-hl-line "#ffffff")
+	  (fg-dim "#9a9693") ; #a9a19b
 	  (bg-dim "#f3efe6") ; #f4f0e7
           (bg-hover "#c3f5e7")
 	  (bg-region "#ece9e5")
 	  (bg-search-lazy bg-hover)
 
 	  ;; Syntax
-	  (comment "#a9a19b")
+	  (comment fg-dim)
           (string yellow-cooler)
           (docstring "#87786e")
           (keyword cyan-intense)
@@ -4041,6 +4125,7 @@ Replacing the built-in version (3.0.0) with the current one.
           
           ;; Org-mode
 	  (fg-prose-code magenta-warmer)
+	  (fg-prose-verbatim magenta-cooler)
 	  ;; (fg-prose-code cyan-intense)
           (fg-heading-0 yellow)
           (fg-heading-1 cyan-intense)
@@ -4061,6 +4146,18 @@ Replacing the built-in version (3.0.0) with the current one.
 #+begin_src elisp
 (use-package ef-themes
   :ensure t)
+#+end_src
+** server /(built-in)/
+Evaluate forms from terminal, e.g.:
+: emacsclient -e '(print "Hello from Emacs!")'
+
+#+begin_src elisp
+(use-package server
+  :ensure nil
+  :defer 1
+  :config
+  (unless (server-running-p)
+    (server-start)))
 #+end_src
 
 * Customization
@@ -4322,6 +4419,76 @@ end tell")
         (kill-buffer buf)))))
 
 ;; (keymap-global-set "C-`" #'ph/kill-all-help-buffers)
+#+end_src
+
+** Commands in Popup frames
+Thanks to Protesilaos Stavrou for this snippet.
+- Source: [[https://protesilaos.com/codelog/2024-09-19-emacs-command-popup-frame-emacsclient/][Emacs: commands in popup frames with 'emacsclient']]
+
+#+begin_src elisp
+;;;; Run commands in a popup frame
+
+(defun prot-window-delete-popup-frame (&rest _)
+  "Kill selected selected frame if it has parameter `prot-window-popup-frame'.
+Use this function via a hook."
+  (when (frame-parameter nil 'prot-window-popup-frame)
+    (delete-frame)))
+
+(defmacro prot-window-define-with-popup-frame (command)
+  "Define interactive function which calls COMMAND in a new frame.
+Make the new frame have the `prot-window-popup-frame' parameter."
+  `(defun ,(intern (format "prot-window-popup-%s" command)) ()
+     ,(format "Run `%s' in a popup frame with `prot-window-popup-frame' parameter.
+Also see `prot-window-delete-popup-frame'." command)
+     (interactive)
+     (let ((frame (make-frame '((prot-window-popup-frame . t)))))
+       (select-frame frame)
+       (switch-to-buffer " prot-window-hidden-buffer-for-popup-frame")
+       (condition-case nil
+           (call-interactively ',command)
+         ((quit error user-error)
+          (delete-frame frame))))))
+
+#+end_src
+
+*** Calc popup command
+#+begin_src elisp
+(prot-window-define-with-popup-frame full-calc)
+
+;; (add-hook 'calc-end-hook #'prot-window-delete-popup-frame)
+
+(advice-add #'calc-quit :around
+	    (lambda (fn &rest args)
+	      (if (frame-parameter nil 'prot-window-popup-frame)
+		  (delete-frame)
+		(apply fn args))))
+#+end_src
+
+*** COMMENT Examples
+#+begin_src elisp
+(declare-function org-capture "org-capture" (&optional goto keys))
+(defvar org-capture-after-finalize-hook)
+
+;;;###autoload (autoload 'prot-window-popup-org-capture "prot-window")
+(prot-window-define-with-popup-frame org-capture)
+
+(add-hook 'org-capture-after-finalize-hook #'prot-window-delete-popup-frame)
+
+(declare-function tmr "tmr" (time &optional description acknowledgep))
+(defvar tmr-timer-created-functions)
+
+;;;###autoload (autoload 'prot-window-popup-tmr "prot-window")
+(prot-window-define-with-popup-frame tmr)
+
+(add-hook 'tmr-timer-created-functions #'prot-window-delete-popup-frame)
+
+;;;; The emacsclient call depends on the daemon or `server-mode' (I use the latter)
+
+;;;; The emacsclient calls that need ot be bound to system-wide keys
+
+;; emacsclient -e '(prot-window-popup-org-capture)'
+;; emacsclient -e '(prot-window-popup-tmr)'
+
 #+end_src
 
 ** xwidget-webkit
@@ -4594,6 +4761,21 @@ To fix:
     - switched back on after executing some commands
       - like ~C-u SPC~ or ~C-c C-x p~, but these by themselves don’t trigger the
         mode
+- [ ] ~smartparens~ bug with fragments ~<>…</>~ in ~tsx-ts-mode~
+  - report here: [[https://github.com/Fuco1/smartparens]] ?
+    #+begin_src debugger :tangle no
+Debugger entered--Lisp error: (args-out-of-range #("<" 0 1 (fontified t)) 1 2)
+  sp--sgml-opening-p(#("<" 0 1 (fontified t)))
+  sp-get-sgml-tag(t)
+  sp-get-thing(:back)
+  #<subr F616e6f6e796d6f75732d6c616d626461_anonymous_lambda_149>(#(">" 0 1 (fontified t)) :back)
+  sp-show--pair-function()
+  apply(sp-show--pair-function nil)
+  timer-event-handler([t 0 0 125000 t sp-show--pair-function nil idle 0 nil])
+    #+end_src
+- [ ] ~clj-refactor~ causes issues when connecting to Clerks render-REPL from
+  CIDER, so I had to remove it for now
+  - see https://clojurians.slack.com/archives/C035GRLJEP8/p1729288061113389
 
 To learn:
 - [ ] how does Yasnippet work and is it useful?

@@ -977,7 +977,7 @@ calls `meow-eval-last-exp'."
 (use-package meow
   :ensure t
   :demand t
-  :after (hydra clj-refactor symex)
+  :after (hydra symex) ;; clj-refactor
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
@@ -1008,6 +1008,21 @@ calls `meow-eval-last-exp'."
 	      (lambda (&rest r)
 		(meow-normal-mode)))
 
+  ;; Open `vterm' in insert mode; when switching to normal mode, activate
+  ;; `vterm-copy-mode' and back to `vterm' when going back to insert mode
+  (with-eval-after-load 'meow
+    (push '(vterm-mode . insert) meow-mode-state-list)
+    (add-hook 'vterm-mode-hook
+              (lambda ()
+		(add-hook 'meow-insert-enter-hook
+                          (lambda () (vterm-copy-mode -1))
+                          nil t)
+		(add-hook 'meow-insert-exit-hook
+                          (lambda () (vterm-copy-mode 1))
+                          nil t))))
+  ;; Source (thanks to user okamsn on GitHub):
+  ;; https://github.com/meow-edit/meow/discussions/519#discussioncomment-7353925
+  
   ;;
   )
 
@@ -1710,19 +1725,6 @@ state (other than motion state) doesn’t bind anything."
   ;;
   )
 
-(use-package meow
-  :config
-  (add-hook 'meow-paren-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-symex-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-normal-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-insert-mode-hook
-	    (lambda () (keymap-set clj-refactor-map "/" #'cljr-slash)))
-  ;;
-  )
-
 (use-package magit
   :ensure t)
 
@@ -1736,6 +1738,37 @@ state (other than motion state) doesn’t bind anything."
   :config
   (global-diff-hl-mode)
   (add-hook 'dired-mode-hook 'diff-hl-dired-mode))
+
+(use-package vterm
+  :ensure t
+  :config
+  (push (list "find-file-below"
+	      (lambda (path)
+		(if-let* ((buf (find-file-noselect path))
+			  (window (display-buffer-below-selected buf nil)))
+		    (select-window window)
+		  (message "Failed to open file: %s" path))))
+	vterm-eval-cmds)
+  ;;
+  )
+
+(use-package vterm-toggle
+  :ensure t
+  :config
+  (keymap-global-set "C-c t t" #'vterm-toggle)
+  (keymap-global-set "C-c t c" #'vterm-toggle-cd)
+
+  ;; you can cd to the directory where your previous buffer file exists
+  ;; after you have toggle to the vterm buffer with `vterm-toggle'.
+  (keymap-set vterm-mode-map "C-RET" #'vterm-toggle-insert-cd)
+
+  ;; Switch to next vterm buffer
+  ;; (keymap-set vterm-mode-map "h-n" #'vterm-toggle-forward)
+  ;; Switch to previous vterm buffer
+  ;; (keymap-set vterm-mode-map "h-p" #'vterm-toggle-backward)
+
+  ;;
+  )
 
 (use-package org
   :config
@@ -1784,6 +1817,7 @@ state (other than motion state) doesn’t bind anything."
   ;; (keymap-set org-mode-map "C-c <tab>" #'org-fold-show-children)
   (keymap-set org-mode-map "C-<tab>" #'org-kill-note-or-show-branches)
   (keymap-set org-mode-map "C-M-<tab>" #'org-fold-show-all)
+  (keymap-set org-mode-map "C-c t e" #'org-table-export)
 
   ;; (add-to-list 'display-buffer-alist
   ;; 	       '("^\\*Org Src" display-buffer-at-bottom
@@ -1992,6 +2026,11 @@ state (other than motion state) doesn’t bind anything."
 	(org-transclusion-add)
 	(forward-line -1)))))
 
+(defun ph/orgtbl-to-ssv (table params)
+  "Convert the `orgtbl-mode' TABLE to SEMICOLON separated material.
+Adapted from `orgtbl-to-tsv'."
+  (orgtbl-to-generic table (org-combine-plists '(:sep ";") params)))
+
 (use-package org
   :config
   (defun current-fill-column ()
@@ -2046,6 +2085,17 @@ Subtracts right margin and org indentation level from fill-column"
   (org-appear-autolinks t)
   (org-appear-autosubmarkers nil)
   :config
+  (setq org-appear-trigger 'manual)
+  (add-hook 'org-mode-hook (lambda ()
+                             (add-hook 'meow-insert-enter-hook
+                                       #'org-appear-manual-start
+                                       nil
+                                       t)
+                             (add-hook 'meow-insert-exit-hook
+                                       #'org-appear-manual-stop
+                                       nil
+                                       t)))
+
   (keymap-set org-mode-map "C-c e" #'ph/toggle-org-emphasis-markers)
   ;;
   )
@@ -2092,8 +2142,8 @@ Subtracts right margin and org indentation level from fill-column"
   ;; 	    #'org-transclusion-content-insert-add-overlay)
   )
 
-(use-package emacsql-sqlite-builtin
-  :ensure t)
+;; (use-package emacsql-sqlite-builtin
+;;   :ensure t)
 
 (use-package org-roam
   :ensure t
@@ -2410,7 +2460,7 @@ Subtracts right margin and org indentation level from fill-column"
   :init (require 'smartparens-config)
   :config
   (smartparens-global-mode t) ;; These options can be t or nil.
-  (show-smartparens-global-mode t)
+  ;; (show-smartparens-global-mode t)
   (setq sp-show-pair-from-inside t)
   
   (sp-with-modes 'janet-ts-mode
@@ -2707,19 +2757,7 @@ chacking if a region is active or not."
     (forward-sexp)
     (cond ((equal major-mode 'janet-ts-mode)
 	   (ph/symex-eval-janet))
-	  ((member major-mode symex-racket-modes)
-	   (symex-eval-racket))
-	  ((member major-mode symex-elisp-modes)
-	   (symex-eval-elisp))
-	  ((equal major-mode 'scheme-mode)
-	   (symex-eval-scheme))
-	  ((member major-mode symex-clojure-modes)
-	   (symex-eval-clojure))
-	  ((member major-mode symex-common-lisp-modes)
-	   (symex-eval-common-lisp))
-	  ((equal major-mode 'arc-mode)
-	   (symex-eval-arc))
-	  (t (error "Symex mode: Lisp flavor not recognized!")))))
+          (t (funcall (symex-interface-get-method :eval))))))
 
 (defun ph/symex-evaluate (count)
   "Evaluate COUNT symexes."
@@ -2995,7 +3033,7 @@ still remain accessible by `yank-pop'."
 
   ;; (setq eglot-strict-mode nil)
 
-  ;; (add-to-list 'eglot-ignored-server-capabilities :hoverProvider)
+  (add-to-list 'eglot-ignored-server-capabilities :hoverProvider)
 
   ;; (add-to-list 'eglot-ignored-server-capabilities :inlayHintProvider)
   ;; (add-to-list 'eglot-stay-out-of 'flymake)
@@ -3151,26 +3189,6 @@ still remain accessible by `yank-pop'."
     (defun cider--completing-read-host (hosts)
       '("localhost")))
 
-  (use-package clj-refactor
-    :ensure t
-    :after cider
-    :config
-    ;;; Hook function from https://github.com/clojure-emacs/clj-refactor.el
-    (add-hook 'clojure-mode-hook
-	      (lambda ()
-		(clj-refactor-mode 1)
-		(yas-minor-mode 1) ; for adding require/use/import statements
-		;; This choice of keybinding leaves cider-macroexpand-1 unbound
-		(cljr-add-keybindings-with-prefix "C-c C-m")))
-
-    (dolist (magic-require '(("clerk"    . "nextjournal.clerk")
-			     ("csv"      . "clojure.data.csv")
-			     ("edn"      . "clojure.edn")
-			     ("pprint"   . "clojure.pprint")
-			     ("reagent"  . "reagent.core")
-			     ("re-frame" . "re-frame.core")))
-      (add-to-list 'cljr-magic-require-namespaces magic-require)))
-
 ;; (defun clerk-show ()
 ;;   (interactive)
 ;;   (when-let
@@ -3186,16 +3204,26 @@ still remain accessible by `yank-pop'."
 ;; Thanks to user 'dakra' for sharing this config:
 ;; - https://github.com/nextjournal/clerk/issues/170#issuecomment-1257013793
 
+(defun ph/--clerk-serve (port browse?)
+  (cider-interactive-eval (concat
+			   "(nextjournal.clerk/serve! {"
+			   ":render-nrepl {} "
+			   ":port " port " "
+			   ":browse? " browse? "})")))
+
 ;; Shortcut for clerk/show
+(defun clerk-serve-in-emacs ()
+  "Serve clerk notebooks and browse in Emacs."
+  (interactive)
+  (let ((port "7777"))
+    (ph/--clerk-serve port "false")
+    (ph/browse-url-in-split-window (concat "http://localhost:" port))))
+
 (defun clerk-serve ()
   "Serve clerk notebooks."
   (interactive)
   (let ((port "7777"))
-    (cider-interactive-eval (concat
-			     "(nextjournal.clerk/serve! {"
-			     ":port " port " "
-			     ":browse? false})"))
-    (ph/browse-url-in-split-window (concat "http://localhost:" port))))
+    (ph/--clerk-serve port "true")))
 
 (defun clerk-build ()
   "Build static html for the current clerk notebook."
@@ -3258,6 +3286,15 @@ still remain accessible by `yank-pop'."
 		 (display-buffer-in-side-window)
 		 (side . right)
 		 (window-width . 0.5))))
+
+(load (expand-file-name "~/.roswell/helper.el"))
+(setq inferior-lisp-program "ros -Q run")
+
+;; (use-package ???
+;;   :ensure t
+;;   :config
+;;   ;;
+;;   )
 
 (use-package janet-ts-mode
   ;; :ensure t
@@ -3325,13 +3362,14 @@ still remain accessible by `yank-pop'."
 	  ;; (bg-hl-line bg-green-nuanced)
 	  (bg-main "#faf8f4") ; fbf8f3
 	  (bg-hl-line "#ffffff")
+	  (fg-dim "#9a9693") ; #a9a19b
 	  (bg-dim "#f3efe6") ; #f4f0e7
           (bg-hover "#c3f5e7")
 	  (bg-region "#ece9e5")
 	  (bg-search-lazy bg-hover)
 
 	  ;; Syntax
-	  (comment "#a9a19b")
+	  (comment fg-dim)
           (string yellow-cooler)
           (docstring "#87786e")
           (keyword cyan-intense)
@@ -3348,6 +3386,7 @@ still remain accessible by `yank-pop'."
           
           ;; Org-mode
 	  (fg-prose-code magenta-warmer)
+	  (fg-prose-verbatim magenta-cooler)
 	  ;; (fg-prose-code cyan-intense)
           (fg-heading-0 yellow)
           (fg-heading-1 cyan-intense)
@@ -3365,6 +3404,13 @@ still remain accessible by `yank-pop'."
 
 (use-package ef-themes
   :ensure t)
+
+(use-package server
+  :ensure nil
+  :defer 1
+  :config
+  (unless (server-running-p)
+    (server-start)))
 
 (setq mac-command-modifier 'meta)          ;; left cmd = right cmd
 (setq mac-right-command-modifier 'left)
@@ -3563,6 +3609,39 @@ end tell")
       (message "File does not exist!"))))
 
 (keymap-set dired-mode-map "O" #'ph/dired-open-in-finder)
+
+;;;; Run commands in a popup frame
+
+(defun prot-window-delete-popup-frame (&rest _)
+  "Kill selected selected frame if it has parameter `prot-window-popup-frame'.
+Use this function via a hook."
+  (when (frame-parameter nil 'prot-window-popup-frame)
+    (delete-frame)))
+
+(defmacro prot-window-define-with-popup-frame (command)
+  "Define interactive function which calls COMMAND in a new frame.
+Make the new frame have the `prot-window-popup-frame' parameter."
+  `(defun ,(intern (format "prot-window-popup-%s" command)) ()
+     ,(format "Run `%s' in a popup frame with `prot-window-popup-frame' parameter.
+Also see `prot-window-delete-popup-frame'." command)
+     (interactive)
+     (let ((frame (make-frame '((prot-window-popup-frame . t)))))
+       (select-frame frame)
+       (switch-to-buffer " prot-window-hidden-buffer-for-popup-frame")
+       (condition-case nil
+           (call-interactively ',command)
+         ((quit error user-error)
+          (delete-frame frame))))))
+
+(prot-window-define-with-popup-frame full-calc)
+
+;; (add-hook 'calc-end-hook #'prot-window-delete-popup-frame)
+
+(advice-add #'calc-quit :around
+	    (lambda (fn &rest args)
+	      (if (frame-parameter nil 'prot-window-popup-frame)
+		  (delete-frame)
+		(apply fn args))))
 
 (add-hook 'xwidget-webkit-mode-hook
 	  (lambda ()
