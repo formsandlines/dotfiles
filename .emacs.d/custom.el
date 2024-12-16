@@ -40,7 +40,7 @@
 	      1 'font-lock-variable-name-face)))))
  '(org-agenda-files '("~/.dotfiles/.emacs.d/init.org"))
  '(package-selected-packages
-   '(vterm-toggle vterm modus-themes sublime-themes ef-themes lsp-ui lsp-mode meow-tree-sitter rotate css emacs-obsidian-excalidraw citar-org-roam citar-embark embark nerd-icons citar citeproc gnuplot-mode org-roam-ui emacsql-sqlite-builtin rainbow-mode emacsql-sqlite emacsql org-roam gnuplot corfu orderless vertico treesit-auto markdown-mode ajsc ajrepl janet-ts-mode racket-mode geiser-chicken cider smartparens flycheck-rjan flycheck-janet marginalia popper yasnippet diff-hl meow hydra which-key separedit symex flycheck-color-mode-line vc-use-package beacon org-transclusion eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode org-appear evil-surround gruvbox-theme evil))
+   '(racket-mode breadcrumb vterm-toggle vterm modus-themes sublime-themes ef-themes lsp-ui lsp-mode meow-tree-sitter rotate css emacs-obsidian-excalidraw citar-org-roam citar-embark embark nerd-icons citar citeproc gnuplot-mode org-roam-ui emacsql-sqlite-builtin rainbow-mode emacsql-sqlite emacsql org-roam gnuplot corfu orderless treesit-auto markdown-mode ajsc ajrepl janet-ts-mode geiser-chicken cider smartparens flycheck-rjan flycheck-janet marginalia popper yasnippet diff-hl meow hydra which-key separedit symex flycheck-color-mode-line vc-use-package beacon org-transclusion eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode org-appear evil-surround gruvbox-theme evil))
  '(package-vc-selected-packages
    '((vc-use-package :vc-backend Git :url "https://github.com/slotThe/vc-use-package")
      (ajrepl :vc-backend Git :url "https://github.com/sogaiu/ajrepl")
@@ -49,7 +49,11 @@
      (ajsc :vc-backend Git :url "https://github.com/sogaiu/a-janet-spork-client")
      (flycheck-rjan :vc-backend Git :url "https://github.com/sogaiu/flycheck-rjan")
      (flycheck-janet :vc-backend Git :url "https://github.com/sogaiu/flycheck-janet")
-     (org-excalidraw :vc-backend Git :url "https://github.com/ifeitao/org-excalidraw"))))
+     (org-excalidraw :vc-backend Git :url "https://github.com/ifeitao/org-excalidraw")))
+ '(safe-local-variable-values
+   '((ph/clerk-watch-paths "src")
+     (ph/clerk-watch-paths quote
+			   ("src")))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

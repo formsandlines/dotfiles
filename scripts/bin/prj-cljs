@@ -19,6 +19,11 @@ init_yarn() {
   echo 'nodeLinker: node-modules' >> .yarnrc.yml
 }
 
+init_pnpm() {
+  pnpm init
+  echo 'shamefully-hoist = true' >> .npmrc
+}
+
 add_yarn_deps() {
   framework="$1"
 
@@ -36,6 +41,25 @@ add_yarn_deps() {
   yarn add --dev shadow-cljs # use-sync-external-store
   yarn add "${deps[@]}"
 }
+
+add_pnpm_deps() {
+  framework="$1"
+
+  case $framework in
+    helix)
+      deps_str='react react-refresh react-dom'
+      ;;
+    reagent)
+      deps_str='react react-dom'
+      ;;
+  esac
+
+  deps=($deps_str)
+
+  pnpm add --save-dev shadow-cljs # use-sync-external-store
+  pnpm add "${deps[@]}"
+}
+
 
 create_shadow-cljs() {
   name="$1"
@@ -316,12 +340,18 @@ run() {
   mkdir "$1"
   cd "$1" || exit 1
 
-  status_msg 'Initializing yarn…'
-  init_yarn
+  # status_msg 'Initializing yarn…'
+  # init_yarn
 
-  status_msg 'Adding yarn deps…'
-  add_yarn_deps $framework
+  # status_msg 'Adding yarn deps…'
+  # add_yarn_deps $framework
 
+  status_msg 'Initializing pnpm…'
+  init_pnpm
+
+  status_msg 'Adding pnpm deps…'
+  add_pnpm_deps $framework
+  
   if [ "$depconfig" = 'shadow' ]; then
       status_msg 'Creating shadow.cljs…'
       create_shadow-cljs $name $framework $devenv

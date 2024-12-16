@@ -717,8 +717,10 @@ one, an error is signaled."
 major mode or the general command if none applies."
   (interactive (list (current-buffer) (equal current-prefix-arg '(4))))
   (cond
-   ((eq major-mode 'clojure-mode)
-    (cider-eval-buffer buffer nil undef-all))
+   ((or (eq major-mode 'clojure-mode)
+	(eq major-mode 'clojurec-mode)
+	(eq major-mode 'clojurescript-mode))
+    (cider-load-buffer buffer nil undef-all))
    ((eq major-mode 'janet-ts-mode)
     (ajrepl-send-buffer))
    (t (eval-buffer buffer))))
@@ -752,6 +754,28 @@ calls `meow-eval-last-exp'."
   "Reverses the search direction from `meow-search' (like `-n')."
   (interactive)
   (meow-search -1))
+
+
+(defvar meow-paragraph-thing 'paragraph)
+
+;; NOTE: `" _w"` is an argument for `include-syntax` in `meow-next-thing` that
+;; meow uses internally for word and symbol ‘things’ and it seems to work with
+;; paragraphs as well, but I have not the faintest idea what this is or how this
+;; ‘syntax’ should look like.
+
+;; If I don’t provide the (optional) arg, I get an error “(wrong-type-argument
+;; stringp nil)” since `meow-next-thing-include-syntax` doesn’t include my
+;; paragraph thing. Maybe it can be customized somehow.
+
+(defun ph/meow-next-paragraph (n)
+  "Select to the end of the next Nth paragraph."
+  (interactive "p")
+  (meow-next-thing meow-paragraph-thing 'paragraph n " _w"))
+
+(defun ph/meow-back-paragraph (n)
+  "Select to the beginning of the previous Nth paragraph."
+  (interactive "p")
+  (meow-next-thing meow-paragraph-thing 'paragraph (- n) " _w"))
 
 ;; prefix /
 (defconst ph/meow-prefix-slash
@@ -899,9 +923,12 @@ calls `meow-eval-last-exp'."
    '("L" . meow-right-expand)
 
    '("u" . meow-back-word)
-   '("U" . meow-back-symbol)
+   ;; '("U" . meow-back-symbol)
    '("o" . meow-next-word)
-   '("O" . meow-next-symbol)
+   ;; '("O" . meow-next-symbol)
+
+   '("O" . meow-pop-to-mark)
+   '("U" . meow-unpop-to-mark)
 
    '("w" . meow-mark-word)		; a -> w
    '("W" . meow-mark-symbol)		; A -> W
@@ -928,8 +955,10 @@ calls `meow-eval-last-exp'."
    '("," . meow-inner-of-thing)	; < -> ,
    '("." . meow-bounds-of-thing)	; > -> .
 
-   '("{" . backward-paragraph)
-   '("}" . forward-paragraph)
+   ;; '("{" . backward-paragraph)
+   ;; '("}" . forward-paragraph)
+   '("{" . ph/meow-back-paragraph)
+   '("}" . ph/meow-next-paragraph)
 
 
    '("d" . meow-kill)
@@ -1440,16 +1469,16 @@ calls `meow-eval-last-exp'."
   "Same as the original, but does not move the cursor."
   (interactive)
   (let ((beg (point))) ;; `save-excursion' doesn’t seem to work here
-    (call-interactively 'org-table-cut-region)
+    (call-interactively #'org-table-cut-region)
     (goto-char beg)))
 
 (defun ph/org-table-copy-region ()
   "Same as the original, but does not move the cursor."
   (interactive)
   (save-excursion
-    (call-interactively 'org-table-copy-region)
+    (call-interactively #'org-table-copy-region)
     (when meow--selection
-      (call-interactively 'meow-cancel-selection))))
+      (call-interactively #'meow-cancel-selection))))
 
 (defun ph/meow-org-table-field-replace ()
   "Copies table field content before replacing it with the insertion."
@@ -1935,6 +1964,24 @@ state (other than motion state) doesn’t bind anything."
     (when (eq type 'link)
       (org-toggle-inline-images nil beg end))))
 
+
+(defun ph/org-insert-radio-target-brackets (&optional arg)
+  "Surround selected text with Org Radio Target angle brackets (e.g. `<<<foo>>>`) and then find and update all radio targets."
+  (interactive)
+  (progn
+    (insert-pair arg "<<<" ">>>")
+    (org-update-radio-target-regexp)))
+
+;; (defun ph/org-insert-radio-target-brackets (start end)
+;;   "Wraps a region with angular brackets to create a radio target."
+;;   (interactive "r")
+;;   (save-excursion
+;;     (goto-char end)
+;;     (insert ">>>")
+;;     (goto-char start)
+;;     (insert "<<<")))
+
+
 (use-package org
   :config
   ;; Global bindings as recommended by the org manual:
@@ -1960,6 +2007,8 @@ state (other than motion state) doesn’t bind anything."
   ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
   (keymap-set org-mode-map "C-c d" #'org-table-blank-field)
 
+  (keymap-set org-mode-map "C-c n r" #'ph/org-insert-radio-target-brackets)
+  
   ;; org-goto keybindings:
   ;; (keymap-set org-goto-map "j" #'outline-next-visible-heading)
   ;; (keymap-set org-goto-map "k" #'outline-previous-visible-heading)
@@ -1981,7 +2030,7 @@ state (other than motion state) doesn’t bind anything."
 (defun ph/org-id-store-create ()
   (interactive)
   (org-id-get-create)
-  (call-interactively 'org-store-link))
+  (call-interactively #'org-store-link))
 
 (defun ph/org-top-parent-heading ()
   (interactive)
@@ -2147,7 +2196,7 @@ Subtracts right margin and org indentation level from fill-column"
 
 (use-package org-roam
   :ensure t
-  :after emacsql-sqlite-builtin
+  ;; :after emacsql-sqlite-builtin
   ;; :after (org emacsql-sqlite-builtin)
   :custom
   (org-roam-directory (file-truename "~/Documents/Org-roam"))
@@ -2424,6 +2473,14 @@ Subtracts right margin and org indentation level from fill-column"
   ;; Enable indentation+completion using the TAB key.
   ;; `completion-at-point' is often bound to M-TAB.
   (setq tab-always-indent 'complete))
+
+(use-package breadcrumb
+  :ensure t
+  :diminish
+  :init
+  (breadcrumb-mode)
+  ;;
+  )
 
 (use-package flycheck
   :ensure t
@@ -3189,43 +3246,59 @@ still remain accessible by `yank-pop'."
     (defun cider--completing-read-host (hosts)
       '("localhost")))
 
-;; (defun clerk-show ()
-;;   (interactive)
-;;   (when-let
-;;       ((filename
-;;         (buffer-file-name)))
-;;     (save-buffer)
-;;     (cider-interactive-eval
-;;      (concat "(nextjournal.clerk/show! \"" filename "\")"))))
-
-;; (define-key clojure-mode-map (kbd "<M-return>") 'clerk-show)
+(defun ph/clerk-show ()
+  (interactive)
+  (when-let
+      ((filename
+        (buffer-file-name)))
+    (save-buffer)
+    (cider-interactive-eval
+     (concat "(nextjournal.clerk/show! \"" filename "\")"))))
 
 
-;; Thanks to user 'dakra' for sharing this config:
-;; - https://github.com/nextjournal/clerk/issues/170#issuecomment-1257013793
+;; The following variables may be overwritten per project in .dir-locals
 
-(defun ph/--clerk-serve (port browse?)
-  (cider-interactive-eval (concat
-			   "(nextjournal.clerk/serve! {"
-			   ":render-nrepl {} "
-			   ":port " port " "
-			   ":browse? " browse? "})")))
+(defvar ph/clerk-watch-paths '("notebooks" "src")
+  "Watch paths for Clerk notebooks.")
 
-;; Shortcut for clerk/show
-(defun clerk-serve-in-emacs ()
+(defvar ph/clerk-serve-port "7777"
+  "Port for serving Clerk notebooks.")
+
+(defvar ph/clerk-nrepl-port "1339"
+  "Port for Clerk’s render nREPL server.")
+
+
+(defun ph/--clerk-serve (port browse? render-nrepl?)
+  (let ((watch-paths (concat "[" (mapconcat (lambda (s) (concat "\"" s "\""))
+					    ph/clerk-watch-paths " ") "]")))
+    (cider-interactive-eval
+     (concat
+      "(nextjournal.clerk/serve! {"
+      (if render-nrepl?
+	  (concat ":render-nrepl {:port " ph/clerk-nrepl-port "} ") "")
+      ":watch-paths " watch-paths " "
+      ":port " port " "
+      ":browse? " (if browse? "true" "false") "})"))))
+
+
+(defun ph/clerk-serve-in-emacs ()
   "Serve clerk notebooks and browse in Emacs."
   (interactive)
-  (let ((port "7777"))
-    (ph/--clerk-serve port "false")
+  (let ((port ph/clerk-serve-port))
+    (if (y-or-n-p "Launch render nREPL?")
+	(ph/--clerk-serve port nil t)
+      (ph/--clerk-serve port nil nil))
     (ph/browse-url-in-split-window (concat "http://localhost:" port))))
 
-(defun clerk-serve ()
+(defun ph/clerk-serve ()
   "Serve clerk notebooks."
   (interactive)
-  (let ((port "7777"))
-    (ph/--clerk-serve port "true")))
+  (let ((render-nrepl? (y-or-n-p "Launch render nREPL?"))
+	(browse? (y-or-n-p "Open in default browser?")))
+    (ph/--clerk-serve ph/clerk-serve-port browse? render-nrepl?)))
 
-(defun clerk-build ()
+
+(defun ph/clerk-build ()
   "Build static html for the current clerk notebook."
   (interactive)
   (message "Building static page")
@@ -3235,7 +3308,7 @@ still remain accessible by `yank-pop'."
        (concat "(nextjournal.clerk/build! {:paths [\""
                (file-relative-name filename root) "\"]})")))))
 
-(defun clerk-show ()
+(defun ph/clerk-show ()
   "Show buffer in clerk."
   (interactive)
   (message "Show buffer in clerk.")
@@ -3243,34 +3316,15 @@ still remain accessible by `yank-pop'."
     (cider-interactive-eval
      (concat "(nextjournal.clerk/show! \"" filename "\")"))))
 
-(defun clerk-save-and-show ()
+(defun ph/clerk-save-and-show ()
   "Save buffer and show in clerk."
   (interactive)
   (save-buffer)
-  (clerk-show))
-
-(define-minor-mode clerk-mode
-  "A mode that just binds `<M-return>' to `clerk-show'."
-  :lighter " clerk"
-  :keymap `((,(kbd "<M-return>") . clerk-save-and-show))
-  (if clerk-mode
-      (add-hook 'after-save-hook #'clerk-show 100 t)
-    (remove-hook 'after-save-hook #'clerk-show t)))
+  (ph/clerk-show))
 
 
-(defun ph/buffer-file-parent-dir-name ()
-  (interactive)
-  (file-name-nondirectory
-   (directory-file-name (file-name-directory buffer-file-name))))
-
-(defun activate-hook-for-dir (mode dir-name)
-  "Activate `mode` if the directory in which the file resides has `dir-name`."
-  (when (string-match-p dir-name (ph/buffer-file-parent-dir-name))
-    (funcall mode)))
-
-(add-hook 'find-file-hook
-	  (lambda ()
-	    (activate-hook-for-dir 'clerk-mode "notebooks")))
+(keymap-set clojure-mode-map "M-RET" #'ph/clerk-show)
+(keymap-set clojure-mode-map "C-c j" #'ph/clerk-serve)
 
 (use-package geiser-chicken
   :ensure t
@@ -3480,10 +3534,9 @@ still remain accessible by `yank-pop'."
 			      (point-max))))
 	(fill-column (point-max)))
     (fill-region start end)
-    ;; (goto-char end)
-    ;; (newline)
-    ;; (goto-char start)
-    ))
+    (goto-char end)
+    (newline)
+    (goto-char start)))
 
 (keymap-global-set "C-c q" #'ph/unwrap-line)
 
