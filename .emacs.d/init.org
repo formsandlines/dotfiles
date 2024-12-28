@@ -146,7 +146,7 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 (setq indent-tabs-mode nil)
 
 ;; Set max char count for automatic line breaks
-(setq-default fill-column 80) ; ! FIXME: still 70?
+(setq-default fill-column 80)
 ;; Display vertical line at char limit
 (global-display-fill-column-indicator-mode 1)
 (setq display-fill-column-indicator-character 9474)
@@ -453,12 +453,12 @@ General bindings:
 ;; will not follow new entries (window bottom MUST end after a full line). It
 ;; seems like this only works with pixel values instead of line count, but if
 ;; font/face settings have been changed, I must determine a new frame height.
-;; (defvar ph/my-frame-1x-width 87)
-(defvar ph/my-frame-1x-width-px 700)
-;; (defvar ph/my-frame-2x-width 176)
-(defvar ph/my-frame-2x-width-px 1400)
-;; (defvar ph/my-frame-2x+sidebar-width 176) ;; TODO: adjust
-(defvar ph/my-frame-2x+sidebar-width-px 1700)
+(defvar ph/my-frame-1x-width 87)
+(defvar ph/my-frame-2x-width 176)
+;; (defvar ph/my-frame-1x-width-px 700)
+;; (defvar ph/my-frame-2x-width-px 1400)
+(defvar ph/my-frame-2x+sidebar-width 176) ;; TODO: adjust
+;; (defvar ph/my-frame-2x+sidebar-width-px 1700)
 
 ;; (defvar ph/my-frame-lg-height 90) ;; lg -> my external 27" LG monitor
 (defvar ph/my-frame-lg-height-px 1367)
@@ -466,7 +466,8 @@ General bindings:
 (defvar ph/my-frame-mb-height-px 1007)
 
 (defun ph/set-frame-size-balance (w h &optional pixelwise)
-  (set-frame-size nil w h pixelwise)
+  (set-frame-width nil w)
+  (set-frame-height nil h pixelwise)
   (balance-windows))
 
 (defun ph/select-rightmost-window ()
@@ -477,11 +478,8 @@ General bindings:
 ;; ! will fix BUFFER, so balancing doesn’t work if > 1 window has that buffer
 ;; needs a different solution or a temporary buffer to fix
 (defun ph/my-set-frame-2x+sidebar (height)
-  (set-frame-size
-   nil
-   ph/my-frame-2x+sidebar-width-px
-   ph/my-frame-mb-height-px
-   t))
+  (set-frame-width nil ph/my-frame-2x+sidebar-width)
+  (set-frame-height nil ph/my-frame-mb-height-px t))
 
 ;; (defun ph/my-set-frame-2x+sidebar (height)
 ;;   (set-frame-size
@@ -507,14 +505,14 @@ General bindings:
 (defun ph/my-set-frame-lg-1x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-1x-width-px
+   ph/my-frame-1x-width
    ph/my-frame-lg-height-px
    t))
 
 (defun ph/my-set-frame-lg-2x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-2x-width-px
+   ph/my-frame-2x-width
    ph/my-frame-lg-height-px
    t))
 
@@ -525,14 +523,14 @@ General bindings:
 (defun ph/my-set-frame-mb-1x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-1x-width-px
+   ph/my-frame-1x-width
    ph/my-frame-mb-height-px
    t))
 
 (defun ph/my-set-frame-mb-2x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-2x-width-px
+   ph/my-frame-2x-width
    ph/my-frame-mb-height-px
    t))
 
@@ -4305,8 +4303,63 @@ Notes:
 *** ef-themes
 #+begin_src elisp
 (use-package ef-themes
+  :pin elpa
   :ensure t)
 #+end_src
+
+*** fontaine
+#+begin_src elisp
+(use-package fontaine
+  :pin elpa
+  :ensure t
+  :config
+
+  (setq fontaine-presets
+	'((macbook
+	   :default-height 130
+	   :default-width SemiCondensed
+	   :bold-weight SemiBold
+	   :variable-pitch-height 150
+	   )
+	  (regular) ; uses all fallback values from `t'
+	  (t
+	   :default-family "TX-02"
+	   :default-weight Regular
+	   :default-height 140
+	   :default-width SemiCondensed
+
+	   ;; nil -> falls back to :default entries
+	   :fixed-pitch-family nil
+	   :fixed-pitch-weight nil
+	   :fixed-pitch-height nil
+	   :fixed-pitch-width nil
+	   :variable-pitch-family "Cambria"
+	   :variable-pitch-weight Regular
+	   :variable-pitch-height 160
+	   :variable-pitch-width nil
+	   :bold-family nil ; use whatever the underlying face has
+	   :bold-weight bold
+	   :bold-width SemiCondensed
+	   :italic-family nil
+	   :italic-slant italic
+	   :italic-width SemiCondensed
+	   :line-spacing nil
+	   )))
+
+  ;; Set the last preset or fall back to desired style from `fontaine-presets'
+  ;; (the `regular' in this case).
+  (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
+
+  ;; Persist the latest font preset when closing/starting Emacs and
+  ;; while switching between themes.
+  (fontaine-mode 1)
+  
+  ;;
+  )
+
+
+#+end_src
+
 ** server /(built-in)/
 Evaluate forms from terminal, e.g.:
 : emacsclient -e '(print "Hello from Emacs!")'
@@ -4744,7 +4797,7 @@ Increment/decrement numbers like in Vim:
 
 #+end_src
 
-** Fonts (new)
+** COMMENT Fonts (new)
 Notes:
 - /TX-02/ is the new family name for /Berkeley Mono/ (now v2)
 - unfortunately, Emacs doesn’t support all its weights and widths (probably
@@ -4892,6 +4945,18 @@ Notes:
 * TODO
 
 To fix:
+- [ ] after setting the new ~TX-02~ font, the max-character line
+  (~fill-column-indicator~) shifts a bit when the last char in a line get too
+  close to it (at least in OrgMode)
+  - maybe somewhere there is inconsistent fixed-width
+  - this has most certainly something to do with indentation of headings,
+    since the shift accumulates with indentation level
+- [ ] I keep getting ~Eager macro-expansion failure~ errors when updating some
+  packages in Emacs (this time on ~racket-mode~ and ~compat~)
+  - may be due to incompatible package versions or outdated macro definitions
+  - may also have something to do with my ~package-native-compile~ setting
+  - *temporary fix:* remove the packages or corresponding files in =eln-cache=
+    directory, reload config and restart Emacs
 - [X] OrgMode has little lags when moving the cursor - had this before and
   then it was fixed but now it’s back again - why?
   - UPDATE: seems like ~modus-themes-mixed-fonts~ causes this, so setting it to
@@ -4901,10 +4966,18 @@ To fix:
   - ~'ExtraLight~ = ~'Light~
   - ~'Bold~ = ~'ExtraBold~ = ~'Black~
   - ~'Condensed~ = ~'SemiCondensed~
-- [ ] it seems like when I call ~describe-font~ or even ~describe-char~, Emacs
-  seems to mess up all keybindings until I restart it
-  - although it may also happen when ~set-face-attribute~ is evaluated with
-    invalid arguments
+- [ ] for whatever reason Evil activates ~evil-local~ minor mode in one(?) of my
+  buffers which causes all the keybindings to weirdly remap to evil commands
+  - observe if that still persists after deactivating the mode
+    - still persists
+    - switched back on after executing some commands
+      - like ~C-u SPC~ or ~C-c C-x p~, but these by themselves don’t trigger the
+        mode
+  - it seems to mostly happen when I call ~describe-font~ or ~describe-char~
+    - although it may also happen when ~set-face-attribute~ is evaluated with
+      invalid arguments
+  - *temporary fix:* deactivate ~evil-local~ and activate ~meow-normal-mode~, revert
+    the buffer
 - [ ] orderless: how to make it so that typing ~'~ at the end of a search string
   enables fuzzy completion style like in fido?
   - seen [[https://youtu.be/SOxlQ7ogplA?t=2669][here]] (YouTube), but for initials
@@ -4968,14 +5041,6 @@ To fix:
     interfere with processing of comments from treesit
   - the problem seems to be in my config file, because it works perfectly fine
     when starting from a clean config with just the grammar installed
-- [ ] for whatever reason Evil activated ~evil-local~ minor mode in one(?) of my
-  buffers (or I did it?) which caused all the keybindings to weirdly remap to
-  evil commands
-  - observe if that still persists after deactivating the mode
-    - still persists
-    - switched back on after executing some commands
-      - like ~C-u SPC~ or ~C-c C-x p~, but these by themselves don’t trigger the
-        mode
 - [ ] ~smartparens~ bug with fragments ~<>…</>~ in ~tsx-ts-mode~
   - report here: [[https://github.com/Fuco1/smartparens]] ?
     #+begin_src debugger :tangle no
@@ -5036,5 +5101,3 @@ Packages to try:
   - also see [[https://www.youtube.com/watch?v=EiCDLVp6O5A][HTML mode]]
 - [ ] [[https://github.com/tarsius/hl-todo][hl-todo]] (todo keyword highlighting)
   - see https://youtu.be/pPzD6FlZ4ss?t=929
-  
-    

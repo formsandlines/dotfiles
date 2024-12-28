@@ -92,7 +92,7 @@
 (setq indent-tabs-mode nil)
 
 ;; Set max char count for automatic line breaks
-(setq-default fill-column 80) ; ! FIXME: still 70?
+(setq-default fill-column 80)
 ;; Display vertical line at char limit
 (global-display-fill-column-indicator-mode 1)
 (setq display-fill-column-indicator-character 9474)
@@ -375,12 +375,12 @@ one, an error is signaled."
 ;; will not follow new entries (window bottom MUST end after a full line). It
 ;; seems like this only works with pixel values instead of line count, but if
 ;; font/face settings have been changed, I must determine a new frame height.
-;; (defvar ph/my-frame-1x-width 87)
-(defvar ph/my-frame-1x-width-px 700)
-;; (defvar ph/my-frame-2x-width 176)
-(defvar ph/my-frame-2x-width-px 1400)
-;; (defvar ph/my-frame-2x+sidebar-width 176) ;; TODO: adjust
-(defvar ph/my-frame-2x+sidebar-width-px 1700)
+(defvar ph/my-frame-1x-width 87)
+(defvar ph/my-frame-2x-width 176)
+;; (defvar ph/my-frame-1x-width-px 700)
+;; (defvar ph/my-frame-2x-width-px 1400)
+(defvar ph/my-frame-2x+sidebar-width 176) ;; TODO: adjust
+;; (defvar ph/my-frame-2x+sidebar-width-px 1700)
 
 ;; (defvar ph/my-frame-lg-height 90) ;; lg -> my external 27" LG monitor
 (defvar ph/my-frame-lg-height-px 1367)
@@ -388,7 +388,8 @@ one, an error is signaled."
 (defvar ph/my-frame-mb-height-px 1007)
 
 (defun ph/set-frame-size-balance (w h &optional pixelwise)
-  (set-frame-size nil w h pixelwise)
+  (set-frame-width nil w)
+  (set-frame-height nil h pixelwise)
   (balance-windows))
 
 (defun ph/select-rightmost-window ()
@@ -399,11 +400,8 @@ one, an error is signaled."
 ;; ! will fix BUFFER, so balancing doesn’t work if > 1 window has that buffer
 ;; needs a different solution or a temporary buffer to fix
 (defun ph/my-set-frame-2x+sidebar (height)
-  (set-frame-size
-   nil
-   ph/my-frame-2x+sidebar-width-px
-   ph/my-frame-mb-height-px
-   t))
+  (set-frame-width nil ph/my-frame-2x+sidebar-width)
+  (set-frame-height nil ph/my-frame-mb-height-px t))
 
 ;; (defun ph/my-set-frame-2x+sidebar (height)
 ;;   (set-frame-size
@@ -429,14 +427,14 @@ one, an error is signaled."
 (defun ph/my-set-frame-lg-1x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-1x-width-px
+   ph/my-frame-1x-width
    ph/my-frame-lg-height-px
    t))
 
 (defun ph/my-set-frame-lg-2x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-2x-width-px
+   ph/my-frame-2x-width
    ph/my-frame-lg-height-px
    t))
 
@@ -447,14 +445,14 @@ one, an error is signaled."
 (defun ph/my-set-frame-mb-1x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-1x-width-px
+   ph/my-frame-1x-width
    ph/my-frame-mb-height-px
    t))
 
 (defun ph/my-set-frame-mb-2x ()
   (interactive)
   (ph/set-frame-size-balance
-   ph/my-frame-2x-width-px
+   ph/my-frame-2x-width
    ph/my-frame-mb-height-px
    t))
 
@@ -3519,7 +3517,56 @@ still remain accessible by `yank-pop'."
   )
 
 (use-package ef-themes
+  :pin elpa
   :ensure t)
+
+(use-package fontaine
+  :pin elpa
+  :ensure t
+  :config
+
+  (setq fontaine-presets
+	'((macbook
+	   :default-height 130
+	   :default-width SemiCondensed
+	   :bold-weight SemiBold
+	   :variable-pitch-height 150
+	   )
+	  (regular) ; uses all fallback values from `t'
+	  (t
+	   :default-family "TX-02"
+	   :default-weight Regular
+	   :default-height 140
+	   :default-width SemiCondensed
+
+	   ;; nil -> falls back to :default entries
+	   :fixed-pitch-family nil
+	   :fixed-pitch-weight nil
+	   :fixed-pitch-height nil
+	   :fixed-pitch-width nil
+	   :variable-pitch-family "Cambria"
+	   :variable-pitch-weight Regular
+	   :variable-pitch-height 160
+	   :variable-pitch-width nil
+	   :bold-family nil ; use whatever the underlying face has
+	   :bold-weight bold
+	   :bold-width SemiCondensed
+	   :italic-family nil
+	   :italic-slant italic
+	   :italic-width SemiCondensed
+	   :line-spacing nil
+	   )))
+
+  ;; Set the last preset or fall back to desired style from `fontaine-presets'
+  ;; (the `regular' in this case).
+  (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
+
+  ;; Persist the latest font preset when closing/starting Emacs and
+  ;; while switching between themes.
+  (fontaine-mode 1)
+  
+  ;;
+  )
 
 (use-package server
   :ensure nil
@@ -3808,33 +3855,6 @@ Also see `prot-window-delete-popup-frame'." command)
 (defun ph/macos-open (path)
   "Open `path' using the built-in `open' command from MacOS."
   (shell-command (concat "open " path)))
-
-(set-face-attribute 'default nil
-		    :family "TX-02"
-		    ;; height = point size * 10
-		    :height 140
-		    :weight 'Regular
-		    :width 'SemiCondensed)
-
-(set-face-attribute 'variable-pitch nil
-		    :font "Cambria"
-		    :height 160
-		    :weight 'regular)
-
-(set-face-attribute 'fixed-pitch nil
-		    :family "TX-02"
-		    ;; height = point size * 10
-		    :height 140
-		    :weight 'Regular
-		    :width 'SemiCondensed)
-
-(set-face-attribute 'font-lock-comment-face nil
-                    :slant 'italic)
-
-(set-face-attribute 'font-lock-keyword-face nil
-                    :slant 'normal)
-
-;; (setq-default line-spacing 0.12)
 
 (add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
 
