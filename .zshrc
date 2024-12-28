@@ -33,6 +33,7 @@ alias demacs='open -n -a /Applications/Emacs.app --args --init-directory "~/.ema
 alias emacs-debug="open -a /Applications/Emacs.app --args -q"
 alias opem="open $1 -a /Applications/Emacs.app"
 alias sgrep='run_sgrep'
+alias ttyconfig='nvim ~/.dotfiles/.config/ghostty/config'
 
 function run_sgrep() {
   (cd ~/Dev/semantic-grep && ./sgrep "$@")

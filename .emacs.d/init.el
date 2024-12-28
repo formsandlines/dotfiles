@@ -17,7 +17,7 @@
         ("elpa" . "https://elpa.gnu.org/packages/")
 	("elpa-devel" . "https://elpa.gnu.org/devel/")))
 
-;;; Bootstrap use-package:
+;; Bootstrap use-package:
 ;; (package-initialize)                ; ? still needed
 ;; (setq use-package-always-pin "nongnu") ; ? is this important
 ;; (setq use-package-always-ensure t)
@@ -71,29 +71,29 @@
 (setq user-full-name "Peter Hofmann"
       user-mail-address "peter.hofmann@formsandlines.eu")
 
-;;; There are some warnings I really can’t do anything about and they
-;;; are annoying, so keep quiet
+;; There are some warnings I really can’t do anything about and they
+;; are annoying, so keep quiet
 (setq warning-minimum-level :emergency)
 
-;;; Display relative line numbers
+;; Display relative line numbers
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
 (setq display-line-numbers-widen t)
 (setq display-line-numbers-width-start t)
 (setq display-line-numbers-width 3)
 
-;;; Display column number in modeline
+;; Display column number in modeline
 (column-number-mode 1)
 
-;;; Highlight current line
+;; Highlight current line
 (global-hl-line-mode 1)
 
-;;; Disable tab insertion for indentation
+;; Disable tab insertion for indentation
 (setq indent-tabs-mode nil)
 
-;;; Set max char count for automatic line breaks
+;; Set max char count for automatic line breaks
 (setq-default fill-column 80) ; ! FIXME: still 70?
-;;; Display vertical line at char limit
+;; Display vertical line at char limit
 (global-display-fill-column-indicator-mode 1)
 (setq display-fill-column-indicator-character 9474)
 
@@ -106,45 +106,48 @@
 
 (setq blink-cursor-mode nil)
 
-;;; Remember and get back to recently opened files
+;; Remember and get back to recently opened files
 (recentf-mode 1)
 
-;;; Remember and restore the last cursor location of opened files
+;; Remember and restore the last cursor location of opened files
 (save-place-mode 1)
-;;; Save and restore the state of Emacs from one session to another
+;; Save and restore the state of Emacs from one session to another
 (if (display-graphic-p)
     (desktop-save-mode 1)
-  ;;; prevent saving/restoring the desktop in terminal mode
+  ;; prevent saving/restoring the desktop in terminal mode
   (desktop-save-mode 0))
 
-;;; Don’t pop up UI dialogs when prompting
+;; Don’t pop up UI dialogs when prompting
 (setq use-dialog-box nil)
 
-;;; Revert buffers when the underlying file has changed
+;; Revert buffers when the underlying file has changed
 (global-auto-revert-mode 1)
-;;; Revert Dired and other buffers
+;; Revert Dired and other buffers
 (setq global-auto-revert-non-file-buffers t)
 
-;;; Disabled by default, but I find them useful and not confusing:
+;; Disabled by default, but I find them useful and not confusing:
 (put 'upcase-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 
-;;; No backup files (foo.txt~):
+;; No backup files (foo.txt~):
 (setq make-backup-files nil)
 
-;;; Follow symlinks for version control:
+;; Follow symlinks for version control:
 (setq vc-follow-symlinks t)
 
-;;; Can just type C-SPC without C-u to pop the mark multiple times:
+;; Can just type C-SPC without C-u to pop the mark multiple times:
 (setq set-mark-command-repeat-pop t)
 
-;;; Record state of window configuration to undo/redo:
-;;; - C-c <left> to undo window configuration
-;;; - C-c <right> to redo
+;; Record state of window configuration to undo/redo:
+;; - C-c <left> to undo window configuration
+;; - C-c <right> to redo
 (winner-mode 1)
 
-;;; Enable commands to move windows:
+;; Enable commands to move windows:
 (windmove-mode 1)
+
+;; Enable tabs
+(tab-bar-mode 1)
 
 (setq initial-major-mode 'lisp-interaction-mode)
 
@@ -153,7 +156,7 @@
 ;; Placeholder variable to be reset in themes
 (defvar ph/cursor-bg "#0000ff")
 
-;;; work-around  for org-ctags obnoxious behavior
+;; work-around  for org-ctags obnoxious behavior
 (with-eval-after-load 'org-ctags (setq org-open-link-functions nil))
 
 ;;;###autoload
@@ -223,11 +226,11 @@ one, an error is signaled."
       (set-window-buffer other-win buf-this-buf)
       (select-window other-win))))
 
-;;; I like to scroll line-by-line
+;; I like to scroll line-by-line
 (defun ph/scroll-one-line-up () (interactive) (scroll-up 1))
 (defun ph/scroll-one-line-down () (interactive) (scroll-down 1))
 
-;;; For some reason these conflict with meow-kill:
+;; For some reason these conflict with meow-kill:
 ;; (global-set-key (kbd "C-j") 'ph/scroll-one-line-up)
 ;; (global-set-key (kbd "C-k") 'ph/scroll-one-line-down)
 
@@ -269,23 +272,23 @@ one, an error is signaled."
   (interactive "sEnter keybinding: ")
   (describe-key (kbd keybinding)))
 
-;;; Use if a keybinding in minibuffer is not accessible from the system:
+;; Use if a keybinding in minibuffer is not accessible from the system:
 ;; (setq enable-recursive-minibuffers t)  ; <-- set to nil after use!
 ;; (define-key minibuffer-mode-map (kbd "C-M-k") 'describe-keybinding)
 
-;;; because C-M-d activates the dictionary in MacOS (hard to change):
+;; because C-M-d activates the dictionary in MacOS (hard to change):
 (keymap-global-set "C-M-'" #'down-list) 
 
-;;; because M-% takes a screenshot in MacOS:
+;; because M-% takes a screenshot in MacOS:
 (keymap-global-set "C-%" #'query-replace)
 
 ;; (global-set-key (kbd "C-c C-r") 'recentf-open-files)
 ;; (global-set-key (kbd "C-c r") 'recentf-open)
 
-;;; because M-x is hard to reach on my keyboard:
+;; because M-x is hard to reach on my keyboard:
 (keymap-global-set "C-\\" #'execute-extended-command)
 (keymap-global-set "C-|" #'execute-extended-command-for-buffer)
-(keymap-global-set "M-+" #'toggle-input-method) ;; replacement for C-\
+(keymap-global-set "M-+" #'toggle-input-method) ; replacement for C-\
 
 (global-set-key [remap list-buffers] 'ibuffer)
 
@@ -318,25 +321,50 @@ one, an error is signaled."
 
 (keymap-global-set "C-c b b" #'scratch-buffer)
 
+;; For more convenient tab switching:
+(keymap-global-set "C-c t C-f" #'find-file-other-tab)
+(keymap-global-set "C-c t RET" #'tab-switch)
+(keymap-global-set "C-c t C-r" #'find-file-read-only-other-tab)
+(keymap-global-set "C-c t 0" #'tab-close)
+(keymap-global-set "C-c t 1" #'tab-close-other)
+(keymap-global-set "C-c t 2" #'tab-new)
+(keymap-global-set "C-c t G" #'tab-group)
+(keymap-global-set "C-c t M" #'tab-move-to)
+(keymap-global-set "C-c t N" #'tab-new-to)
+(keymap-global-set "C-c t O" #'tab-previous)
+(keymap-global-set "C-c t b" #'switch-to-buffer-other-tab)
+(keymap-global-set "C-c t d" #'dired-other-tab)
+(keymap-global-set "C-c t f" #'find-file-other-tab)
+(keymap-global-set "C-c t m" #'tab-move)
+(keymap-global-set "C-c t n" #'tab-duplicate)
+(keymap-global-set "C-c t o" #'tab-next)
+(keymap-global-set "C-c t p" #'project-other-tab-command)
+(keymap-global-set "C-c t r" #'tab-rename)
+(keymap-global-set "C-c t t" #'other-tab-prefix)
+(keymap-global-set "C-c t u" #'tab-undo)
+
+;; Doesn’t work with meow’s keypad-mode:
+;; (define-key key-translation-map (kbd "C-c t") (kbd "C-x t"))
+
 (setq inhibit-startup-message t)
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
-;;; e.g. to show the `λ' symbol when typing `lambda'
+;; e.g. to show the `λ' symbol when typing `lambda'
 (global-prettify-symbols-mode 1)
 
-;;; macOS titlebar decoration
-;;; - see https://xenodium.com/my-emacs-eye-candy/
-;;; - doesn’t seem to work (no such variables?)
+;; macOS titlebar decoration
+;; - see https://xenodium.com/my-emacs-eye-candy/
+;; - doesn’t seem to work (no such variables?)
 ;; (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
 ;; (add-to-list 'default-frame-alist '(ns-appearance . dark))
 
-;;; better mouse wheel scrolling
-;;; https://stackoverflow.com/a/26053341
+;; better mouse wheel scrolling
+;; https://stackoverflow.com/a/26053341
 (setq mouse-wheel-scroll-amount '(0.07))
-;;; https://stackoverflow.com/a/445881
+;; https://stackoverflow.com/a/445881
 (setq mouse-wheel-progressive-speed nil)
 
 ;; Make Emacs Calculator window larger:
@@ -468,7 +496,6 @@ one, an error is signaled."
 (use-package diminish
   :ensure t)
 
-;;; 
 (use-package vc-use-package
   :ensure t)
 
@@ -610,7 +637,7 @@ one, an error is signaled."
     (hydra-window/body))
 
  
-  ;; Hydras for meow table-mode
+  ;;; Hydras for meow table-mode
 
   (defun ph/org-table-insert-row-below ()
     "Like org-table-insert-row, but inserts below the current line."
@@ -763,6 +790,8 @@ calls `meow-eval-last-exp'."
 ;; paragraphs as well, but I have not the faintest idea what this is or how this
 ;; ‘syntax’ should look like.
 
+;; See commits 13733e1 and c0878ac in meow.
+
 ;; If I don’t provide the (optional) arg, I get an error “(wrong-type-argument
 ;; stringp nil)” since `meow-next-thing-include-syntax` doesn’t include my
 ;; paragraph thing. Maybe it can be customized somehow.
@@ -777,18 +806,18 @@ calls `meow-eval-last-exp'."
   (interactive "p")
   (meow-next-thing meow-paragraph-thing 'paragraph (- n) " _w"))
 
-;; prefix /
+;;; prefix /
 (defconst ph/meow-prefix-slash
   (list
-   ;;; COMMENTS
+   ;; COMMENTS
    '("//" . meow-comment)		; nf -> nc -> /g
    
-   ;;; MACROS
+   ;; MACROS
    '("/M" . meow-start-kmacro-or-insert-counter)
    '("/m" . meow-start-kmacro)
    '("/n" . meow-end-or-call-kmacro)
    
-   ;;; REFERENCES
+   ;; REFERENCES
    '("/f" . xref-find-definitions)
    '("/F" . xref-go-back)
    '("/r" . xref-find-references)
@@ -796,33 +825,33 @@ calls `meow-eval-last-exp'."
    '("/j" . eldoc)
    '("/R" . eglot-rename)
 
-   ;;; SYSTEM CLIPBOARD
+   ;; SYSTEM CLIPBOARD
    '("/cc" . meow-clipboard-save)
    '("/cx" . meow-clipboard-kill)
    '("/cv" . meow-clipboard-yank)
 
-   ;;; WORDS
+   ;; WORDS
    '("/lu" . upcase-dwim)
    '("/ll" . downcase-dwim)
    '("/lc" . capitalize-dwim)
    
-   ;;; NUMBERS
+   ;; NUMBERS
    '("/+" . ph/increment-number-at-point)
    '("/-" . ph/decrement-number-at-point)
 
-   ;;; WRAPPING
+   ;; WRAPPING
    '("/ww" . ph/wrap-with-char)
    '("/wc" . ph/change-wrapped-char)
    '("/wd" . ph/remove-surrounding)
 
-   ;;; INDENTATION
+   ;; INDENTATION
    '("/ TAB" . org-indent-item)  ; org-mode replaces <tab>
    '("/ <backtab>" . org-outdent-item)  ; org-mode replaces <backtab>
 
-   ;;; SPECIAL CHARS
+   ;; SPECIAL CHARS
    '("/ SPC" . (lambda () (interactive) (insert-char ?\s)))  
 
-   ;;; GOTO 
+   ;; GOTO 
    '("/ge" . end-of-buffer)
    '("/G" . end-of-buffer)
    '("/gj" . end-of-buffer)
@@ -832,11 +861,11 @@ calls `meow-eval-last-exp'."
    '("/gc" . move-to-column)
    '("/gp" . goto-char)
 
-   ;;; SEARCH
+   ;; SEARCH
    '("/v" . meow-visit)	        ; / -> ? -> / -> ns -> /s -> /v
    '("/s" . isearch-forward-thing-at-point)
 
-   ;;; EVAL
+   ;; EVAL
    '("/e" . ph/meow-eval-dwim)  ; just C-x C-e or ph/meow-eval-region
    '("/b" . ph/meow-eval-buffer)
    ;; '("/r" . ph/meow-eval-region)
@@ -853,7 +882,7 @@ calls `meow-eval-last-exp'."
    ;; '("/p" . yank)
    ))
 
-;; prefix ; -> \
+;;; prefix ; -> \
 (defconst ph/meow-prefix-backslash
   (list
    ;; BUFFER
@@ -881,6 +910,7 @@ calls `meow-eval-last-exp'."
    ;; '("\\g" . project-find-regexp)
    ;; '("\\r" . project-query-replace-regexp)
    '("\\/" . project-shell)
+   '("\\t" . babashka-tasks)
    '("\\g" . magit-status)))
 
 (defconst ph/meow-common
@@ -1006,7 +1036,7 @@ calls `meow-eval-last-exp'."
 (use-package meow
   :ensure t
   :demand t
-  :after (hydra symex) ;; clj-refactor
+  :after (hydra symex) ; clj-refactor
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
@@ -1014,13 +1044,13 @@ calls `meow-eval-last-exp'."
   (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
   (setq meow-keypad-leader-dispatch "C-c")
 
-  ;;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
-  ;;; see:
-  ;;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
+  ;; Prevent 'C-[' from triggering 'ESC' prefix-keymaps:
+  ;; see:
+  ;; https://github.com/meow-edit/meow/discussions/255#discussioncomment-2862406
   (define-key input-decode-map [?\C-\[] [C-\[])
   (define-key global-map [C-\[] [?\C-\M-§])
   
-  ;;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
+  ;; Prevent 'C-i' and 'C-I' from acting as 'TAB' and 'S-TAB':
   ;; (define-key input-decode-map [?\C-i] [C-i])
   ;; (define-key input-decode-map [?\C-\S-i] [C-S-i])
   ;;
@@ -1663,7 +1693,7 @@ state (other than motion state) doesn’t bind anything."
 (use-package meow
   :config
 
-  ;;; INSERT STATE ;;;
+  ;; INSERT STATE ;;
 
   (meow-define-keys 'insert
     '("H-SPC" . meow-keypad)
@@ -1677,7 +1707,7 @@ state (other than motion state) doesn’t bind anything."
   
   (apply 'meow-define-keys 'insert ph/meow-common)
 
-  ;;; MOTION STATE OVERWRITES ;;;
+  ;; MOTION STATE OVERWRITES ;;
 
   (meow-motion-overwrite-define-key
    '("k" . meow-prev)
@@ -1699,14 +1729,14 @@ state (other than motion state) doesn’t bind anything."
   (apply 'meow-motion-overwrite-define-key ph/meow-prefix-backslash)
   (apply 'meow-motion-overwrite-define-key ph/meow-common)
 
-  ;;; BEACON STATE ;;;
+  ;; BEACON STATE ;;
   
   (meow-define-keys 'beacon
     '("/m" . meow-beacon-start)
     '("/e" . meow-beacon-apply-kmacro)  
     '("<escape>" . ignore))
 
-  ;;; NORMAL STATE ;;;
+  ;; NORMAL STATE ;;
 
   (apply 'meow-define-keys 'normal ph/meow-prefix-slash)
   (apply 'meow-define-keys 'normal ph/meow-prefix-backslash)
@@ -1784,8 +1814,8 @@ state (other than motion state) doesn’t bind anything."
 (use-package vterm-toggle
   :ensure t
   :config
-  (keymap-global-set "C-c t t" #'vterm-toggle)
-  (keymap-global-set "C-c t c" #'vterm-toggle-cd)
+  (keymap-global-set "C-c v v" #'vterm-toggle)
+  (keymap-global-set "C-c v c" #'vterm-toggle-cd)
 
   ;; you can cd to the directory where your previous buffer file exists
   ;; after you have toggle to the vterm buffer with `vterm-toggle'.
@@ -1803,24 +1833,24 @@ state (other than motion state) doesn’t bind anything."
   :config
   (setq org-id-link-to-org-use-id 'use-existing)
 
-  ;;; Hide emphasis marker characters
+  ;; Hide emphasis marker characters
   ;; (setq org-use-speed-commands t)
 
-  ;;; Enable org-indent-mode on startup
+  ;; Enable org-indent-mode on startup
   (setq org-startup-indented t)
 
   (setq org-hide-emphasis-markers t)
-  ;;; Show entities as UTF8 characters
+  ;; Show entities as UTF8 characters
   (setq org-pretty-entities t)
   ;; I don’t want sub-/superscripts to display after every '^'/'_', since they
   ;; are often ambiguous and hard to read at small font size
   ;; - they still work when wrapped in '{}'
   (setq org-use-sub-superscripts '{})
 
-  ;;; Avoid splitting of lines on M-RET (default was '(08.04.2024, 11:45)')
+  ;; Avoid splitting of lines on M-RET (default was '(08.04.2024, 11:45)')
   (setq org-M-RET-may-split-line nil)
 
-  ;;; Do not fold the subtree when yanked/pasted:
+  ;; Do not fold the subtree when yanked/pasted:
   (setq org-yank-folded-subtrees nil)
 
   ;; (setq org-startup-with-latex-preview t)
@@ -1846,7 +1876,7 @@ state (other than motion state) doesn’t bind anything."
   ;; (keymap-set org-mode-map "C-c <tab>" #'org-fold-show-children)
   (keymap-set org-mode-map "C-<tab>" #'org-kill-note-or-show-branches)
   (keymap-set org-mode-map "C-M-<tab>" #'org-fold-show-all)
-  (keymap-set org-mode-map "C-c t e" #'org-table-export)
+  ;; (keymap-set org-mode-map "C-c t e" #'org-table-export)
 
   ;; (add-to-list 'display-buffer-alist
   ;; 	       '("^\\*Org Src" display-buffer-at-bottom
@@ -1903,7 +1933,7 @@ state (other than motion state) doesn’t bind anything."
     (meow-insert)))
 
 
-;;; TODO maybe extract a more general function to make these DRYer:
+;; TODO maybe extract a more general function to make these DRYer:
 
 (defun ph/meow-org-add-list-item ()
   (interactive)
@@ -2001,8 +2031,8 @@ state (other than motion state) doesn’t bind anything."
   (keymap-set org-mode-map "C-c X" #'ph/meow-org-add-above-todo-item)
   (keymap-set org-mode-map "C-c M-x" #'ph/meow-org-add-lower-todo-item)
 
-  (keymap-set org-mode-map "C-c v v" #'ph/org-toggle-inline-image-at-point)
-  (keymap-set org-mode-map "C-c v r" #'ph/org-redisplay-inline-image-at-point)
+  (keymap-set org-mode-map "C-c p p" #'ph/org-toggle-inline-image-at-point)
+  (keymap-set org-mode-map "C-c p r" #'ph/org-redisplay-inline-image-at-point)
   
   ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
   (keymap-set org-mode-map "C-c d" #'org-table-blank-field)
@@ -2149,10 +2179,10 @@ Subtracts right margin and org indentation level from fill-column"
   ;;
   )
 
-;;; Somehow the fringe in target buffer does not show up.
-;;; Workaround, source:
-;;; - https://github.com/nobiot/org-transclusion/issues/201#issue-1868665106
-;;; - UPDATE: seems to mess with indentation -> unusable
+;; Somehow the fringe in target buffer does not show up.
+;; Workaround, source:
+;; - https://github.com/nobiot/org-transclusion/issues/201#issue-1868665106
+;; - UPDATE: seems to mess with indentation -> unusable
 ;; (defun org-transclusion-content-insert-add-overlay (beg end)
 ;;   "Add fringe after transclusion."
 ;;   (overlay-put (text-clone-make-overlay beg end (current-buffer))
@@ -2170,21 +2200,21 @@ Subtracts right margin and org indentation level from fill-column"
   (add-to-list 'org-transclusion-extensions 'org-transclusion-indent-mode)
   (require 'org-transclusion-indent-mode)
 
-  (keymap-set org-mode-map "C-c t a" #'org-transclusion-add)
-  (keymap-set org-mode-map "C-c t m" #'org-transclusion-mode)
+  (keymap-set org-mode-map "C-c v a" #'org-transclusion-add)
+  (keymap-set org-mode-map "C-c v m" #'org-transclusion-mode)
 
-  (keymap-set org-transclusion-map "C-c t e" #'org-transclusion-live-sync-start)
-  (keymap-set org-transclusion-map "C-c t g" #'org-transclusion-refresh)
-  (keymap-set org-transclusion-map "C-c t d" #'org-transclusion-remove)
-  (keymap-set org-transclusion-map "C-c t C-d" #'org-transclusion-detach)
-  (keymap-set org-transclusion-map "C-c t P" #'org-transclusion-promote-subtree)
-  (keymap-set org-transclusion-map "C-c t D" #'org-transclusion-demote-subtree)
-  (keymap-set org-transclusion-map "C-c t o" #'org-transclusion-open-source)
-  (keymap-set org-transclusion-map "C-c t O" #'org-transclusion-move-to-source)
+  (keymap-set org-transclusion-map "C-c v e" #'org-transclusion-live-sync-start)
+  (keymap-set org-transclusion-map "C-c v g" #'org-transclusion-refresh)
+  (keymap-set org-transclusion-map "C-c v d" #'org-transclusion-remove)
+  (keymap-set org-transclusion-map "C-c v C-d" #'org-transclusion-detach)
+  (keymap-set org-transclusion-map "C-c v P" #'org-transclusion-promote-subtree)
+  (keymap-set org-transclusion-map "C-c v D" #'org-transclusion-demote-subtree)
+  (keymap-set org-transclusion-map "C-c v o" #'org-transclusion-open-source)
+  (keymap-set org-transclusion-map "C-c v O" #'org-transclusion-move-to-source)
   
-  (keymap-set org-transclusion-live-sync-map "C-c t C-c C-c"
+  (keymap-set org-transclusion-live-sync-map "C-c v C-c C-c"
 	      #'org-transclusion-live-sync-exit)
-  (keymap-set org-transclusion-live-sync-map "C-c t C-y"
+  (keymap-set org-transclusion-live-sync-map "C-c v C-y"
 	      #'org-transclusion-live-sync-paste)
 
   ;; (add-hook 'org-transclusion-after-add-functions
@@ -2411,7 +2441,7 @@ Subtracts right margin and org indentation level from fill-column"
   (add-hook 'completion-list-mode-hook
 	    (lambda () (setq truncate-lines t)))
 
-  ;;; Disable Marginalia in *completions* buffer for non-one-column formats
+  ;; Disable Marginalia in *completions* buffer for non-one-column formats
   ;; -> doesn’t work
   ;; - https://github.com/minad/marginalia/issues/129
   ;; (defun disable-marginalia ()
@@ -2490,8 +2520,8 @@ Subtracts right margin and org indentation level from fill-column"
   :init (global-flycheck-mode)
   ;; :hook ((flycheck-mode . ph/flycheck-prefer-eldoc))
   :config
-  ;;; emacs-lisp-checkdoc checker is annoying in emacs-lisp-mode,
-  ;;; so I disable it there:
+  ;; emacs-lisp-checkdoc checker is annoying in emacs-lisp-mode,
+  ;; so I disable it there:
   (add-hook 'emacs-lisp-mode-hook
 	    (lambda ()
 	      (setq-local flycheck-disabled-checkers
@@ -2963,11 +2993,11 @@ still remain accessible by `yank-pop'."
 
   ;; (setq symex-highlight-p nil)
 
-  ;;; symex-mode has functions that react on tree-sitter-mode with different
-  ;;; implementations, possibly breaking my meow integration, so I overwrite
-  ;;; the predicate to check for that to prevent activation.
+  ;; symex-mode has functions that react on tree-sitter-mode with different
+  ;; implementations, possibly breaking my meow integration, so I overwrite
+  ;; the predicate to check for that to prevent activation.
   (defvar ph/symex-use-tree-sitter nil)
-  ;;; !! overwrite
+  ;; !! overwrite
   (defun symex-tree-sitter-p ()
     "Whether to use the tree sitter primitives."
     (and ph/symex-use-tree-sitter
@@ -3067,10 +3097,10 @@ still remain accessible by `yank-pop'."
 		   (window-height . 4)))
 
 
-    ;;; use `eldoc-doc-buffer'
+    ;; use `eldoc-doc-buffer'
     ;; (setq eldoc-echo-area-prefer-doc-buffer t)
   
-    ;;; see https://github.com/joaotavora/eglot/discussions/734
+    ;; see https://github.com/joaotavora/eglot/discussions/734
     ;; (setq eldoc-echo-area-use-multiline-p nil)
     )
 
@@ -3082,9 +3112,9 @@ still remain accessible by `yank-pop'."
   
   ;; (add-hook 'janet-ts-mode-hook 'eglot-ensure)
 
-  ;;; Disable documentation-on-hover, which is still accessible with `M-x
-  ;;; eldoc':
-  ;;; https://github.com/joaotavora/eglot/discussions/691#discussioncomment-719373
+  ;; Disable documentation-on-hover, which is still accessible with `M-x
+  ;; eldoc':
+  ;; https://github.com/joaotavora/eglot/discussions/691#discussioncomment-719373
   ;; (add-hook 'eglot-managed-mode-hook
   ;; 	    (lambda () (eldoc-mode -1)))
 
@@ -3213,38 +3243,69 @@ still remain accessible by `yank-pop'."
     :config
     (require 'flycheck-clj-kondo)
 
-    ;;; For better editing in camelCase (Java names):
+    ;; For better editing in camelCase (Java names):
     (add-hook 'cider-repl-mode-hook #'subword-mode)
 
-    ;;; C-[ gets stuck because of Ciders ESC-key prefix, so let’s disable it:
+    ;; C-[ gets stuck because of Ciders ESC-key prefix, so let’s disable it:
   
-    ;;; (define-key cider-mode-map (kbd "ESC") nil)
+    ;; (define-key cider-mode-map (kbd "ESC") nil)
     (setq cider-preferred-build-tool 'clojure-cli)
 
-    ;;; Use enrich-classpath for better Java lib completions/docs
+    ;; Use enrich-classpath for better Java lib completions/docs
     (setq cider-enrich-classpath t)  
   
     (setq cider-eval-spinner-type 'moon)
   
     (setq cider-repl-history-size 2000)
 
-    ;;; Don't show cider help text in repl after jack-in
+    ;; Don't show cider help text in repl after jack-in
     (setq cider-repl-display-help-banner nil)
 
-    ;;; Show error as overlay instead of the buffer (buffer is generated anyway in
-    ;;; case it's needed)
+    ;; Show error as overlay instead of the buffer (buffer is generated anyway
+    ;; in case it's needed)
     (setq cider-show-error-buffer 'except-in-repl)
-    ;;; If we set `cider-show-error-buffer' to non-nil, don't focus error buffer
-    ;;; when error is thrown
-    (setq cider-auto-select-error-buffer nil)
+    ;; If we set `cider-show-error-buffer' to non-nil, focus error buffer when
+    ;; error is thrown
+    (setq cider-auto-select-error-buffer t)
 
     ;; Don't pop to the REPL buffer on connect
     ;; Create and display the buffer, but don't focus it.
     (setq cider-repl-pop-to-buffer-on-connect 'display-only)
 
-    ;;; skip host question on connect
+    ;; skip host question on connect
     (defun cider--completing-read-host (hosts)
-      '("localhost")))
+      '("localhost"))
+
+    ;; cider window configuration
+    (add-to-list
+     'display-buffer-alist
+     `("^\\*cider-repl.*\\*$"
+       (display-buffer-reuse-window display-buffer-in-side-window)
+       (side . bottom)
+       (slot . 1)
+       (window-height . 0.2)))
+
+    (add-to-list
+     'display-buffer-alist
+     `("^\\*cider-error.*\\*$"
+       (display-buffer-reuse-window display-buffer-in-side-window)
+       (side . bottom)
+       (slot . 2)
+       (window-height . 0.2)))
+
+    (add-to-list
+     'display-buffer-alist
+     `("^\\*cider-doc.*\\*$"
+       (display-buffer-reuse-window display-buffer-in-side-window)
+       (side . right)
+       (slot . 1)
+       (window-width . 0.3)))
+
+    ;;
+    )
+
+(use-package babashka
+  :ensure t)
 
 (defun ph/clerk-show ()
   (interactive)
@@ -3373,6 +3434,7 @@ still remain accessible by `yank-pop'."
   
   (setq modus-themes-italic-constructs t
 	modus-themes-bold-constructs t
+	modus-themes-mixed-fonts nil
 
 	;; modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted)
 
@@ -3513,14 +3575,14 @@ still remain accessible by `yank-pop'."
   (kill-whole-line)
   (move-end-of-line 0))
 
-;;; UPDATE: I don’t use the following bindings anymore, because of meow
+;; UPDATE: I don’t use the following bindings anymore, because of meow
 
-;;; Feels more like Vims S-j to me and I use this very often:
-;;; (note: C-j gets overwritten in Lisp Interactive mode)
+;; Feels more like Vims S-j to me and I use this very often:
+;; (note: C-j gets overwritten in Lisp Interactive mode)
 ;; (keymap-global-set "C-M-j" #'delete-indentation) ;; M-^ is weird to type
 ;; (keymap-global-set "C-S-j" #'ph/join-with-next-line) ; ? or C-c j
 
-;;; I don’t use these often enough for their prominent keybindings:
+;; I don’t use these often enough for their prominent keybindings:
 ;; (keymap-global-set "M-o" #'default-indent-new-line) ;; was C-M-j / M-j
 ;; (keymap-global-set "M-j" #'electric-newline-and-maybe-indent) ;; was C-j
 
@@ -3534,9 +3596,10 @@ still remain accessible by `yank-pop'."
 			      (point-max))))
 	(fill-column (point-max)))
     (fill-region start end)
-    (goto-char end)
-    (newline)
-    (goto-char start)))
+    ;; (goto-char end)
+    ;; (newline)
+    ;; (goto-char start)
+    ))
 
 (keymap-global-set "C-c q" #'ph/unwrap-line)
 
@@ -3583,7 +3646,7 @@ still remain accessible by `yank-pop'."
   (interactive)
   (insert (format-time-string "%Y-%m-%d")))
 
-;;; TODO: bind to local key
+;; TODO: bind to local key
 (defun ph/comint-kill-output ()
   "In shell-mode, kills output instead of deleting, as in
 comint-delete-output by default (C-c C-o)."
@@ -3626,9 +3689,9 @@ If called interactively, PT is the value immediately under `point'."
 ;;   (interactive)
 ;;   (enlarge-window 1))
 
-;;; inspired from https://www.masteringemacs.org/article/my-emacs-keybindings
+;; inspired from https://www.masteringemacs.org/article/my-emacs-keybindings
 (keymap-global-set "M-o" #'other-window)
-;;; get rid of the annoying frame minimize command
+;; get rid of the annoying frame minimize command
 (keymap-global-set "C-z" nil) 
 
 ;; (keymap-global-set "C-J" #'shrink-window-horizontally)
@@ -3636,7 +3699,7 @@ If called interactively, PT is the value immediately under `point'."
 ;; (keymap-global-set "C-I" #'enlarge-window)
 ;; (keymap-global-set "C-K" #'shrink-window)
 
-;;; Source: https://gist.github.com/rmuslimov/72bf5a1561c7b60eb535
+;; Source: https://gist.github.com/rmuslimov/72bf5a1561c7b60eb535
 (setq
  ph/scripts-dired-reveal-in-finder
  "tell application \"Finder\"
@@ -3663,7 +3726,7 @@ end tell")
 
 (keymap-set dired-mode-map "O" #'ph/dired-open-in-finder)
 
-;;;; Run commands in a popup frame
+;; Run commands in a popup frame
 
 (defun prot-window-delete-popup-frame (&rest _)
   "Kill selected selected frame if it has parameter `prot-window-popup-frame'.
@@ -3747,21 +3810,23 @@ Also see `prot-window-delete-popup-frame'." command)
   (shell-command (concat "open " path)))
 
 (set-face-attribute 'default nil
-                    :font "Berkeley Mono"
-                    ;; :font "BerkeleyMono Nerd Font Mono"
-                    :height 130 ;; was 130 / 12 pt
-                    :weight 'regular)
+		    :family "TX-02"
+		    ;; height = point size * 10
+		    :height 140
+		    :weight 'Regular
+		    :width 'SemiCondensed)
 
 (set-face-attribute 'variable-pitch nil
-                    :font "Cambria"
-                    :height 120
-                    :weight 'regular)
+		    :font "Cambria"
+		    :height 160
+		    :weight 'regular)
 
 (set-face-attribute 'fixed-pitch nil
-                    :font "Berkeley Mono"
-                    ;; :font "BerkeleyMono Nerd Font Mono"
-                    :height 130 ;; was 130
-                    :weight 'regular)
+		    :family "TX-02"
+		    ;; height = point size * 10
+		    :height 140
+		    :weight 'Regular
+		    :width 'SemiCondensed)
 
 (set-face-attribute 'font-lock-comment-face nil
                     :slant 'italic)
@@ -3786,7 +3851,7 @@ Also see `prot-window-delete-popup-frame'." command)
 ;; to prevent Emacs from enabling all required themes on startup:
 (mapc #'disable-theme custom-enabled-themes)
 
-(load-theme 'modus-operandi t)
+;; (load-theme 'modus-operandi t)
 
 ;; Activate my desired themes
 ;; (load-theme 'modus-operandi t t)
@@ -3797,6 +3862,9 @@ Also see `prot-window-delete-popup-frame'." command)
 ;; Enable my preferred theme
 ;; (enable-theme 'modus-operandi)
 (enable-theme 'modus-operandi-tinted)
+
+;; Enable if I want to use proportional fonts in text modes:
+;; (add-hook 'text-mode-hook #'variable-pitch-mode)
 
 (defface ph/cursor--copy
   `((t (:background ,ph/cursor-bg)))

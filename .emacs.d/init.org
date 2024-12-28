@@ -3,7 +3,9 @@
 #+DESCRIPTION: Peter’s personal Emacs config.
 #+STARTUP: showeverything
 #+OPTIONS: toc:2
-#+PROPERTY: header-args:elisp :lexical t :tangle yes
+#+PROPERTY: header-args:elisp :lexical t :tangle yes :session elisp-session
+
+(not sure what the ~:session~ property above actually does)
 
 Use ~org-babel-tangle~ to generate =init.el= and reload config.
 # Use ~org-babel-load-file~ to reload config.
@@ -394,6 +396,31 @@ General bindings:
 			     (find-file "~/Documents/emacs-notes.org")))
 
 (keymap-global-set "C-c b b" #'scratch-buffer)
+
+;; For more convenient tab switching:
+(keymap-global-set "C-c t C-f" #'find-file-other-tab)
+(keymap-global-set "C-c t RET" #'tab-switch)
+(keymap-global-set "C-c t C-r" #'find-file-read-only-other-tab)
+(keymap-global-set "C-c t 0" #'tab-close)
+(keymap-global-set "C-c t 1" #'tab-close-other)
+(keymap-global-set "C-c t 2" #'tab-new)
+(keymap-global-set "C-c t G" #'tab-group)
+(keymap-global-set "C-c t M" #'tab-move-to)
+(keymap-global-set "C-c t N" #'tab-new-to)
+(keymap-global-set "C-c t O" #'tab-previous)
+(keymap-global-set "C-c t b" #'switch-to-buffer-other-tab)
+(keymap-global-set "C-c t d" #'dired-other-tab)
+(keymap-global-set "C-c t f" #'find-file-other-tab)
+(keymap-global-set "C-c t m" #'tab-move)
+(keymap-global-set "C-c t n" #'tab-duplicate)
+(keymap-global-set "C-c t o" #'tab-next)
+(keymap-global-set "C-c t p" #'project-other-tab-command)
+(keymap-global-set "C-c t r" #'tab-rename)
+(keymap-global-set "C-c t t" #'other-tab-prefix)
+(keymap-global-set "C-c t u" #'tab-undo)
+
+;; Doesn’t work with meow’s keypad-mode:
+;; (define-key key-translation-map (kbd "C-c t") (kbd "C-x t"))
 #+end_src
 * GUI tweaks
 #+begin_src elisp
@@ -1001,6 +1028,7 @@ calls `meow-eval-last-exp'."
    ;; '("\\g" . project-find-regexp)
    ;; '("\\r" . project-query-replace-regexp)
    '("\\/" . project-shell)
+   '("\\t" . babashka-tasks)
    '("\\g" . magit-status)))
 #+end_src
 
@@ -1961,8 +1989,8 @@ state (other than motion state) doesn’t bind anything."
 (use-package vterm-toggle
   :ensure t
   :config
-  (keymap-global-set "C-c t t" #'vterm-toggle)
-  (keymap-global-set "C-c t c" #'vterm-toggle-cd)
+  (keymap-global-set "C-c v v" #'vterm-toggle)
+  (keymap-global-set "C-c v c" #'vterm-toggle-cd)
 
   ;; you can cd to the directory where your previous buffer file exists
   ;; after you have toggle to the vterm buffer with `vterm-toggle'.
@@ -2026,7 +2054,7 @@ state (other than motion state) doesn’t bind anything."
   ;; (keymap-set org-mode-map "C-c <tab>" #'org-fold-show-children)
   (keymap-set org-mode-map "C-<tab>" #'org-kill-note-or-show-branches)
   (keymap-set org-mode-map "C-M-<tab>" #'org-fold-show-all)
-  (keymap-set org-mode-map "C-c t e" #'org-table-export)
+  ;; (keymap-set org-mode-map "C-c t e" #'org-table-export)
 
   ;; (add-to-list 'display-buffer-alist
   ;; 	       '("^\\*Org Src" display-buffer-at-bottom
@@ -2188,8 +2216,8 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
   (keymap-set org-mode-map "C-c X" #'ph/meow-org-add-above-todo-item)
   (keymap-set org-mode-map "C-c M-x" #'ph/meow-org-add-lower-todo-item)
 
-  (keymap-set org-mode-map "C-c v v" #'ph/org-toggle-inline-image-at-point)
-  (keymap-set org-mode-map "C-c v r" #'ph/org-redisplay-inline-image-at-point)
+  (keymap-set org-mode-map "C-c p p" #'ph/org-toggle-inline-image-at-point)
+  (keymap-set org-mode-map "C-c p r" #'ph/org-redisplay-inline-image-at-point)
   
   ;; meow somehow messes up the `C-c SPC' mapping, so I have to rebind it:
   (keymap-set org-mode-map "C-c d" #'org-table-blank-field)
@@ -2382,21 +2410,21 @@ Subtracts right margin and org indentation level from fill-column"
   (add-to-list 'org-transclusion-extensions 'org-transclusion-indent-mode)
   (require 'org-transclusion-indent-mode)
 
-  (keymap-set org-mode-map "C-c t a" #'org-transclusion-add)
-  (keymap-set org-mode-map "C-c t m" #'org-transclusion-mode)
+  (keymap-set org-mode-map "C-c v a" #'org-transclusion-add)
+  (keymap-set org-mode-map "C-c v m" #'org-transclusion-mode)
 
-  (keymap-set org-transclusion-map "C-c t e" #'org-transclusion-live-sync-start)
-  (keymap-set org-transclusion-map "C-c t g" #'org-transclusion-refresh)
-  (keymap-set org-transclusion-map "C-c t d" #'org-transclusion-remove)
-  (keymap-set org-transclusion-map "C-c t C-d" #'org-transclusion-detach)
-  (keymap-set org-transclusion-map "C-c t P" #'org-transclusion-promote-subtree)
-  (keymap-set org-transclusion-map "C-c t D" #'org-transclusion-demote-subtree)
-  (keymap-set org-transclusion-map "C-c t o" #'org-transclusion-open-source)
-  (keymap-set org-transclusion-map "C-c t O" #'org-transclusion-move-to-source)
+  (keymap-set org-transclusion-map "C-c v e" #'org-transclusion-live-sync-start)
+  (keymap-set org-transclusion-map "C-c v g" #'org-transclusion-refresh)
+  (keymap-set org-transclusion-map "C-c v d" #'org-transclusion-remove)
+  (keymap-set org-transclusion-map "C-c v C-d" #'org-transclusion-detach)
+  (keymap-set org-transclusion-map "C-c v P" #'org-transclusion-promote-subtree)
+  (keymap-set org-transclusion-map "C-c v D" #'org-transclusion-demote-subtree)
+  (keymap-set org-transclusion-map "C-c v o" #'org-transclusion-open-source)
+  (keymap-set org-transclusion-map "C-c v O" #'org-transclusion-move-to-source)
   
-  (keymap-set org-transclusion-live-sync-map "C-c t C-c C-c"
+  (keymap-set org-transclusion-live-sync-map "C-c v C-c C-c"
 	      #'org-transclusion-live-sync-exit)
-  (keymap-set org-transclusion-live-sync-map "C-c t C-y"
+  (keymap-set org-transclusion-live-sync-map "C-c v C-y"
 	      #'org-transclusion-live-sync-paste)
 
   ;; (add-hook 'org-transclusion-after-add-functions
@@ -3817,12 +3845,12 @@ janet-lsp
     ;; Don't show cider help text in repl after jack-in
     (setq cider-repl-display-help-banner nil)
 
-    ;; Show error as overlay instead of the buffer (buffer is generated anyway in
-    ;; case it's needed)
+    ;; Show error as overlay instead of the buffer (buffer is generated anyway
+    ;; in case it's needed)
     (setq cider-show-error-buffer 'except-in-repl)
-    ;; If we set `cider-show-error-buffer' to non-nil, don't focus error buffer
-    ;; when error is thrown
-    (setq cider-auto-select-error-buffer nil)
+    ;; If we set `cider-show-error-buffer' to non-nil, focus error buffer when
+    ;; error is thrown
+    (setq cider-auto-select-error-buffer t)
 
     ;; Don't pop to the REPL buffer on connect
     ;; Create and display the buffer, but don't focus it.
@@ -3830,8 +3858,41 @@ janet-lsp
 
     ;; skip host question on connect
     (defun cider--completing-read-host (hosts)
-      '("localhost")))
+      '("localhost"))
 
+    ;; cider window configuration
+    (add-to-list
+     'display-buffer-alist
+     `("^\\*cider-repl.*\\*$"
+       (display-buffer-reuse-window display-buffer-in-side-window)
+       (side . bottom)
+       (slot . 1)
+       (window-height . 0.2)))
+
+    (add-to-list
+     'display-buffer-alist
+     `("^\\*cider-error.*\\*$"
+       (display-buffer-reuse-window display-buffer-in-side-window)
+       (side . bottom)
+       (slot . 2)
+       (window-height . 0.2)))
+
+    (add-to-list
+     'display-buffer-alist
+     `("^\\*cider-doc.*\\*$"
+       (display-buffer-reuse-window display-buffer-in-side-window)
+       (side . right)
+       (slot . 1)
+       (window-width . 0.3)))
+
+    ;;
+    )
+
+#+end_src
+*** babashka
+#+begin_src elisp
+(use-package babashka
+  :ensure t)
 #+end_src
 
 *** COMMENT clj-refactor
@@ -4142,6 +4203,11 @@ Works kind-of, but with multiple issues.
 
 *** modus-themes /(built-in → updated)/
 Replacing the built-in version (3.0.0) with the current one.
+
+Notes:
+- unfortunately, ~modus-themes-mixed-fonts~ causes OrgMode to lag when
+  moving the point quickly, so I have to set it to ~nil~ for now…
+
 #+begin_src elisp
 (use-package modus-themes
   :ensure t
@@ -4151,6 +4217,7 @@ Replacing the built-in version (3.0.0) with the current one.
   
   (setq modus-themes-italic-constructs t
 	modus-themes-bold-constructs t
+	modus-themes-mixed-fonts nil
 
 	;; modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted)
 
@@ -4647,7 +4714,8 @@ Increment/decrement numbers like in Vim:
 #+end_src
 
 * Appearance
-** Fonts
+** COMMENT Fonts (old)
+
 #+begin_src elisp
 (set-face-attribute 'default nil
                     :font "Berkeley Mono"
@@ -4674,6 +4742,41 @@ Increment/decrement numbers like in Vim:
 
 ;; (setq-default line-spacing 0.12)
 
+#+end_src
+
+** Fonts (new)
+Notes:
+- /TX-02/ is the new family name for /Berkeley Mono/ (now v2)
+- unfortunately, Emacs doesn’t support all its weights and widths (probably
+  because of its simplified font model?)
+
+#+begin_src elisp
+(set-face-attribute 'default nil
+		    :family "TX-02"
+		    ;; height = point size * 10
+		    :height 140
+		    :weight 'Regular
+		    :width 'SemiCondensed)
+
+(set-face-attribute 'variable-pitch nil
+		    :font "Cambria"
+		    :height 160
+		    :weight 'regular)
+
+(set-face-attribute 'fixed-pitch nil
+		    :family "TX-02"
+		    ;; height = point size * 10
+		    :height 140
+		    :weight 'Regular
+		    :width 'SemiCondensed)
+
+(set-face-attribute 'font-lock-comment-face nil
+                    :slant 'italic)
+
+(set-face-attribute 'font-lock-keyword-face nil
+                    :slant 'normal)
+
+;; (setq-default line-spacing 0.12)
 
 #+end_src
 
@@ -4694,7 +4797,7 @@ Increment/decrement numbers like in Vim:
 ;; to prevent Emacs from enabling all required themes on startup:
 (mapc #'disable-theme custom-enabled-themes)
 
-(load-theme 'modus-operandi t)
+;; (load-theme 'modus-operandi t)
 
 ;; Activate my desired themes
 ;; (load-theme 'modus-operandi t t)
@@ -4705,6 +4808,9 @@ Increment/decrement numbers like in Vim:
 ;; Enable my preferred theme
 ;; (enable-theme 'modus-operandi)
 (enable-theme 'modus-operandi-tinted)
+
+;; Enable if I want to use proportional fonts in text modes:
+;; (add-hook 'text-mode-hook #'variable-pitch-mode)
 #+end_src
 
 *** COMMENT pmacs
@@ -4786,6 +4892,19 @@ Increment/decrement numbers like in Vim:
 * TODO
 
 To fix:
+- [X] OrgMode has little lags when moving the cursor - had this before and
+  then it was fixed but now it’s back again - why?
+  - UPDATE: seems like ~modus-themes-mixed-fonts~ causes this, so setting it to
+    ~nil~ fixed it
+- [ ] (not something I can fix myself) Emacs doesn’t seem to support all
+  weights and widths from a font family, so in case of /TX-02/:
+  - ~'ExtraLight~ = ~'Light~
+  - ~'Bold~ = ~'ExtraBold~ = ~'Black~
+  - ~'Condensed~ = ~'SemiCondensed~
+- [ ] it seems like when I call ~describe-font~ or even ~describe-char~, Emacs
+  seems to mess up all keybindings until I restart it
+  - although it may also happen when ~set-face-attribute~ is evaluated with
+    invalid arguments
 - [ ] orderless: how to make it so that typing ~'~ at the end of a search string
   enables fuzzy completion style like in fido?
   - seen [[https://youtu.be/SOxlQ7ogplA?t=2669][here]] (YouTube), but for initials
@@ -4874,13 +4993,16 @@ Debugger entered--Lisp error: (args-out-of-range #("<" 0 1 (fontified t)) 1 2)
   - see https://clojurians.slack.com/archives/C035GRLJEP8/p1729288061113389
 
 To learn:
+- [ ] how does ~M-x align~ work? I couldn’t find any good explanations
 - [ ] how does Yasnippet work and is it useful?
 - [ ] CIDER
 - [ ] how to pin packages to specific versions?
   - https://www.reddit.com/r/emacs/comments/qrythw/pin_a_specific_version_of_a_package/
   - use https://github.com/quelpa/quelpa ?
-- [ ] how to eval elisp in orgmode without special edit mode
-- [ ] what exactly is ~org-babel-tangle~ and how does it help with transpiling
+- [X] how to eval elisp in orgmode without special edit mode
+  - the editing experience outside of edit mode is very unpleasent and some
+    eval commands do not work, but ~C-x C-e~ should work
+- [X] what exactly is ~org-babel-tangle~ and how does it help with transpiling
   =.org= files into =.el= (such as my config)?
   - how does the package ~org-auto-tangle~ help?
 - [ ] does it make sense to put all backup files in Trash can?
@@ -4889,6 +5011,8 @@ To learn:
   
 Think about more often:
 - ~org-capture~ (~C-c c~)
+- ~calc~
+- ~winner-mode~
 
 Packages to try:
 - [ ] ~perspective~ to manage workspaces (incl. window management)
@@ -4898,7 +5022,7 @@ Packages to try:
   - +I think I like fido mode better+ → vertico is actually much better
 - [ ] Swiper (depends on ivy) for isearch with regex
 - [ ] sudo-edit if need arises to use sudo to open files
-- [ ] consider vterm instead of ~M-x shell~
+- [X] consider vterm instead of ~M-x shell~
   - seems to be compiled instead of elisp -> faster
   - see [[https://gitlab.com/dwt1/configuring-emacs/-/blob/main/03-shells-terms-and-theming/config.org?ref_type=heads#vterm][DistroTube]] for config
   - also install vterm-toggle
@@ -4910,7 +5034,6 @@ Packages to try:
 - [ ] flycheck-color-mode-line.el
 - [ ] [[https://www.youtube.com/watch?v=cM8zXJKdC8o][Emmet mode]] (HTML tag editing macros)
   - also see [[https://www.youtube.com/watch?v=EiCDLVp6O5A][HTML mode]]
-- [ ] [[https://www.youtube.com/watch?v=OczjiV9eZwA][Olivetti Mode]] (centers window, makes it smaller to focus read)
 - [ ] [[https://github.com/tarsius/hl-todo][hl-todo]] (todo keyword highlighting)
   - see https://youtu.be/pPzD6FlZ4ss?t=929
   
