@@ -4,4 +4,4 @@
 ; SETEDITOR "|focus-app iTerm2 nvim|
 SETEDITOR "nvim
 SETPREFIX "Logo
-SETFONT "|Berkeley Mono|
+SETFONT "|TX-02|

@@ -1,0 +1,2 @@
+{:paths ["." "hooks"]
+ :deps {clj-kondo/clj-kondo {:mvn/version "2025.02.20"}}}

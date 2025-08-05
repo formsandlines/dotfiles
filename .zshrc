@@ -31,9 +31,11 @@ alias demacs='open -n -a /Applications/Emacs.app --args --init-directory "~/.ema
 # alias lemacs='open -n -a /Applications/Emacs.app --args --init-directory "~/.emacs.d.learn"'
 # alias lemacs='open -n -a /Applications/Emacs.app --args --no-desktop -q -l ~/.emacs.d.learn/init.el'
 alias emacs-debug="open -a /Applications/Emacs.app --args -q"
+alias rebel="clojure -M:rebel"
 alias opem="open $1 -a /Applications/Emacs.app"
 alias sgrep='run_sgrep'
 alias ttyconfig='nvim ~/.dotfiles/.config/ghostty/config'
+alias ppath="echo \"${PATH//:/$'\n'}\"" # pritty-print $PATH
 
 function run_sgrep() {
   (cd ~/Dev/semantic-grep && ./sgrep "$@")
@@ -160,3 +162,21 @@ otherjava() {
 # serendipity
 # echo "Docstring of the day (script by @borkdude):"
 # ~/.dotfiles/scripts/random_doc.clj
+
+# zsh syntax highlighting (installed from Homebrew)
+source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# zsh autosuggestions (installed from Homebrew)
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# zsh history substring search (installed from Homebrew)
+source $(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey -M emacs '^P' history-substring-search-up
+bindkey -M emacs '^N' history-substring-search-down
+
+# custom prompt (installed from Homebrew)
+eval "$(starship init zsh)"
+
+echo 'zshrc loaded!'

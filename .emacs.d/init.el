@@ -15,7 +15,7 @@
 (setq package-archives 
       '(("melpa" . "https://melpa.org/packages/")
         ("elpa" . "https://elpa.gnu.org/packages/")
-	("elpa-devel" . "https://elpa.gnu.org/devel/")))
+        ("elpa-devel" . "https://elpa.gnu.org/devel/")))
 
 ;; Bootstrap use-package:
 ;; (package-initialize)                ; ? still needed
@@ -129,8 +129,10 @@
 (put 'upcase-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 
-;; No backup files (foo.txt~):
-(setq make-backup-files nil)
+;; Make backup files (foo.txt~):
+(setq make-backup-files t)
+;; Set backup directory to trash, so they don’t pile up:
+(setq backup-directory-alist '((".*" . "~/.Trash")))
 
 ;; Follow symlinks for version control:
 (setq vc-follow-symlinks t)
@@ -361,6 +363,10 @@ one, an error is signaled."
 ;; (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
 ;; (add-to-list 'default-frame-alist '(ns-appearance . dark))
 
+;; macOS by default displays a huge title bar, this makes it smaller:
+;; - see https://github.com/railwaycat/homebrew-emacsmacport/issues/362
+(tool-bar-mode 0)
+
 ;; better mouse wheel scrolling
 ;; https://stackoverflow.com/a/26053341
 (setq mouse-wheel-scroll-amount '(0.07))
@@ -390,7 +396,8 @@ one, an error is signaled."
 (defun ph/set-frame-size-balance (w h &optional pixelwise)
   (set-frame-width nil w)
   (set-frame-height nil h pixelwise)
-  (balance-windows))
+  ;; (balance-windows) ;; <-- seems too annoying
+  )
 
 (defun ph/select-rightmost-window ()
   "Select the rightmost window"
@@ -497,6 +504,9 @@ one, an error is signaled."
 (use-package vc-use-package
   :ensure t)
 
+(use-package package-utils
+  :ensure t)
+
 (use-package which-key
   :ensure t
   :init
@@ -588,11 +598,13 @@ one, an error is signaled."
     ("b" switch-to-buffer)
     ("f" find-file)
     ;; Window commands
-    ("c" delete-window)        ;; C-x 0
+    ("c" delete-window)       ;; C-x 0
+    ("C" delete-frame :color blue)  ;; C-x 5 0
     ("d" delete-other-windows :color blue) ;; C-x 1
-    ("s" split-window-below)   ;; C-x 2
-    ("v" split-window-right)   ;; C-x 3
-    ("w" other-window)	  ;; C-x o
+    ("s" split-window-below)  ;; C-x 2
+    ("v" split-window-right)  ;; C-x 3
+    ("w" other-window :color blue) ;; C-x o
+    ("W" other-frame :color blue)  ;; C-x 5 o
     ("=" balance-windows)
     ;; Move to windows, keeping hydra open
     ("h" windmove-left :color blue)
@@ -615,16 +627,23 @@ one, an error is signaled."
     ;; Resize windows
     ("C-M-h" shrink-window-horizontally)
     ("C-M-l" enlarge-window-horizontally)
-    ("C-M-k" enlarge-window)
-    ("C-M-j" shrink-window)
+    ("C-M-k" shrink-window)
+    ("C-M-j" enlarge-window)
+    ("C-M-S-h" (lambda () (interactive) (shrink-window-horizontally 10)))
+    ("C-M-S-l" (lambda () (interactive) (enlarge-window-horizontally 10)))
+    ("C-M-S-k" (lambda () (interactive) (shrink-window 10)))
+    ("C-M-S-j" (lambda () (interactive) (enlarge-window 10)))
     ;; Resize frame
     ("[" ph/my-set-frame-lg-1x :color blue)
     ("]" ph/my-set-frame-lg-2x :color blue)
     ("{" ph/my-set-frame-mb-1x :color blue)
     ("}" ph/my-set-frame-mb-2x :color blue)
+    ;; Cycle tabs
+    ("u" tab-previous)
+    ("o" tab-next)
     ;; Undo/Redo window configuration
-    ("u" winner-undo)
-    ("o" winner-redo)
+    ("U" winner-undo)
+    ("O" winner-redo)
 
     ("?" (hydra-set-property 'hydra-window :verbosity 1) :exit nil)
     ("SPC" nil "cancel"))
@@ -818,10 +837,10 @@ calls `meow-eval-last-exp'."
    ;; REFERENCES
    '("/f" . xref-find-definitions)
    '("/F" . xref-go-back)
-   '("/r" . xref-find-references)
+   ;; '("/r" . xref-find-references)  ; never really worked (tags-table)
    '("/a" . xref-find-apropos)
    '("/j" . eldoc)
-   '("/R" . eglot-rename)
+   '("/N" . eglot-rename)
 
    ;; SYSTEM CLIPBOARD
    '("/cc" . meow-clipboard-save)
@@ -862,6 +881,8 @@ calls `meow-eval-last-exp'."
    ;; SEARCH
    '("/v" . meow-visit)	        ; / -> ? -> / -> ns -> /s -> /v
    '("/s" . isearch-forward-thing-at-point)
+   '("/r" . meow-query-replace) ; calls 'query-replace'
+   '("/R" . meow-query-replace-regexp) ; calls 'query-replace-regexp'
 
    ;; EVAL
    '("/e" . ph/meow-eval-dwim)  ; just C-x C-e or ph/meow-eval-region
@@ -889,8 +910,8 @@ calls `meow-eval-last-exp'."
    '("\\q" . meow-quit)
    '("\\w" . save-buffer)
    '("\\W" . save-some-buffers)
-   '("\\r" . meow-query-replace) ; calls 'query-replace'
-   '("\\R" . meow-query-replace-regexp) ; calls 'query-replace-regexp'
+   ;; '("\\r" . meow-query-replace) ; calls 'query-replace'
+   ;; '("\\R" . meow-query-replace-regexp) ; calls 'query-replace-regexp'
    
    ;; EXTERNAL
    '("\\=" . quick-calc)
@@ -905,8 +926,8 @@ calls `meow-eval-last-exp'."
    '("\\p" . project-switch-project)
    '("\\d" . project-find-dir)
    '("\\k" . project-kill-buffers)
-   ;; '("\\g" . project-find-regexp)
-   ;; '("\\r" . project-query-replace-regexp)
+   '("\\r" . project-find-regexp)
+   '("\\R" . project-query-replace-regexp)
    '("\\/" . project-shell)
    '("\\t" . babashka-tasks)
    '("\\g" . magit-status)))
@@ -964,7 +985,8 @@ calls `meow-eval-last-exp'."
    '("E" . ph/meow-line-append)
    '("q" . meow-block)		; w -> q
    '("Q" . meow-to-block)
-   '("s" . meow-join)			; q -> a -> h -> a
+   '("s" . back-to-indentation)		; q -> a -> h -> a -> s
+   ;; '("s" . meow-join)			; q -> a -> h -> a
    '("S" . ph/meow-line-insert)	; H -> A
    '("g" . meow-grab)			; g -> h (see undo) -> g
    '("G" . meow-pop-grab)		; G -> H -> G
@@ -1284,6 +1306,8 @@ calls `meow-eval-last-exp'."
 
   (meow-define-keys 'symex
     ;; GENERAL MEOW KEYS
+
+    ;; ? do these actually work
     '("0" . meow-expand-0)
     '("1" . meow-expand-1)
     '("2" . meow-expand-2)
@@ -1341,12 +1365,12 @@ calls `meow-eval-last-exp'."
     ;; '("<" . symex-create-angled)
     
     '("h" . symex-go-backward)
-    '("k" . symex-go-up)
-    '("j" . symex-go-down)
+    '("j" . symex-go-up) ;; k -> j
+    '("k" . symex-go-down) ;; j -> k
     '("l" . symex-go-forward)
 
-    '("gj" . symex-next-visual-line)
-    '("gk" . symex-previous-visual-line)
+    '("C-j" . symex-next-visual-line) ;; gj -> J -> C-j
+    '("C-k" . symex-previous-visual-line) ;; gk -> K -> C-k
     '("L" . symex-traverse-forward) ;; f -> o -> L
     '("H" . symex-traverse-backward) ;; b -> u -> H
     ;; '("C-f" . symex-traverse-forward-more)
@@ -1357,8 +1381,8 @@ calls `meow-eval-last-exp'."
     '("o" . symex-leap-forward) ;; C-l -> o
     '("U" . symex-soar-backward) ;; C-M-h -> U
     '("O" . symex-soar-forward) ;; C-M-l -> O
-    '("K" . symex-climb-branch) ;; C-k -> K
-    '("J" . symex-descend-branch) ;; C-j -> J
+    '("J" . symex-climb-branch) ;; C-k -> K -> C-j -> J
+    '("K" . symex-descend-branch) ;; C-j -> J -> C-k -> K
     
     '("c" . symex-yank) ;; y -> c
     ;; '("C" . symex-yank-remaining) ;; Y -> C (doesn’t work)
@@ -1412,17 +1436,17 @@ calls `meow-eval-last-exp'."
     ;; '("`" . symex-add-quoting-level)
     ;; '("C-`" . symex-remove-quoting-level)
     
-    '("E" . ph/symex-open-line-after) ;; o -> b -> n -> E
-    '("S" . ph/symex-open-line-before) ;; O -> B -> N -> S
+    '("A" . ph/symex-open-line-after) ;; o -> b -> n -> E -> A
+    '("I" . ph/symex-open-line-before) ;; O -> B -> N -> S -> I
     '("C-{" . symex-insert-newline) ;; n -> C-{
     '("C-}" . symex-append-newline) ;; C-S-o -> C-}
-    '("X" . symex-join-lines) ;; J -> X
+    '("x" . symex-join-lines) ;; J -> X -> x
     ;; '("M-J" . symex-collapse)
     '("M-<" . symex-collapse)
     '("M->" . symex-unfurl)
     ;; '("C-M-<" . symex-collapse-remaining)
     ;; '("C-M->" . symex-unfurl-remaining)
-    '("x" . symex-join-lines-backwards) ;; N -> x
+    '("X" . symex-join-lines-backwards) ;; N -> x -> X
     
     '("s" . symex-goto-first) ;; 0 / M-h -> s
     '("e" . symex-goto-last) ;; $ / M-l -> e
@@ -1436,10 +1460,10 @@ calls `meow-eval-last-exp'."
     ;; '("M-=" . symex-tidy-proper)
     ;; '("M-<tab>" . symex-tidy-proper)
     
-    '("A" . ph/symex-append-after)
-    '("a" . ph/symex-insert-at-end)
-    '("i" . ph/symex-insert-at-beginning)
-    '("I" . ph/symex-insert-before)
+    '("E" . ph/symex-append-after) ;; A -> a -> E
+    '("a" . ph/symex-insert-at-end) ;; a -> E -> a
+    '("i" . ph/symex-insert-at-beginning) ;; i -> S -> i
+    '("S" . ph/symex-insert-before) ;; I -> i -> S
     '("w" . ph/symex-wrap)
     '("W" . ph/symex-wrap-and-append)
     
@@ -1796,38 +1820,45 @@ state (other than motion state) doesn’t bind anything."
   (global-diff-hl-mode)
   (add-hook 'dired-mode-hook 'diff-hl-dired-mode))
 
-(use-package vterm
+(use-package elpher
   :ensure t
+  :custom
+  (elpher-default-url-type "gemini")
   :config
-  (push (list "find-file-below"
-	      (lambda (path)
-		(if-let* ((buf (find-file-noselect path))
-			  (window (display-buffer-below-selected buf nil)))
-		    (select-window window)
-		  (message "Failed to open file: %s" path))))
-	vterm-eval-cmds)
-  ;;
-  )
 
-(use-package vterm-toggle
-  :ensure t
-  :config
-  (keymap-global-set "C-c v v" #'vterm-toggle)
-  (keymap-global-set "C-c v c" #'vterm-toggle-cd)
+  (defun ph/elpher-download-advice
+      (orig-fun data &optional mime-type-string &rest _args)
+    "Advice to prompt for confirmation before downloading in Elpher."
+    (let* ((address (elpher-page-address elpher-current-page))
+           (selector (if (elpher-address-gopher-p address)
+			 (elpher-gopher-address-selector address)
+                       (elpher-address-filename address)))
+           (size (length data)))
+      (if (y-or-n-p (format "Download file '%s' (%d bytes)? " 
+			    (file-name-nondirectory selector) 
+			    size))
+	  (apply orig-fun data mime-type-string _args)
+	(progn (elpher-visit-previous-page)
+	       (message "Download cancelled"))
+	nil)))
 
-  ;; you can cd to the directory where your previous buffer file exists
-  ;; after you have toggle to the vterm buffer with `vterm-toggle'.
-  (keymap-set vterm-mode-map "C-RET" #'vterm-toggle-insert-cd)
+  ;; Because auto-downloading is bad – please don’t do this, Elpher!
+  (advice-add 'elpher-render-download :around #'ph/elpher-download-advice)
 
-  ;; Switch to next vterm buffer
-  ;; (keymap-set vterm-mode-map "h-n" #'vterm-toggle-forward)
-  ;; Switch to previous vterm buffer
-  ;; (keymap-set vterm-mode-map "h-p" #'vterm-toggle-backward)
+  (defun ph/elpher-back-to-start-advice
+      (orig-fun &rest _args)
+    "Advice to prompt for confirmation before going back to start page and losing all browsing history."
+    (if (y-or-n-p "Do you really want to go back to the start page and lose your browsing history?")
+	(apply orig-fun _args)
+      nil))
 
+  (advice-add 'elpher-back-to-start :around #'ph/elpher-back-to-start-advice)
+  
   ;;
   )
 
 (use-package org
+  :hook ((org-mode . visual-line-mode))
   :config
   (setq org-id-link-to-org-use-id 'use-existing)
 
@@ -2230,25 +2261,26 @@ Subtracts right margin and org indentation level from fill-column"
   (org-roam-directory (file-truename "~/Documents/Org-roam"))
   (org-roam-dailies-directory "daily/")
   (org-roam-completion-everywhere t)
-  :bind (("C-c n l" . org-roam-buffer-toggle)
-	 ("C-c n f" . org-roam-node-find)
-	 ("C-c n g" . org-roam-graph)
-	 ("C-c n i" . org-roam-node-insert)
-	 ("C-c n c" . org-roam-capture)
+  ;; ! temporarily disabled to try out denote:
+  ;; :bind (("C-c n l" . org-roam-buffer-toggle)
+  ;; 	 ("C-c n f" . org-roam-node-find)
+  ;; 	 ("C-c n g" . org-roam-graph)
+  ;; 	 ("C-c n i" . org-roam-node-insert)
+  ;; 	 ("C-c n c" . org-roam-capture)
 	 
-	 ;; Dailies
-	 ("C-c n j" . org-roam-dailies-capture-today)
-	 ("C-c n J" . org-roam-dailies-capture-yesterday)
-	 ("C-c n M-j" . org-roam-dailies-capture-date)
+  ;; 	 ;; Dailies
+  ;; 	 ("C-c n j" . org-roam-dailies-capture-today)
+  ;; 	 ("C-c n J" . org-roam-dailies-capture-yesterday)
+  ;; 	 ("C-c n M-j" . org-roam-dailies-capture-date)
 	 
-	 ("C-c n o" . org-roam-dailies-goto-today)
-	 ("C-c n O" . org-roam-dailies-goto-yesterday)
-	 ("C-c n M-o" . org-roam-dailies-goto-date)
+  ;; 	 ("C-c n o" . org-roam-dailies-goto-today)
+  ;; 	 ("C-c n O" . org-roam-dailies-goto-yesterday)
+  ;; 	 ("C-c n M-o" . org-roam-dailies-goto-date)
 	 
-	 ("C-c n p" . org-roam-dailies-goto-previous-note)
-	 ("C-c n n" . org-roam-dailies-goto-next-note)
-	 :map org-mode-map
-	 ("C-M-i" . completion-at-point))
+  ;; 	 ("C-c n p" . org-roam-dailies-goto-previous-note)
+  ;; 	 ("C-c n n" . org-roam-dailies-goto-next-note)
+  ;; 	 :map org-mode-map
+  ;; 	 ("C-M-i" . completion-at-point))
   :config
   ;; (org-roam-database-connector 'sqlite)
   ;; If you're using a vertical completion framework, you might want a more informative completion interface
@@ -2297,6 +2329,31 @@ Subtracts right margin and org indentation level from fill-column"
 	org-roam-ui-update-on-save t
 	org-roam-ui-open-on-start t))
 
+(use-package denote
+  :ensure t
+  :hook (dired-mode . denote-dired-mode)
+  :bind
+  (("C-c n n" . denote)
+   ("C-c n r" . denote-rename-file)
+   ("C-c n l" . denote-link)
+   ("C-c n b" . denote-backlinks)
+   ("C-c n d" . denote-dired)
+   ("C-c n g" . denote-grep))
+  :config
+  (setq denote-directory (expand-file-name "~/Documents/notes/"))
+
+  ;; Pick dates, where relevant, with Org's advanced interface:
+  (setq denote-date-prompt-use-org-read-date t)
+  
+  ;; Automatically rename Denote buffers when opening them so that
+  ;; instead of their long file name they have, for example, a literal
+  ;; "[D]" followed by the file's title.  Read the doc string of
+  ;; `denote-rename-buffer-format' for how to modify this.
+  (denote-rename-buffer-mode 1)
+
+  ;;
+  )
+
 (use-package yasnippet
   :ensure t
   :diminish
@@ -2321,6 +2378,12 @@ Subtracts right margin and org indentation level from fill-column"
   ;; "Symbols Nerd Font Mono" is the default and is recommended
   ;; but you can use any other Nerd Font if you want
   (nerd-icons-font-family "BerkeleyMono Nerd Font Mono"))
+
+(use-package adaptive-wrap
+  :ensure t
+  :config
+  ;; (setq-default adaptive-wrap-extra-indent 2)
+  (add-hook 'visual-line-mode-hook #'adaptive-wrap-prefix-mode))
 
 (use-package popper
   :ensure t
@@ -2984,7 +3047,7 @@ still remain accessible by `yank-pop'."
 
 (use-package symex
   :ensure t
-  ;; :after janet-ts-mode
+  ;; :after paredit-mode
   :config
   (symex-initialize)
   ;; (global-set-key (kbd "s-;") 'symex-mode-interface)
@@ -3008,6 +3071,9 @@ still remain accessible by `yank-pop'."
 	 (not (member major-mode symex-clojure-modes))))
 
   )
+
+(use-package paredit
+  :after symex)
 
 (use-package meow-tree-sitter
   :ensure t
@@ -3230,12 +3296,6 @@ still remain accessible by `yank-pop'."
   :after (citar org-roam)
   :config (citar-org-roam-mode))
 
-(use-package haskell-mode
-  :ensure t)
-
-(use-package lua-mode
-  :ensure t)
-
   (use-package cider
     :ensure t
     :config
@@ -3270,6 +3330,9 @@ still remain accessible by `yank-pop'."
     ;; Create and display the buffer, but don't focus it.
     (setq cider-repl-pop-to-buffer-on-connect 'display-only)
 
+    ;; Let defun-level commands ignore `comment' forms
+    (setq clojure-toplevel-inside-comment-form t)
+
     ;; skip host question on connect
     (defun cider--completing-read-host (hosts)
       '("localhost"))
@@ -3278,10 +3341,27 @@ still remain accessible by `yank-pop'."
     (add-to-list
      'display-buffer-alist
      `("^\\*cider-repl.*\\*$"
-       (display-buffer-reuse-window display-buffer-in-side-window)
-       (side . bottom)
-       (slot . 1)
-       (window-height . 0.2)))
+       (display-buffer-pop-up-frame)
+       (inhibit-switch-frame)
+       (pop-up-frame-parameters
+	(left . 1.0) ;; align with the right side of the screen
+	(top . 0) ;; align with the top of the screen
+	(width . 60)
+	(height . 60)
+	(undecorated . t) ;; no OS window decoration
+	(tab-bar-lines . 0) ;; prevents tab-bar to appear
+	(no-focus-on-map . t) ;; prevents focus when command is called
+	(unsplittable . t) ;; don’t allow window splitting in frame
+	)))
+
+    
+    ;; (add-to-list
+    ;;  'display-buffer-alist
+    ;;  `("^\\*cider-repl.*\\*$"
+    ;;    (display-buffer-reuse-window display-buffer-in-side-window)
+    ;;    (side . bottom)
+    ;;    (slot . 1)
+    ;;    (window-height . 0.2)))
 
     (add-to-list
      'display-buffer-alist
@@ -3295,15 +3375,81 @@ still remain accessible by `yank-pop'."
      'display-buffer-alist
      `("^\\*cider-doc.*\\*$"
        (display-buffer-reuse-window display-buffer-in-side-window)
-       (side . right)
+       (side . bottom)
        (slot . 1)
        (window-width . 0.3)))
 
+
+;; (defun ph/reverse (start end)
+;;   "Reverses all characters in a region."
+;;   (interactive "r")
+;;   (let ((str (buffer-substring start end)))
+;;     (delete-region start end)
+;;     (insert (nreverse str))))
+
+    (defun ph/--cider-eval-wolframite (bounds)
+      (let ((current-ns (cider-current-ns))
+	    (form (cider-last-sexp)))
+	(cider-interactive-eval
+	 (format "(wolframite.core/eval %s)" form)
+	 (cider-interactive-eval-handler (current-buffer) bounds)
+	 nil
+	 `(("ns" ,current-ns)) ;; not sure if needed
+	 )))
+    
+    (defun ph/cider-eval-wolframite-dwim ()
+      "Evaluates a wolframite form with `wolframite.core/eval'. Expects `wolframite.core' to be in the user environment. Works with and without symex-mode."
+      (interactive)
+      (cond
+       ;; symex-mode with tree-sitter:
+       ((and (symex-tree-sitter-p)
+	     (symex-ts-get-current-node))
+	(let ((node (symex-ts-get-current-node))
+	      (start (tsc-node-start-position node))
+	      (end (tsc-node-end-position node)))
+	  (ph/--cider-eval-wolframite (list start end))))
+       ;; symex-mode with tree-sitter:
+       ((or (lispy-left-p)
+	    (symex-string-p))
+	(save-excursion
+	  (forward-sexp)
+	  (ph/--cider-eval-wolframite (cider-last-sexp 'bounds))))
+       ;; point at last sexp:
+       (t
+	(ph/--cider-eval-wolframite (cider-last-sexp 'bounds)))))
+
+    (keymap-set clojure-mode-map "C-c e w" #'ph/cider-eval-wolframite-dwim)
+
+    ;; ? was a one-off convenience function to replace data with eval result, but might make it more general
+    (defun ph/cider-eval-last-sexp-with-fn-and-replace ()
+      "Replace the preceding s-expression with its evaluation result from CIDER."
+      (interactive)
+      (save-excursion
+	(let ((end (point)))
+	  (backward-sexp)
+	  (let* ((start (point))
+		 (sexp (buffer-substring-no-properties start end))
+		 (eval-form (format "(rv %s)" sexp)))
+	    (cider-interactive-eval
+	     eval-form
+	     (cider-insert-eval-handler
+	      (current-buffer)
+	      (list start end)))
+	    (delete-region start end)))))
+
+    (keymap-set clojure-mode-map "C-c e r" #'ph/cider-eval-last-sexp-with-fn-and-replace)
     ;;
     )
 
 (use-package babashka
   :ensure t)
+
+(use-package clay
+  :ensure t
+  :config
+  (keymap-set clojure-mode-map "C-c j k" #'clay-make-last-sexp)
+  (keymap-set clojure-mode-map "C-c j c" #'clay-make-defun-at-point)
+  (keymap-set clojure-mode-map "C-c j j" #'clay-make-ns-html))
 
 (defun ph/clerk-show ()
   (interactive)
@@ -3317,7 +3463,7 @@ still remain accessible by `yank-pop'."
 
 ;; The following variables may be overwritten per project in .dir-locals
 
-(defvar ph/clerk-watch-paths '("notebooks" "src")
+(defvar ph/clerk-watch-paths '("notebooks") ;; "src"
   "Watch paths for Clerk notebooks.")
 
 (defvar ph/clerk-serve-port "7777"
@@ -3383,22 +3529,12 @@ still remain accessible by `yank-pop'."
 
 
 (keymap-set clojure-mode-map "M-RET" #'ph/clerk-show)
-(keymap-set clojure-mode-map "C-c j" #'ph/clerk-serve)
+;; (keymap-set clojure-mode-map "C-c j" #'ph/clerk-serve)
 
 (use-package geiser-chicken
   :ensure t
   :config
   (setq geiser-default-implementation 'chicken))
-
-(use-package racket-mode
-  :ensure t
-  :config
-  (setq racket-program "/opt/homebrew/bin/racket")
-  (add-to-list 'display-buffer-alist
-	       '("\\*Racket REPL.+"
-		 (display-buffer-in-side-window)
-		 (side . right)
-		 (window-width . 0.5))))
 
 (load (expand-file-name "~/.roswell/helper.el"))
 (setq inferior-lisp-program "ros -Q run")
@@ -3420,9 +3556,6 @@ still remain accessible by `yank-pop'."
   :config
   (add-hook 'janet-ts-mode-hook
             #'ajrepl-interaction-mode))
-
-(use-package gruvbox-theme
-  :ensure t)
 
 (use-package modus-themes
   :ensure t
@@ -3516,21 +3649,25 @@ still remain accessible by `yank-pop'."
   
   )
 
-(use-package ef-themes
-  :pin elpa
-  :ensure t)
-
 (use-package fontaine
   :pin elpa
   :ensure t
   :config
 
+  ;; (setq fontaine-presets
+  ;; 	'((regular
+  ;;          :default-family "Courier New")
+  ;;         (prose
+  ;;          :default-family "Cambria")
+  ;;         (t
+  ;;          :default-family "Courier New"
+  ;;          )))
+  
   (setq fontaine-presets
 	'((macbook
 	   :default-height 130
 	   :default-width SemiCondensed
 	   :bold-weight SemiBold
-	   :variable-pitch-height 150
 	   )
 	  (regular) ; uses all fallback values from `t'
 	  (t
@@ -3540,19 +3677,19 @@ still remain accessible by `yank-pop'."
 	   :default-width SemiCondensed
 
 	   ;; nil -> falls back to :default entries
-	   :fixed-pitch-family nil
+	   :fixed-pitch-family "TX-02" (? fallback doesn’t work here)
 	   :fixed-pitch-weight nil
 	   :fixed-pitch-height nil
 	   :fixed-pitch-width nil
 	   :variable-pitch-family "Cambria"
 	   :variable-pitch-weight Regular
-	   :variable-pitch-height 160
+	   :variable-pitch-height 1.15 ;; 160
 	   :variable-pitch-width nil
 	   :bold-family nil ; use whatever the underlying face has
-	   :bold-weight bold
+	   :bold-weight Bold
 	   :bold-width SemiCondensed
 	   :italic-family nil
-	   :italic-slant italic
+	   :italic-slant Italic
 	   :italic-width SemiCondensed
 	   :line-spacing nil
 	   )))
@@ -3688,6 +3825,13 @@ still remain accessible by `yank-pop'."
     (goto-char start)
     (delete-char 1)))
 
+(defun ph/reverse (start end)
+  "Reverses all characters in a region."
+  (interactive "r")
+  (let ((str (buffer-substring start end)))
+    (delete-region start end)
+    (insert (nreverse str))))
+
 (defun ph/insert-date ()
   "Insert current date."
   (interactive)
@@ -3772,6 +3916,26 @@ end tell")
       (message "File does not exist!"))))
 
 (keymap-set dired-mode-map "O" #'ph/dired-open-in-finder)
+
+;; In dired mode, visit the file at the cursor in the right/below/left/above
+;; window. Thanks to HN user ww520 for this snippet:
+;; https://news.ycombinator.com/item?id=44076969
+(defun ph/dired-display-direction ()
+  (interactive)
+  (let* ((file-or-dir (dired-get-file-for-visit))   ;; get the file at cursor
+	 (buffer (find-file-noselect file-or-dir))) ;; load the file into a buffer
+    (let ((window                                   ;; figure out the window to use
+	   (cond ((get-buffer-window buffer (selected-frame)))
+		 ((window-in-direction 'right))     ;; try window in each direction
+		 ((window-in-direction 'below))     ;; and default to right
+		 ((window-in-direction 'left))      ;; if no window found.
+		 ((window-in-direction 'above))
+		 (t (split-window (selected-window) nil 'right)))))
+      (window--display-buffer buffer window 'window nil)
+      window)))
+
+;; Bind ctrl-o to display at direction.
+(define-key dired-mode-map (kbd "C-c o") 'ph/dired-display-direction)
 
 ;; Run commands in a popup frame
 

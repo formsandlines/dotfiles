@@ -38,5 +38,13 @@
           instaparse.core/defparser          hooks.instaparse/defparser
           formform.expr.symexpr/defoperator  hooks.formform/defoperator
           formform.expr/defoperator          hooks.formform/defoperator
+          formform.emul.interfaces/defini    hooks.formform/defini
+          formform.emul/defini               hooks.formform/defini
+          formform.emul.interfaces/defumwelt hooks.formform/defumwelt
+          formform.emul/defumwelt            hooks.formform/defumwelt
+          formform.emul.interfaces/defrule   hooks.formform/defrule
+          formform.emul/defrule              hooks.formform/defrule
+          formform.emul.interfaces/defspecies hooks.formform/defspecies
+          formform.emul/defspecies            hooks.formform/defspecies
           quil.core/defsketch                hooks.quil/defsketch}}
  :config-paths ["./lilactown/helix"]}
