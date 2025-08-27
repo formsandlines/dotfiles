@@ -122,6 +122,8 @@
 
 ;; Revert buffers when the underlying file has changed
 (global-auto-revert-mode 1)
+;; Have Emacs shut the f*ck up about it
+(setq auto-revert-verbose nil)
 ;; Revert Dired and other buffers
 (setq global-auto-revert-non-file-buffers t)
 
@@ -621,7 +623,7 @@ one, an error is signaled."
     ("C-j" ph/buf-move-down)
     ("C-k" ph/buf-move-up)
     ("C-l" ph/buf-move-right)
-    ;; Rotate windows/layout
+    ;; Rotate windows/layout   (! needs some kind of mirroring)
     ("r" rotate-window)
     ("R" rotate-layout)
     ;; Resize windows
@@ -831,8 +833,8 @@ calls `meow-eval-last-exp'."
    
    ;; MACROS
    '("/M" . meow-start-kmacro-or-insert-counter)
-   '("/m" . meow-start-kmacro)
-   '("/n" . meow-end-or-call-kmacro)
+   '("/m" . kmacro-start-macro-or-insert-counter)
+   '("/n" . meow-end-or-call-kmacro) ;; => kmacro-end-or-call-macro
    
    ;; REFERENCES
    '("/f" . xref-find-definitions)
@@ -2354,12 +2356,6 @@ Subtracts right margin and org indentation level from fill-column"
   ;;
   )
 
-(use-package yasnippet
-  :ensure t
-  :diminish
-  :config
-  (yas-global-mode 1))
-
 (use-package rainbow-mode
   :ensure t
   :diminish
@@ -3556,6 +3552,34 @@ still remain accessible by `yank-pop'."
   :config
   (add-hook 'janet-ts-mode-hook
             #'ajrepl-interaction-mode))
+
+(use-package gnu-apl-mode
+  :ensure t
+  :config
+  (setq gnu-apl-program-extra-args '("--noSV"))
+
+  (defface gnu-apl-default
+    ;; '((t :family "FreeMono" :size 12.0))
+    '((t :family "Iosevka" :height 140))
+    "Face used for APL buffers"
+    :group 'gnu-apl)
+  
+
+  (defun em-gnu-apl-init ()
+    (setq buffer-face-mode-face 'gnu-apl-default)
+    (buffer-face-mode))
+
+  (add-hook 'gnu-apl-interactive-mode-hook 'em-gnu-apl-init)
+  (add-hook 'gnu-apl-mode-hook 'em-gnu-apl-init)
+
+
+  (defun initialize-APL-input-method ()
+    (set-input-method "APL-Z" t))
+
+  (add-hook 'gnu-apl-interactive-mode-hook 'initialize-APL-input-method)
+  (add-hook 'gnu-apl-mode-hook 'initialize-APL-input-method)
+  ;;
+  )
 
 (use-package modus-themes
   :ensure t

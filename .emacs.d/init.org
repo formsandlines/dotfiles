@@ -176,6 +176,8 @@ dependencies, which causes ~package-autoremove~ to remove them, hence the fix.
 
 ;; Revert buffers when the underlying file has changed
 (global-auto-revert-mode 1)
+;; Have Emacs shut the f*ck up about it
+(setq auto-revert-verbose nil)
 ;; Revert Dired and other buffers
 (setq global-auto-revert-non-file-buffers t)
 
@@ -735,7 +737,7 @@ To prevent ~use-package-autoremove~ from deleting it.
     ("C-j" ph/buf-move-down)
     ("C-k" ph/buf-move-up)
     ("C-l" ph/buf-move-right)
-    ;; Rotate windows/layout
+    ;; Rotate windows/layout   (! needs some kind of mirroring)
     ("r" rotate-window)
     ("R" rotate-layout)
     ;; Resize windows
@@ -951,8 +953,8 @@ calls `meow-eval-last-exp'."
    
    ;; MACROS
    '("/M" . meow-start-kmacro-or-insert-counter)
-   '("/m" . meow-start-kmacro)
-   '("/n" . meow-end-or-call-kmacro)
+   '("/m" . kmacro-start-macro-or-insert-counter)
+   '("/n" . meow-end-or-call-kmacro) ;; => kmacro-end-or-call-macro
    
    ;; REFERENCES
    '("/f" . xref-find-definitions)
@@ -2637,7 +2639,8 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 #+end_src
 
 ** Snippets
-*** yasnippet
+*** COMMENT yasnippet
+? not sure if I need it
 #+begin_src elisp
 (use-package yasnippet
   :ensure t
@@ -4362,6 +4365,35 @@ Works kind-of, but with multiple issues.
 		))
 
 #+end_src
+** :lang GNU APL
+*** gnu-apl-mode
+#+begin_src elisp
+(use-package gnu-apl-mode
+  :ensure t
+  :config
+  (setq gnu-apl-program-extra-args '("--noSV"))
+
+  (defface gnu-apl-default
+    '((t :family "Iosevka" :height 140))
+    "Face used for APL buffers"
+    :group 'gnu-apl)
+
+  (defun em-gnu-apl-init ()
+    (setq buffer-face-mode-face 'gnu-apl-default)
+    (buffer-face-mode))
+
+  (add-hook 'gnu-apl-interactive-mode-hook 'em-gnu-apl-init)
+  (add-hook 'gnu-apl-mode-hook 'em-gnu-apl-init)
+
+
+  (defun initialize-APL-input-method ()
+    (set-input-method "APL-Z" t))
+
+  (add-hook 'gnu-apl-interactive-mode-hook 'initialize-APL-input-method)
+  (add-hook 'gnu-apl-mode-hook 'initialize-APL-input-method)
+  ;;
+  )
+#+end_src
 ** COMMENT :lang JavaScript
 #+begin_src elisp
 (use-package js
@@ -4964,6 +4996,50 @@ Also see `prot-window-delete-popup-frame'." command)
 
 #+end_src
 
+** COMMENT Artist mode
+I wanted to enable only the essential minor modes when enabling ~artist-mode~,
+but somehow this approach doesn’t seem to work. I get an empty frame and
+have to ~C-g~ to terminate whatever Emacs tries to do. Have to revisit this
+whenever I feel bored again.
+
+#+begin_src elisp
+(defvar ph/saved-minor-modes nil
+  "List of temporarily saved minor modes to restore when exiting artist-mode.")
+
+(defun ph/get-active-minor-modes ()
+  "Returns a list of all currently active minor modes."
+  (let ((active-modes '()))
+    (dolist (mode minor-mode-list)
+      (when (and (boundp mode)
+		 (symbol-value mode))
+	(push mode active-modes)))
+    active-modes))
+
+(defun ph/artist-mode-setup ()
+  "Setup function for artist-mode that disables non-essential minor modes for optimal performance."
+  (if artist-mode
+      ;; when entering artist-mode
+      (progn
+	;; save current minor modes to restore later
+	(setq ph/saved-minor-modes
+	      (cl-remove-if
+	       (lambda (mode)
+		 ;; keep only essential modes
+		 (member mode '(global-font-lock-mode
+				display-line-numbers-mode
+				normal-erase-is-backspace-mode)))
+	       (ph/get-active-minor-modes)))
+	;; disable the saved minor modes
+	(dolist (mode ph/saved-minor-modes)
+	  (funcall mode -1)))
+    ;; on exit of artist-mode, restore saved minor modes
+    (dolist (mode ph/saved-minor-modes)
+      (funcall mode 1))
+    (setq ph/saved-minor-modes nil)))
+
+(add-hook 'artist-mode-hook 'ph/artist-mode-setup)
+
+#+end_src
 ** Misc
 Increment/decrement numbers like in Vim:
 - see https://www.emacswiki.org/emacs/IncrementNumber
