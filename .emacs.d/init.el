@@ -1046,7 +1046,7 @@ calls `meow-eval-last-exp'."
    '("'" . repeat)			; dot-mode-execute
    '("\"" . meow-end-or-call-kmacro)    
    '("C-]" . meow-paren-mode) ;; ? -> C-]
-   '("C-;" . meow-symex-mode)
+   ;; '("C-;" . meow-symex-mode)
    '("C-=" . meow-table-mode) ;; C-: -> C-=
    '("C-+" . meow-calc-mode)
    '("C->" . ph/meow-overwrite-enter)
@@ -1058,7 +1058,7 @@ calls `meow-eval-last-exp'."
 (use-package meow
   :ensure t
   :demand t
-  :after (hydra symex) ; clj-refactor
+  :after (hydra) ; (hydra symex) clj-refactor
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
@@ -1104,6 +1104,28 @@ calls `meow-eval-last-exp'."
   ;; Source (thanks to user okamsn on GitHub):
   ;; https://github.com/meow-edit/meow/discussions/519#discussioncomment-7353925
   
+  ;;
+  )
+
+(use-package meow-tree-sitter
+  :ensure t
+  :after meow
+  :custom
+  (meow-tree-sitter-queries-dir
+   (expand-file-name "meow-tree-sitter/queries" user-emacs-directory))
+  :config
+  ;; (meow-tree-sitter-register-defaults)
+  ;; (meow-tree-sitter-register-thing ?F "function")
+  ;; (meow-tree-sitter-register-thing ?b "function")
+  ;; (meow-tree-sitter-register-thing ?B "parameter")
+
+  (dolist (bind '((?c . "class")
+		  (?v . "function")
+		  (?t . "test")
+		  (?y . "entry")
+		  (?, . "parameter")
+		  (?/ . "comment")))
+    (meow-tree-sitter-register-thing (car bind) (cdr bind)))
   ;;
   )
 
@@ -1166,7 +1188,7 @@ calls `meow-eval-last-exp'."
 
     '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
-    '("C-;" . meow-symex-mode)
+    ;; '("C-;" . meow-symex-mode)
 
     '("p" . meow-yank)
     '("P" . meow-yank-pop)
@@ -1266,234 +1288,6 @@ calls `meow-eval-last-exp'."
     '("/s" . (lambda () (interactive) (sp-wrap-with-pair "{")))
     '("/f" . (lambda () (interactive) (sp-wrap-with-pair "("))))
 
-  ;;
-  )
-
-(use-package meow
-  :after symex
-  :config
-
-  (setq meow-symex-keymap (make-keymap))
-  (meow-define-state symex
-    "meow state for structural editing with symex"
-    :lighter " [S]"
-    :keymap meow-symex-keymap
-    (if meow-symex-mode
-	(run-hooks 'meow-symex-mode-enable-hook)))
-
-  (add-hook 'meow-symex-mode-enable-hook
-	    (lambda ()
-              (symex-select-nearest-in-line)
-              (symex--adjust-point)
-              ;; (symex-initialize)
-              ))
-
-  (add-hook 'meow-normal-mode-hook
-	    (lambda ()
-	      (when (and meow-normal-mode
-			 (symex--overlay-active-p))
-		(symex--delete-overlay))))
-
-  (add-hook 'meow-insert-mode-hook
-	    (lambda ()
-	      (when (and meow-insert-mode
-			 (symex--overlay-active-p))
-		(symex--delete-overlay))))
-
-  (setq meow-cursor-type-symex 'hollow)
-
-  (apply 'meow-define-keys 'symex ph/meow-prefix-slash)  
-  (apply 'meow-define-keys 'symex ph/meow-prefix-backslash)  
-  (apply 'meow-define-keys 'symex ph/meow-common)
-
-  (meow-define-keys 'symex
-    ;; GENERAL MEOW KEYS
-
-    ;; ? do these actually work
-    '("0" . meow-expand-0)
-    '("1" . meow-expand-1)
-    '("2" . meow-expand-2)
-    '("3" . meow-expand-3)
-    '("4" . meow-expand-4)
-    '("5" . meow-expand-5)
-    '("6" . meow-expand-6)
-    '("7" . meow-expand-7)
-    '("8" . meow-expand-8)
-    '("9" . meow-expand-9)
-
-    '("SPC" . meow-keypad)
-    '("C-M-§" . meow-normal-mode)
-
-    ;; '("p" . meow-yank) ;; -> symex
-    ;; '("P" . meow-yank-pop) ;; -> symex
-    '("y" . undo-only)
-    '("Y" . undo-redo)
-    ;; '("c" . meow-save)
-    
-    '("v" . ph/scroll-up-half)
-    '("V" . ph/scroll-down-half)
-
-    ;; '("-" . negative-argument) ;; -> symex-splice
-    '("'" . repeat)
-    ;; '("~" . meow-cancel-selection) ;; -> useless here
-    ;; '("`" . meow-pop-selection) ;; -> useless here
-    ;; '(";" . meow-reverse) ;; -> useless here
-
-    ;; symex has its own insert state (?)
-    ;; '("i" . meow-insert)
-    ;; '("I" . meow-open-above)
-    ;; '("a" . meow-append)
-    ;; '("A" . meow-open-below)
-    ;; '("r" . ph/meow-change-save)
-    ;; '("R" . meow-replace)
-    
-    ;; '("n" . meow-search)
-    ;; '("F" . meow-till)
-    ;; '("f" . meow-find)
-    
-    '("§" . cider-doc) ;; ! replace with generic selector
-
-    ;; '("=" . meow-indent)
-
-
-    ;; SYMEX SPECIFIC
-
-    ;; '("<backspace>" . sp-backward-unwrap-sexp)
-    ;; '("<escape>" . ignore)
-    
-    '("(" . symex-create-round)
-    '("[" . symex-create-square)
-    '("{" . symex-create-curly)
-    ;; '("<" . symex-create-angled)
-    
-    '("h" . symex-go-backward)
-    '("j" . symex-go-up) ;; k -> j
-    '("k" . symex-go-down) ;; j -> k
-    '("l" . symex-go-forward)
-
-    '("C-j" . symex-next-visual-line) ;; gj -> J -> C-j
-    '("C-k" . symex-previous-visual-line) ;; gk -> K -> C-k
-    '("L" . symex-traverse-forward) ;; f -> o -> L
-    '("H" . symex-traverse-backward) ;; b -> u -> H
-    ;; '("C-f" . symex-traverse-forward-more)
-    ;; '("C-b" . symex-traverse-backward-more)
-    ;; '("O" . symex-traverse-forward-skip) ;; F -> O
-    ;; '("U" . symex-traverse-backward-skip) ;; B -> U
-    '("u" . symex-leap-backward) ;; C-h -> u
-    '("o" . symex-leap-forward) ;; C-l -> o
-    '("U" . symex-soar-backward) ;; C-M-h -> U
-    '("O" . symex-soar-forward) ;; C-M-l -> O
-    '("J" . symex-climb-branch) ;; C-k -> K -> C-j -> J
-    '("K" . symex-descend-branch) ;; C-j -> J -> C-k -> K
-    
-    '("c" . symex-yank) ;; y -> c
-    ;; '("C" . symex-yank-remaining) ;; Y -> C (doesn’t work)
-    '("p" . ph/symex-paste-after) ;; p -> P -> p
-    '("P" . ph/symex-paste-before) ;; P -> p -> P
-    '("d" . symex-delete) ;; x -> d
-    ;; '("D" . symex-delete-backwards) ;; X -> D
-    ;; '("D" . symex-delete-remaining) ;; D -> ? (doesn’t work)
-    '("r" . ph/symex-change) ;; c -> r
-    '("R" . ph/symex-replace-by-yank)
-    '("_" . ph/symex-replace) ;; like change, but inside parens  s -> R
-    ;; '("R" . ph/symex-change-remaining) ;; C -> R (doesn’t work)
-    '("q" . symex-change-delimiter) ;; S -> /W -> q
-    '("D" . symex-clear) ;; C-- -> D
-    
-    '("T" . symex-shift-backward) ;; H -> T
-    '("t" . symex-shift-forward) ;; L -> t
-    ;; '("M-H" . symex-shift-backward-most)
-    ;; '("M-L" . symex-shift-forward-most)
-    '("N" . paredit-raise-sexp) ;; K -> m -> M
-
-    '("," . symex-capture-backward) ;; C-( / C-S-h -> ,
-    '("<" . symex-emit-backward) ;; C-{ / C-S-j -> <
-    '(">" . symex-emit-forward) ;; C-} / C-S-k -> >
-    '("." . symex-capture-forward) ;; C-) / C-S-l -> .
-    '("z" . symex-swallow)
-    '("Z" . symex-swallow-tail)
-    
-    '("/e" . ph/symex-evaluate) ;; e -> /e
-    '("/E" . symex-evaluate-remaining) ;; E -> /E
-    ;; '("C-M-e" . symex-evaluate-pretty)
-    '("/d" . symex-evaluate-definition) ;; d -> C-d -> /d
-    ;; '("M-e" . symex-eval-recursive)
-    ;; '("T" . symex-evaluate-thunk)
-    '(":" . eval-expression)
-    
-    ;; '("t" . symex-switch-to-scratch-buffer)
-    ;; '("M" . symex-switch-to-messages-buffer)
-    ;; '("C-r" . symex-repl) ;; r -> C-r
-    ;; '("C-R" . symex-run) ;; R -> C-R
-    
-    '("|" . symex-split)
-    '("&" . symex-join)
-    '("-" . symex-splice) ;; M ?
-    '(")" . symex-wrap-round)
-    '("]" . symex-wrap-square)
-    '("}" . symex-wrap-curly)
-    ;; '(">" . symex-wrap-angled)
-    '("`" . symex-cycle-quote)
-    '("~" . symex-cycle-unquote)
-    ;; '("`" . symex-add-quoting-level)
-    ;; '("C-`" . symex-remove-quoting-level)
-    
-    '("A" . ph/symex-open-line-after) ;; o -> b -> n -> E -> A
-    '("I" . ph/symex-open-line-before) ;; O -> B -> N -> S -> I
-    '("C-{" . symex-insert-newline) ;; n -> C-{
-    '("C-}" . symex-append-newline) ;; C-S-o -> C-}
-    '("x" . symex-join-lines) ;; J -> X -> x
-    ;; '("M-J" . symex-collapse)
-    '("M-<" . symex-collapse)
-    '("M->" . symex-unfurl)
-    ;; '("C-M-<" . symex-collapse-remaining)
-    ;; '("C-M->" . symex-unfurl-remaining)
-    '("X" . symex-join-lines-backwards) ;; N -> x -> X
-    
-    '("s" . symex-goto-first) ;; 0 / M-h -> s
-    '("e" . symex-goto-last) ;; $ / M-l -> e
-    '("n" . symex-goto-lowest) ;; M-j -> S -> n
-    '("m" . symex-goto-highest) ;; M-k -> E -> m
-    
-    '("=" . symex-tidy)
-    '("<tab>" . symex-tidy)
-    ;; '("C-=" . symex-tidy-remaining)
-    ;; '("C-<tab>" . symex-tidy-remaining)
-    ;; '("M-=" . symex-tidy-proper)
-    ;; '("M-<tab>" . symex-tidy-proper)
-    
-    '("E" . ph/symex-append-after) ;; A -> a -> E
-    '("a" . ph/symex-insert-at-end) ;; a -> E -> a
-    '("i" . ph/symex-insert-at-beginning) ;; i -> S -> i
-    '("S" . ph/symex-insert-before) ;; I -> i -> S
-    '("w" . ph/symex-wrap)
-    '("W" . ph/symex-wrap-and-append)
-    
-    ;; '("g" . evil-jump-to-tag) ;; -> prefix command
-    ;; '("G" . evil-jump-backward) ;; -> prefix command
-    
-    '(";" . symex-comment)
-    ;; '("M-;" . symex-comment-remaining) ;; -> doesn’t work
-    ;; '("C-;" . symex-eval-print)
-    
-    ;; canonical action
-    ;; '("s-;" . symex-evaluate)
-    
-    ;; configuration
-    ;; '("H-h" . symex--toggle-highlight)
-    
-    ;; '("C-e" . symex--scroll-down)
-    ;; '("C-y" . symex--scroll-up)
-    
-    ;; standard exits
-    ;; '("?" . symex-describe)
-    ;; '("<return>" . symex-enter-lower)
-    ;; '("<escape>" . symex-escape-higher)
-    ;; '("C-g" . symex-escape-higher)
-
-
-    )
-  
   ;;
   )
 
@@ -1723,7 +1517,7 @@ state (other than motion state) doesn’t bind anything."
     '("H-SPC" . meow-keypad)
     '("C-M-§" . meow-insert-exit)
     '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    '("C-;" . meow-symex-mode)
+    ;; '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-=" . meow-table-mode) ;; C-: -> C-=
     '("C-M-y" . meow-yank)
@@ -1960,18 +1754,6 @@ state (other than motion state) doesn’t bind anything."
 	      (lambda (fn &rest args)
 		(let ((org-script-display ph/org-script-display))
 		  (apply fn args))))
-  
-  ;; ? does this make a difference at all
-  ;; (add-hook 'org-mode-hook
-  ;; 	    (lambda ()
-  ;; 	      (setf org-script-display
-  ;; 		    '(((raise -0.1)    ;; was -0.3 (subscript)
-  ;; 		       (height 0.5))   ;; was 0.7
-  ;; 		      ((raise 0.1)     ;; was 0.3  (superscript)
-  ;; 		       (height 0.5))   ;; was 0.7
-  ;; 		      ((raise -0.5))   ;; was -0.5 (subsubscript)
-  ;; 		      ((raise 0.5))))))
-  ;; was 0.5 (supersuperscript)
 
   ;;
   )
@@ -2691,444 +2473,6 @@ chacking if a region is active or not."
   (if (region-active-p)
       (meow-save)
     (sp-kill-sexp arg t)))
-
-(defun ph/symex-ts-insert-at-end ()
-  "Insert at end of symex."
-  (interactive)
-  (when (symex-ts-get-current-node)
-    (goto-char (tsc-node-end-position (symex-ts-get-current-node)))
-    ;; (evil-insert-state)
-    (meow-insert)))
-
-(defun ph/symex-lisp--insert-at-end ()
-  "Insert at end of symex."
-  (interactive)
-  (if (or (lispy-left-p)
-          (symex-string-p))
-      (progn (forward-sexp)
-             (backward-char))
-    (forward-sexp))
-  ;; (symex-enter-lowest)
-  (meow-insert))
-
-(defun ph/symex-insert-at-end ()
-  "Insert at end of symex."
-  (interactive)
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-insert-at-end)
-    (ph/symex-lisp--insert-at-end)))
-
-
-(defun ph/symex-ts-insert-at-beginning ()
-  "Insert at beginning of symex."
-  (interactive)
-  (when (symex-ts-get-current-node)
-    (goto-char (tsc-node-start-position (symex-ts-get-current-node)))
-    ;; (evil-insert-state)
-    (meow-insert)))
-
-(defun ph/symex-lisp--insert-at-beginning ()
-  "Insert at beginning of symex."
-  (interactive)
-  (when (or (lispy-left-p)
-            (symex-string-p))
-    (forward-char))
-  ;; (symex-enter-lowest)
-  (meow-insert))
-
-(defun ph/symex-insert-at-beginning ()
-  "Insert at beginning of symex."
-  (interactive)
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-insert-at-beginning)
-    (ph/symex-lisp--insert-at-beginning)))
-
-
-(defun ph/symex-ts-append-after ()
-  "Append after symex (instead of vim's default of line)."
-  (interactive)
-  (when (symex-ts-get-current-node)
-    (goto-char (tsc-node-end-position (symex-ts-get-current-node)))
-    (insert " ")
-    ;; (evil-insert-state)
-    (meow-insert)))
-
-(defun ph/symex-lisp--append-after ()
-  "Append after symex (instead of vim's default of line)."
-  (interactive)
-  (forward-sexp)  ; selected symexes will have the cursor on the starting paren
-  (insert " ")
-  ;; (symex-enter-lowest)
-  (meow-insert))
-
-(defun ph/symex-append-after ()
-  "Append after symex (instead of vim's default of line)."
-  (interactive)
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-append-after)
-    (ph/symex-lisp--append-after)))
-
-
-(defun ph/symex-ts-insert-before ()
-  "Insert before symex (instead of vim's default at the start of line)."
-  (interactive)
-  (when (symex-ts-get-current-node)
-    (goto-char (tsc-node-start-position (symex-ts-get-current-node)))
-    (insert " ")
-    (backward-char)
-    ;; (evil-insert-state)
-    (meow-insert)))
-
-(defun ph/symex-lisp--insert-before ()
-  "Insert before symex (instead of vim's default at the start of line)."
-  (interactive)
-  (insert " ")
-  (backward-char)
-  ;; (symex-enter-lowest)
-  (meow-insert))
-
-(defun ph/symex-insert-before ()
-  "Insert before symex (instead of vim's default at the start of line)."
-  (interactive)
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-insert-before)
-    (ph/symex-lisp--insert-before)))
-
-
-(defun ph/symex-wrap ()
-  "Wrap with containing symex."
-  (interactive)
-  (symex-wrap-round)
-  (ph/symex-insert-at-beginning))
-
-
-(defun ph/symex-wrap-and-append ()
-  "Wrap with containing symex and append."
-  (interactive)
-  (symex-wrap-round)
-  (ph/symex-insert-at-end))
-
-
-(defun ph/symex-ts-change-node-forward (&optional count)
-  "Delete COUNT nodes forward from the current node and enter Insert state."
-  (interactive "p")
-  (save-excursion (symex-ts-delete-node-forward count t))
-  ;; (evil-insert-state 1)
-  (meow-insert))
-
-(defun ph/symex-lisp--change (count)
-  "Change COUNT symexes."
-  (interactive "p")
-  (let ((start (point))
-        (end (symex--get-end-point count)))
-    (kill-region start end))
-  ;; (symex-enter-lowest)
-  (meow-insert))
-
-(defun ph/symex-change (count)
-  "Change COUNT symexes."
-  (interactive "p")
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-change-node-forward count)
-    (ph/symex-lisp--change count)))
-
-
-(defun ph/symex-change-remaining ()
-  "Change remaining symexes at this level."
-  (interactive)
-  (let ((count (symex--remaining-length)))
-    (ph/symex-change count)))
-
-
-(defun ph/symex-ts-replace ()
-  "Replace contents of symex."
-  (when symex-ts--current-node
-    (let* ((child-count (tsc-count-named-children symex-ts--current-node))
-
-           ;; Get new position for insertion: if the node has children
-           ;; then the start of the first child node, otherwise the
-           ;; current point.
-           (new-pos (if (> child-count 0)
-                        (tsc-node-start-position (tsc-get-nth-named-child symex-ts--current-node 0))
-                      (point))))
-
-      (symex-ts-clear)
-      (goto-char new-pos)
-      ;; (evil-insert-state 1)
-      (meow-insert))))
-
-(defun ph/symex-replace ()
-  "Replace contents of symex."
-  (interactive)
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-replace)
-    (progn (symex--clear)
-           (when (or (symex-form-p) (symex-string-p))
-             (forward-char))
-           ;; (symex-enter-lowest)
-	   (meow-insert))))
-
-
-(defun ph/symex-ts-open-line-after ()
-  "Open new line after symex."
-  (interactive)
-  (when (symex-ts-get-current-node)
-    (goto-char (tsc-node-end-position (symex-ts-get-current-node)))
-    (newline-and-indent)
-    ;; (evil-insert-state)
-    (meow-insert)))
-
-(defun ph/symex-lisp--open-line-after ()
-  "Open new line after symex."
-  (interactive)
-  (forward-sexp)
-  (newline-and-indent)
-  ;; (symex-enter-lowest)
-  (meow-insert))
-
-(defun ph/symex-open-line-after ()
-  "Open new line after symex."
-  (interactive)
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-open-line-after)
-    (ph/symex-lisp--open-line-after)))
-
-
-(defun ph/symex-ts-open-line-before ()
-  "Open new line before symex."
-  (interactive)
-  (when (symex-ts-get-current-node)
-    (goto-char (tsc-node-start-position (symex-ts-get-current-node)))
-    (newline-and-indent)
-    (evil-previous-line)
-    (indent-according-to-mode)
-    ;; (evil-append-line 1)
-    (meow-insert))) ;; ! incorrect command mapping from append-line
-
-(defun ph/symex-lisp--open-line-before ()
-  "Open new line before symex."
-  (interactive)
-  (newline-and-indent)
-  (evil-previous-line)
-  (indent-according-to-mode)
-  (evil-move-end-of-line)
-  (unless (or (symex--current-line-empty-p)
-              (save-excursion (backward-char)
-                              (lispy-left-p)))
-    (insert " "))
-  ;; (symex-enter-lowest)
-  (meow-insert))
-
-(defun ph/symex-open-line-before ()
-  "Open new line before symex."
-  (interactive)
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-open-line-before)
-    (ph/symex-lisp--open-line-before)))
-
-(defun ph/symex-eval-janet ()
-  "Eval last sexp."
-  (interactive)
-  (ajrepl-send-expression-at-point))
-
-;; changed significantly (trimmed down)
-(defun ph/symex--evaluate ()
-  "Evaluate symex."
-  (save-excursion
-    (forward-sexp)
-    (cond ((equal major-mode 'janet-ts-mode)
-	   (ph/symex-eval-janet))
-          (t (funcall (symex-interface-get-method :eval))))))
-
-(defun ph/symex-evaluate (count)
-  "Evaluate COUNT symexes."
-  (interactive "p")
-  (save-excursion
-    (let ((i 0)
-          (movedp t))
-      (while (or (not movedp)
-                 (< i count))
-        (ph/symex--evaluate)
-        (symex--go-forward)
-        (setq i (1+ i))))))
-
-;; ! may need adjustment
-(defun ph/symex-ts--paste (count direction)
-  "Paste before or after symex, COUNT times, according to DIRECTION.
-
-DIRECTION should be either the symbol `before' or `after'."
-  (interactive)
-  (when (symex-ts-get-current-node)
-    (symex-ts--handle-tree-modification
-     (let* ((node (symex-ts-get-current-node))
-	    (start (tsc-node-start-position node))
-	    (end (tsc-node-end-position node))
-	    (indent-start (save-excursion (back-to-indentation) (point)))
-	    (block-node (or (not (= (line-number-at-pos start)
-				    (line-number-at-pos end)))
-			    (and (= start indent-start)
-				 (= end (line-end-position))))))
-       (goto-char (if (eq direction 'before) start end))
-       (dotimes (_ count)
-	 (when (eq direction 'after) (insert (if block-node "\n" " ")))
-	 ;; (yank)
-	 (meow-yank)
-	 (when (eq direction 'before) (insert (if block-node "\n" " "))
-	       (indent-according-to-mode)))))))
-
-
-(defun ph/symex-ts-paste-before (count)
-  "Paste before symex, COUNT times."
-  (interactive)
-  (ph/symex-ts--paste count 'before))
-
-(defun ph/symex-lisp--paste-before ()
-  "Paste before symex."
-  (interactive)
-  (let ((extra-to-append
-         (cond ((or (and (symex--point-at-indentation-p)
-                         (not (bolp)))
-                    (save-excursion (forward-sexp)
-                                    (eolp)))
-                "\n")
-               (t " "))))
-    (save-excursion
-      ;; (save-excursion
-      ;;   (evil-paste-before nil nil)
-      ;;   (when evil-move-cursor-back
-      ;;     (forward-char))
-      ;;   (insert extra-to-append))
-      (meow-yank) ;; ++
-      (insert extra-to-append) ;; ++
-      (symex--go-forward)
-      ;; (symex-tidy)
-      )
-    (symex-tidy)))
-
-(defun ph/symex-paste-before (count)
-  "Paste before symex, COUNT times."
-  (interactive "p")
-  (setq this-command 'meow-yank) ;; 'evil-paste-before
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-paste-before count)
-    (symex--with-undo-collapse
-      (dotimes (_ count)
-        (ph/symex-lisp--paste-before)))))
-
-
-(defun ph/symex-ts-paste-after (count)
-  "Paste after symex, COUNT times."
-  (interactive)
-  (ph/symex-ts--paste count 'after))
-
-(defun ph/symex-lisp--paste-after ()
-  "Paste after symex."
-  (interactive)
-  (let ((extra-to-prepend
-         (cond ((or (and (symex--point-at-indentation-p)
-                         (not (bolp)))
-                    (save-excursion (forward-sexp)
-                                    (eolp)))
-                "\n")
-               (t " "))))
-    (save-excursion
-      (forward-sexp)
-      (insert extra-to-prepend)
-      ;; (evil-paste-before nil nil)
-      (meow-yank))
-    (symex--go-forward)
-    (symex-tidy)))
-
-(defun ph/symex-paste-after (count)
-  "Paste after symex, COUNT times."
-  (interactive "p")
-  (setq this-command 'meow-yank) ;; 'evil-paste-after
-  (if (symex-tree-sitter-p)
-      (ph/symex-ts-paste-after count)
-    (symex--with-undo-collapse
-      (dotimes (_ count)
-        (ph/symex-lisp--paste-after)))))
-
-;; ? Not sure if this has unforeseen side-effects
-(defun ph/pop-item-kill-ring ()
-  "Pops the most recently killed item in kill ring and sets the
-pointer accordingly."
-  (when kill-ring
-    (let ((top-kill (car kill-ring)))
-      (setf kill-ring (cdr kill-ring))
-      (setf kill-ring-yank-pointer kill-ring)
-      top-kill)))
-
-(defun ph/push-item-kill-ring (item)
-  "Pushes given `item' to kill-ring as the recently killed item and
-sets the pointer accordingly."
-  (when kill-ring
-    (setf kill-ring (cons item kill-ring))
-    (setf kill-ring-yank-pointer kill-ring)))
-
-(defun ph/symex-replace-by-yank ()
-  "Replaces selected sexp by the top item in `kill-ring', keeping it
-on top while pushing the killed sexp below it. This way, the same
-replacement can be made multiple times and the replaced sexps
-still remain accessible by `yank-pop'."
-  (interactive)
-  (ph/symex-paste-before 1)
-  (call-interactively #'symex-go-forward)
-  (let ((yank-item (ph/pop-item-kill-ring)))
-    (symex-delete 1)
-    (ph/push-item-kill-ring yank-item)))
-
-(use-package symex
-  :ensure t
-  ;; :after paredit-mode
-  :config
-  (symex-initialize)
-  ;; (global-set-key (kbd "s-;") 'symex-mode-interface)
-
-  ;; (setq symex-highlight-p nil)
-
-  ;; symex-mode has functions that react on tree-sitter-mode with different
-  ;; implementations, possibly breaking my meow integration, so I overwrite
-  ;; the predicate to check for that to prevent activation.
-  (defvar ph/symex-use-tree-sitter nil)
-  ;; !! overwrite
-  (defun symex-tree-sitter-p ()
-    "Whether to use the tree sitter primitives."
-    (and ph/symex-use-tree-sitter
-	 tree-sitter-mode
-	 ;; We use the Lisp primitives for Clojure
-	 ;; even though Emacs 29 provides tree-sitter APIs
-	 ;; for it, since the Lisp primitives in Symex are
-	 ;; more mature than the Tree Sitter ones at the
-	 ;; present time.
-	 (not (member major-mode symex-clojure-modes))))
-
-  )
-
-(use-package paredit
-  :after symex)
-
-(use-package meow-tree-sitter
-  :ensure t
-  :after meow
-  :custom
-  (meow-tree-sitter-queries-dir
-   (expand-file-name "meow-tree-sitter/queries" user-emacs-directory))
-  :config
-  ;; (meow-tree-sitter-register-defaults)
-  ;; (meow-tree-sitter-register-thing ?F "function")
-  ;; (meow-tree-sitter-register-thing ?b "function")
-  ;; (meow-tree-sitter-register-thing ?B "parameter")
-
-  (dolist (bind '((?c . "class")
-		  (?v . "function")
-		  (?t . "test")
-		  (?y . "entry")
-		  (?, . "parameter")
-		  (?/ . "comment")))
-    (meow-tree-sitter-register-thing (car bind) (cdr bind)))
-  ;;
-  )
 
 (use-package treesit
   :config

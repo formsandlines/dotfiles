@@ -40,11 +40,12 @@
 	      1 'font-lock-variable-name-face)))))
  '(org-agenda-files '("~/.dotfiles/.emacs.d/init.org"))
  '(package-selected-packages
-   '(uiua-mode gnu-apl-mode denote package-utils adaptive-wrap elpher clay racket-mode fontaine babashka breadcrumb vterm-toggle vterm modus-themes sublime-themes ef-themes lsp-ui lsp-mode meow-tree-sitter rotate css emacs-obsidian-excalidraw citar-org-roam citar-embark embark nerd-icons citar citeproc gnuplot-mode org-roam-ui emacsql-sqlite-builtin rainbow-mode emacsql-sqlite emacsql org-roam gnuplot corfu orderless treesit-auto markdown-mode ajsc ajrepl janet-ts-mode geiser-chicken cider smartparens flycheck-rjan flycheck-janet marginalia popper diff-hl meow hydra which-key separedit flycheck-color-mode-line vc-use-package beacon org-transclusion eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode org-appear evil-surround gruvbox-theme evil))
+   '(symex-core uiua-mode gnu-apl-mode denote package-utils adaptive-wrap elpher clay racket-mode fontaine babashka breadcrumb vterm-toggle vterm modus-themes sublime-themes ef-themes lsp-ui lsp-mode meow-tree-sitter rotate css emacs-obsidian-excalidraw citar-org-roam citar-embark embark nerd-icons citar citeproc gnuplot-mode org-roam-ui emacsql-sqlite-builtin rainbow-mode emacsql-sqlite emacsql org-roam gnuplot corfu orderless treesit-auto markdown-mode ajsc ajrepl janet-ts-mode geiser-chicken cider smartparens flycheck-rjan flycheck-janet marginalia popper diff-hl meow hydra which-key separedit flycheck-color-mode-line vc-use-package beacon org-transclusion eldoc lispyville evil-commentary magit clj-refactor diminish company flycheck-clj-kondo flycheck lua-mode haskell-mode org-appear evil-surround gruvbox-theme evil))
  '(package-vc-selected-packages
-   '((vc-use-package :vc-backend Git :url "https://github.com/slotThe/vc-use-package")
-     (ajrepl :vc-backend Git :url "https://github.com/sogaiu/ajrepl")
+   '((ajrepl :vc-backend Git :url "https://github.com/sogaiu/ajrepl")
      (janet-ts-mode :vc-backend Git :url "https://github.com/sogaiu/janet-ts-mode")
+     (vc-use-package :vc-backend Git :url "https://github.com/slotThe/vc-use-package")
+     (symex-core :url "https://github.com/drym-org/symex.el" :lisp-dir "symex-core")
      (emacs-obsidian-excalidraw :vc-backend Git :url "https://github.com/hsingko/emacs-obsidian-excalidraw")
      (ajsc :vc-backend Git :url "https://github.com/sogaiu/a-janet-spork-client")
      (flycheck-rjan :vc-backend Git :url "https://github.com/sogaiu/flycheck-rjan")

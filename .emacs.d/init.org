@@ -1172,7 +1172,7 @@ calls `meow-eval-last-exp'."
    '("'" . repeat)			; dot-mode-execute
    '("\"" . meow-end-or-call-kmacro)    
    '("C-]" . meow-paren-mode) ;; ? -> C-]
-   '("C-;" . meow-symex-mode)
+   ;; '("C-;" . meow-symex-mode)
    '("C-=" . meow-table-mode) ;; C-: -> C-=
    '("C-+" . meow-calc-mode)
    '("C->" . ph/meow-overwrite-enter)
@@ -1186,7 +1186,7 @@ calls `meow-eval-last-exp'."
 (use-package meow
   :ensure t
   :demand t
-  :after (hydra symex) ; clj-refactor
+  :after (hydra) ; (hydra symex) clj-refactor
   :config
   (meow-global-mode 1)
   (meow-setup-indicator)
@@ -1235,6 +1235,31 @@ calls `meow-eval-last-exp'."
   ;;
   )
   #+end_src
+**** meow-tree-sitter
+#+begin_src elisp
+(use-package meow-tree-sitter
+  :ensure t
+  :after meow
+  :custom
+  (meow-tree-sitter-queries-dir
+   (expand-file-name "meow-tree-sitter/queries" user-emacs-directory))
+  :config
+  ;; (meow-tree-sitter-register-defaults)
+  ;; (meow-tree-sitter-register-thing ?F "function")
+  ;; (meow-tree-sitter-register-thing ?b "function")
+  ;; (meow-tree-sitter-register-thing ?B "parameter")
+
+  (dolist (bind '((?c . "class")
+		  (?v . "function")
+		  (?t . "test")
+		  (?y . "entry")
+		  (?, . "parameter")
+		  (?/ . "comment")))
+    (meow-tree-sitter-register-thing (car bind) (cdr bind)))
+  ;;
+  )
+#+end_src
+
 **** +My meow things
 #+begin_src elisp
 (use-package meow
@@ -1299,7 +1324,7 @@ calls `meow-eval-last-exp'."
 
     '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
-    '("C-;" . meow-symex-mode)
+    ;; '("C-;" . meow-symex-mode)
 
     '("p" . meow-yank)
     '("P" . meow-yank-pop)
@@ -1402,7 +1427,7 @@ calls `meow-eval-last-exp'."
   ;;
   )
 #+end_src
-**** +My meow symex state:
+**** COMMENT +My meow symex state:
 #+begin_src elisp
 (use-package meow
   :after symex
@@ -1867,7 +1892,7 @@ state (other than motion state) doesn’t bind anything."
     '("H-SPC" . meow-keypad)
     '("C-M-§" . meow-insert-exit)
     '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    '("C-;" . meow-symex-mode)
+    ;; '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-=" . meow-table-mode) ;; C-: -> C-=
     '("C-M-y" . meow-yank)
@@ -1962,8 +1987,8 @@ state (other than motion state) doesn’t bind anything."
   :config
   (add-hook 'meow-paren-mode-hook
 	    (lambda () (keymap-unset clj-refactor-map "/")))
-  (add-hook 'meow-symex-mode-hook
-	    (lambda () (keymap-unset clj-refactor-map "/")))
+  ;; (add-hook 'meow-symex-mode-hook
+  ;; 	    (lambda () (keymap-unset clj-refactor-map "/")))
   (add-hook 'meow-normal-mode-hook
 	    (lambda () (keymap-unset clj-refactor-map "/")))
   (add-hook 'meow-insert-mode-hook
@@ -1971,7 +1996,7 @@ state (other than motion state) doesn’t bind anything."
   ;;
   )
 #+end_src
-** Version control
+* Version control
 *** magit
 #+begin_src elisp
 (use-package magit
@@ -3156,7 +3181,7 @@ chacking if a region is active or not."
 
 #+end_src
 *** symex/
-**** symex replacements with meow insert (workaround)
+**** COMMENT symex replacements with meow insert (workaround)
 Symex’s insert-related commands do not interface with meows insert
 state, so I copied the relevant parts from source, using ~meow-insert~
 instead.
@@ -3398,7 +3423,7 @@ instead.
       (ph/symex-ts-open-line-before)
     (ph/symex-lisp--open-line-before)))
 #+end_src
-**** symex replacements for eval
+**** COMMENT symex replacements for eval
 #+begin_src elisp
 (defun ph/symex-eval-janet ()
   "Eval last sexp."
@@ -3426,7 +3451,7 @@ instead.
         (symex--go-forward)
         (setq i (1+ i))))))
 #+end_src
-**** symex replacements for copy/paste
+**** COMMENT symex replacements for copy/paste
 #+begin_src elisp
 ;; ! may need adjustment
 (defun ph/symex-ts--paste (count direction)
@@ -3526,7 +3551,7 @@ DIRECTION should be either the symbol `before' or `after'."
         (ph/symex-lisp--paste-after)))))
 
 #+end_src
-**** symex meow additions
+**** COMMENT symex meow additions
 #+begin_src elisp
 ;; ? Not sure if this has unforeseen side-effects
 (defun ph/pop-item-kill-ring ()
@@ -3558,7 +3583,7 @@ still remain accessible by `yank-pop'."
     (ph/push-item-kill-ring yank-item)))
 
 #+end_src
-**** symex
+**** COMMENT symex
 Issues waiting to be resolved (maybe in 2.0 release?):
 - remove tree-sitter dependency (this is now built-in in Emacs 29+)
 - remove evil dependency (no need for that with meow)
@@ -3598,31 +3623,33 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 (use-package paredit
   :after symex)
 #+end_src
-**** meow-tree-sitter
+**** COMMENT symex 2.0
 #+begin_src elisp
-(use-package meow-tree-sitter
-  :ensure t
-  :after meow
-  :custom
-  (meow-tree-sitter-queries-dir
-   (expand-file-name "meow-tree-sitter/queries" user-emacs-directory))
-  :config
-  ;; (meow-tree-sitter-register-defaults)
-  ;; (meow-tree-sitter-register-thing ?F "function")
-  ;; (meow-tree-sitter-register-thing ?b "function")
-  ;; (meow-tree-sitter-register-thing ?B "parameter")
+(use-package symex-core
+  ;; :ensure t
+  :vc (symex-core :url "https://github.com/drym-org/symex.el"
+		  :lisp-dir "symex-core"))
 
-  (dolist (bind '((?c . "class")
-		  (?v . "function")
-		  (?t . "test")
-		  (?y . "entry")
-		  (?, . "parameter")
-		  (?/ . "comment")))
-    (meow-tree-sitter-register-thing (car bind) (cdr bind)))
+(use-package symex
+  ;; :ensure t
+  :after (symex-core)
+  :vc (symex :url "https://github.com/drym-org/symex.el"
+	     :lisp-dir "symex")
+  ;; :after paredit-mode
+  :config
+  (symex-mode 1)
+  (global-set-key (kbd "s-;") #'symex-mode-interface)
+
   ;;
   )
-#+end_src
 
+
+
+;; symex-core, symex, and symex-ide
+
+(use-package paredit
+  :after symex)
+#+end_src
 *** COMMENT lispy
 #+begin_src elisp
 (use-package lispy
