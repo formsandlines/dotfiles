@@ -974,12 +974,12 @@ calls `meow-eval-last-exp'."
    '("L" . meow-right-expand)
 
    '("u" . meow-back-word)
-   ;; '("U" . meow-back-symbol)
+   '("U" . meow-back-symbol)
    '("o" . meow-next-word)
-   ;; '("O" . meow-next-symbol)
+   '("O" . meow-next-symbol)
 
-   '("O" . meow-pop-to-mark)
-   '("U" . meow-unpop-to-mark)
+   '("m" . meow-pop-to-mark)   ; O -> m
+   '("M" . meow-unpop-to-mark) ; U -> M
 
    '("w" . meow-mark-word)		; a -> w
    '("W" . meow-mark-symbol)		; A -> W
@@ -992,8 +992,8 @@ calls `meow-eval-last-exp'."
    '("S" . ph/meow-line-insert)	; H -> A
    '("g" . meow-grab)			; g -> h (see undo) -> g
    '("G" . meow-pop-grab)		; G -> H -> G
-   '("m" . meow-swap-grab)
-   '("M" . meow-sync-grab)
+   '("b" . meow-swap-grab) ; m -> b
+   '("B" . meow-sync-grab) ; M -> B
    '("~" . meow-cancel-selection)	; p -> [ -> t -> h -> H -> ~
    '("`" . meow-pop-selection)	; P -> { -> T -> H -> h -> `
    '("t" . meow-transpose-sexp)
@@ -1935,7 +1935,44 @@ state (other than motion state) doesn’t bind anything."
 
   ;; (setq org-babel-clojure-backend 'babashka)
   (setq org-babel-clojure-backend 'cider)
+
+  ;; seems like there is no direct way to customize sub-/superscript size and positioning, so I create a variable to override and advices around the responsible source functions to use this instead of `org-script-display'`
+  (defvar ph/org-script-display
+    ;; note: table sub-/superscripts should not be resized since this causes alignment issues with the table cells
+    '(((raise -0.3)    ;; was -0.3 (subscript?)
+       (height 0.7))   ;; was 0.7
+      ((raise 0.3)     ;; was 0.3  (superscript?)
+       (height 0.7))   ;; was 0.7
+      ((raise -0.3)   ;; was -0.5 (table subscript?)
+       ;; (height 0.7)  ;; wasn’t specified
+       )
+      ((raise 0.3)   ;; was -0.5 (table superscript?)
+       ;; (height 0.7)  ;; wasn’t specified
+       ))
+    "Variable to override `org-script-display', which is a `defconst'.")
+
+  (advice-add #'org-remove-font-lock-display-properties :around
+	      (lambda (fn &rest args)
+		(let ((org-script-display ph/org-script-display))
+		  (apply fn args))))
+
+  (advice-add #'org-raise-scripts :around
+	      (lambda (fn &rest args)
+		(let ((org-script-display ph/org-script-display))
+		  (apply fn args))))
   
+  ;; ? does this make a difference at all
+  ;; (add-hook 'org-mode-hook
+  ;; 	    (lambda ()
+  ;; 	      (setf org-script-display
+  ;; 		    '(((raise -0.1)    ;; was -0.3 (subscript)
+  ;; 		       (height 0.5))   ;; was 0.7
+  ;; 		      ((raise 0.1)     ;; was 0.3  (superscript)
+  ;; 		       (height 0.5))   ;; was 0.7
+  ;; 		      ((raise -0.5))   ;; was -0.5 (subsubscript)
+  ;; 		      ((raise 0.5))))))
+  ;; was 0.5 (supersuperscript)
+
   ;;
   )
 
@@ -3559,11 +3596,9 @@ still remain accessible by `yank-pop'."
   (setq gnu-apl-program-extra-args '("--noSV"))
 
   (defface gnu-apl-default
-    ;; '((t :family "FreeMono" :size 12.0))
     '((t :family "Iosevka" :height 140))
     "Face used for APL buffers"
     :group 'gnu-apl)
-  
 
   (defun em-gnu-apl-init ()
     (setq buffer-face-mode-face 'gnu-apl-default)
@@ -3578,6 +3613,23 @@ still remain accessible by `yank-pop'."
 
   (add-hook 'gnu-apl-interactive-mode-hook 'initialize-APL-input-method)
   (add-hook 'gnu-apl-mode-hook 'initialize-APL-input-method)
+  ;;
+  )
+
+(use-package uiua-mode
+  :ensure t
+  :config
+
+  (defface ph/uiua-default
+    '((t :family "Uiua386" :height 160))
+    "Face used for uiua buffers for better display of the glyphs"
+    :group 'uiua)
+
+  (defun ph/uiua-init ()
+    (setq buffer-face-mode-face 'ph/uiua-default)
+    (buffer-face-mode))
+
+  (add-hook 'uiua-mode-hook 'ph/uiua-init)
   ;;
   )
 
@@ -4043,6 +4095,16 @@ Also see `prot-window-delete-popup-frame'." command)
 (defun ph/macos-open (path)
   "Open `path' using the built-in `open' command from MacOS."
   (shell-command (concat "open " path)))
+
+;; useful to test fonts in a buffer:
+(defun ph/set-buffer-font-interactive ()
+  "Set font for current buffer interactively."
+  (interactive)
+  (let* ((font-list (font-family-list))
+	 (font-name (completing-read "Font: " font-list))
+	 (size (read-number "Size: " 130)))
+    (buffer-face-set `(:family ,font-name :height ,size))
+    (message "Buffer font set to %s, size %d" font-name size)))
 
 (add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
 
