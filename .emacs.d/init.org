@@ -3623,32 +3623,62 @@ Issues waiting to be resolved (maybe in 2.0 release?):
 (use-package paredit
   :after symex)
 #+end_src
-**** COMMENT symex 2.0
+**** dependencies
+Must be declared explicitly since they aren’t installed automatically
+with symex right now.
+
 #+begin_src elisp
-(use-package symex-core
-  ;; :ensure t
-  :vc (symex-core :url "https://github.com/drym-org/symex.el"
-		  :lisp-dir "symex-core"))
-
-(use-package symex
-  ;; :ensure t
-  :after (symex-core)
-  :vc (symex :url "https://github.com/drym-org/symex.el"
-	     :lisp-dir "symex")
-  ;; :after paredit-mode
-  :config
-  (symex-mode 1)
-  (global-set-key (kbd "s-;") #'symex-mode-interface)
-
-  ;;
+(use-package lithium
+  :ensure t
+  ;; :config
+  ;; (lithium-mode 1)
   )
 
-
-
-;; symex-core, symex, and symex-ide
-
 (use-package paredit
-  :after symex)
+  :ensure t)
+
+(use-package pubsub
+  :ensure t)
+
+(use-package mantra
+  :ensure t)
+
+(use-package repeat-ring
+  :ensure t)
+#+end_src
+
+**** symex 2.0
+#+begin_src elisp
+(use-package symex-core
+  :ensure nil
+  :after (paredit lithium pubsub mantra repeat-ring)
+  :vc (symex-core
+       :url "https://github.com/drym-org/symex.el"
+       :lisp-dir "symex-core"
+       :rev :newest))
+
+(use-package symex
+  :ensure nil
+  :after symex-core
+  :vc (symex
+       :url "https://github.com/drym-org/symex.el"
+       :lisp-dir "symex"
+       :doc "symex/doc/symex.texi"
+       :rev :newest)
+  :config
+  (symex-mode 1)
+  (global-set-key (kbd "C-'") #'symex-mode-interface))
+
+(use-package symex-ide
+  :ensure nil
+  :after symex
+  :vc (symex-ide
+       :url "https://github.com/drym-org/symex.el"
+       :lisp-dir "symex-ide"
+       :rev :newest)
+  :config
+  (symex-ide-mode 1))
+
 #+end_src
 *** COMMENT lispy
 #+begin_src elisp
@@ -5332,8 +5362,27 @@ Notes:
 #+end_src
 
 * TODO
+To do:
+- [ ] Symex 2.0 meow integration
+  - [ ] how to switch from meow to symex modes (esp. insert) and back
+  - [ ] see what I need to migrate from my custom functions
+    - do I need custom wrappers for symex to call ~(meow-insert)~? maybe create
+      advices instead?
+    - are there still separate ~-ts~ functions in symex for tree-sitter and do I
+      have to wrap/modify them too, like before?
+    - how can I integrate eval with janet?
+    - do I need to modify yank/paste/replace-related functions from symex to
+      use meows yank/paste functions?
+  - [ ] are my keys still ok or should I take some inspiration from symex?
+  - [ ] do I still need ~smartparens~ (seems to be recommended with non-lisp
+    major modes)
 
 To fix:
+- [ ] Symex 2.0 issues
+  - not sure if my use-package adaptations from Straight.el are 100% correct
+    - does ~:lisp-dir~ work the same way?
+  - there were some compile errors but it seems to be working just fine?
+  - ~M-H~ (shift backwards as far as possible) doesn’t seem to work?
 - [ ] it is very annoying when I accidentally close the main frame while I
   just wanted to close the popup frame, how can I prevent this?
 - [ ] fontaine somehow doesn’t change the font-size anymore, why???

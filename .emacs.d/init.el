@@ -2474,6 +2474,54 @@ chacking if a region is active or not."
       (meow-save)
     (sp-kill-sexp arg t)))
 
+(use-package lithium
+  :ensure t
+  ;; :config
+  ;; (lithium-mode 1)
+  )
+
+(use-package paredit
+  :ensure t)
+
+(use-package pubsub
+  :ensure t)
+
+(use-package mantra
+  :ensure t)
+
+(use-package repeat-ring
+  :ensure t)
+
+(use-package symex-core
+  :ensure nil
+  :after (paredit lithium pubsub mantra repeat-ring)
+  :vc (symex-core
+       :url "https://github.com/drym-org/symex.el"
+       :lisp-dir "symex-core"
+       :rev :newest))
+
+(use-package symex
+  :ensure nil
+  :after symex-core
+  :vc (symex
+       :url "https://github.com/drym-org/symex.el"
+       :lisp-dir "symex"
+       :doc "symex/doc/symex.texi"
+       :rev :newest)
+  :config
+  (symex-mode 1)
+  (global-set-key (kbd "C-'") #'symex-mode-interface))
+
+(use-package symex-ide
+  :ensure nil
+  :after symex
+  :vc (symex-ide
+       :url "https://github.com/drym-org/symex.el"
+       :lisp-dir "symex-ide"
+       :rev :newest)
+  :config
+  (symex-ide-mode 1))
+
 (use-package treesit
   :config
   (setq-default treesit-font-lock-level 4)
