@@ -491,6 +491,10 @@ one, an error is signaled."
 (keymap-set Info-mode-map "M-{" #'Info-search-backward)
 (keymap-set Info-mode-map "M-}" #'Info-search-next)
 
+;; for convenience and because `H-r' and `H-l' somehow don’t work in meow
+(keymap-set Info-mode-map "P" #'Info-history-back)
+(keymap-set Info-mode-map "N" #'Info-history-forward)
+
 ;; `C-M-d' triggers dictionary on MacOS, so `isearch-del-char` needs to be
 ;; rebound. Also, it is incredibly annoying that `DEL' also returns to the
 ;; previous search item, so:
@@ -1046,7 +1050,8 @@ calls `meow-eval-last-exp'."
    '("'" . repeat)			; dot-mode-execute
    '("\"" . meow-end-or-call-kmacro)    
    '("C-]" . meow-paren-mode) ;; ? -> C-]
-   ;; '("C-;" . meow-symex-mode)
+   ;; '("C-;" . symex-mode-interface)
+   '("C-;" . meow-symex-mode)
    '("C-=" . meow-table-mode) ;; C-: -> C-=
    '("C-+" . meow-calc-mode)
    '("C->" . ph/meow-overwrite-enter)
@@ -1188,7 +1193,7 @@ calls `meow-eval-last-exp'."
 
     '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
-    ;; '("C-;" . meow-symex-mode)
+    '("C-;" . meow-symex-mode)
 
     '("p" . meow-yank)
     '("P" . meow-yank-pop)
@@ -1288,6 +1293,36 @@ calls `meow-eval-last-exp'."
     '("/s" . (lambda () (interactive) (sp-wrap-with-pair "{")))
     '("/f" . (lambda () (interactive) (sp-wrap-with-pair "("))))
 
+  ;;
+  )
+
+(use-package meow
+  ;; :after symex
+  :config
+
+  (setq meow-symex-keymap (make-keymap))
+  (meow-define-state symex
+    "meow state for structural editing with symex"
+    :lighter " [S]"
+    :keymap meow-symex-keymap
+    (if meow-symex-mode
+	(run-hooks 'meow-symex-mode-enable-hook)))
+
+  (setq meow-cursor-type-symex 'hollow)
+
+  (apply 'meow-define-keys 'symex ph/meow-prefix-slash)  
+  (apply 'meow-define-keys 'symex ph/meow-prefix-backslash)  
+  (apply 'meow-define-keys 'symex ph/meow-common)
+
+  (add-hook 'meow-symex-mode-enable-hook
+	    (lambda ()
+              (symex-mode-interface)))
+  
+  ;; `meow-define-keys' doesn’t redefine keys in Symex mode, so I redefined them in symex config
+  (meow-define-keys 'symex
+    '("C-h k" . describe-key)
+    '("C-;" . ignore))
+  
   ;;
   )
 
@@ -1438,7 +1473,7 @@ calls `meow-eval-last-exp'."
     '("C-M-§" . ph/meow-overwrite-exit)
 
     ;; '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    ;; '("C-;" . meow-symex-mode)
+    '("C-;" . meow-symex-mode)
     ;; '("C-]" . meow-paren-mode) ;; temporary workaround
     ;; '("C-=" . meow-table-mode)
     '("C-y" . meow-yank))
@@ -1517,7 +1552,7 @@ state (other than motion state) doesn’t bind anything."
     '("H-SPC" . meow-keypad)
     '("C-M-§" . meow-insert-exit)
     '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    ;; '("C-;" . meow-symex-mode)
+    '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-=" . meow-table-mode) ;; C-: -> C-=
     '("C-M-y" . meow-yank)
@@ -1615,6 +1650,38 @@ state (other than motion state) doesn’t bind anything."
   :config
   (global-diff-hl-mode)
   (add-hook 'dired-mode-hook 'diff-hl-dired-mode))
+
+(use-package vterm
+  :ensure t
+  :config
+  (push (list "find-file-below"
+	      (lambda (path)
+		(if-let* ((buf (find-file-noselect path))
+			  (window (display-buffer-below-selected buf nil)))
+		    (select-window window)
+		  (message "Failed to open file: %s" path))))
+	vterm-eval-cmds)
+  ;;
+  )
+
+(use-package vterm-toggle
+  :ensure t
+  :config
+  (keymap-global-set "C-c v v" #'vterm-toggle)
+  (keymap-global-set "C-c v c" #'vterm-toggle-cd)
+
+  ;; you can cd to the directory where your previous buffer file exists
+  ;; after you have toggle to the vterm buffer with `vterm-toggle'.
+  ;; ! fix me
+  ;; (keymap-set vterm-mode-map "C-RET" #'vterm-toggle-insert-cd)
+
+  ;; Switch to next vterm buffer
+  ;; (keymap-set vterm-mode-map "h-n" #'vterm-toggle-forward)
+  ;; Switch to previous vterm buffer
+  ;; (keymap-set vterm-mode-map "h-p" #'vterm-toggle-backward)
+
+  ;;
+  )
 
 (use-package elpher
   :ensure t
@@ -1939,22 +2006,6 @@ state (other than motion state) doesn’t bind anything."
   ;;
   )
 
-(defun ph/org-transclude-ref ()
-  (interactive)
-  (let ((context (org-element-lineage
-                  (org-element-context)'(link) t)))
-    (let* ((contents-beg (org-element-property :contents-begin context))
-	   (contents-end (org-element-property :contents-end context))
-	   (contents (when contents-beg
-		       (buffer-substring-no-properties
-			contents-beg contents-end)))
-	   (link (org-element-link-interpreter context contents)))
-      (save-excursion
-	(org-transclusion-search-or-add-next-empty-line)
-	(insert (format "#+transclude: %s :only-contents :exclude-elements \"headline drawer\"\n" link))
-	(org-transclusion-add)
-	(forward-line -1)))))
-
 (defun ph/orgtbl-to-ssv (table params)
   "Convert the `orgtbl-mode' TABLE to SEMICOLON separated material.
 Adapted from `orgtbl-to-tsv'."
@@ -2029,162 +2080,10 @@ Subtracts right margin and org indentation level from fill-column"
   ;;
   )
 
-;; Somehow the fringe in target buffer does not show up.
-;; Workaround, source:
-;; - https://github.com/nobiot/org-transclusion/issues/201#issue-1868665106
-;; - UPDATE: seems to mess with indentation -> unusable
-;; (defun org-transclusion-content-insert-add-overlay (beg end)
-;;   "Add fringe after transclusion."
-;;   (overlay-put (text-clone-make-overlay beg end (current-buffer))
-;; 	       'line-prefix
-;; 	       (org-transclusion-propertize-transclusion))
-;;   (overlay-put (text-clone-make-overlay beg end (current-buffer))
-;; 	       'wrap-prefix
-;; 	       (org-transclusion-propertize-transclusion)))
-
-(use-package org-transclusion
-  :pin elpa-devel
+(use-package mindstream
   :ensure t
-  :after org
   :config
-  (add-to-list 'org-transclusion-extensions 'org-transclusion-indent-mode)
-  (require 'org-transclusion-indent-mode)
-
-  (keymap-set org-mode-map "C-c v a" #'org-transclusion-add)
-  (keymap-set org-mode-map "C-c v m" #'org-transclusion-mode)
-
-  (keymap-set org-transclusion-map "C-c v e" #'org-transclusion-live-sync-start)
-  (keymap-set org-transclusion-map "C-c v g" #'org-transclusion-refresh)
-  (keymap-set org-transclusion-map "C-c v d" #'org-transclusion-remove)
-  (keymap-set org-transclusion-map "C-c v C-d" #'org-transclusion-detach)
-  (keymap-set org-transclusion-map "C-c v P" #'org-transclusion-promote-subtree)
-  (keymap-set org-transclusion-map "C-c v D" #'org-transclusion-demote-subtree)
-  (keymap-set org-transclusion-map "C-c v o" #'org-transclusion-open-source)
-  (keymap-set org-transclusion-map "C-c v O" #'org-transclusion-move-to-source)
-  
-  (keymap-set org-transclusion-live-sync-map "C-c v C-c C-c"
-	      #'org-transclusion-live-sync-exit)
-  (keymap-set org-transclusion-live-sync-map "C-c v C-y"
-	      #'org-transclusion-live-sync-paste)
-
-  ;; (add-hook 'org-transclusion-after-add-functions
-  ;; 	    #'org-transclusion-content-insert-add-overlay)
-  )
-
-;; (use-package emacsql-sqlite-builtin
-;;   :ensure t)
-
-(use-package org-roam
-  :ensure t
-  ;; :after emacsql-sqlite-builtin
-  ;; :after (org emacsql-sqlite-builtin)
-  :custom
-  (org-roam-directory (file-truename "~/Documents/Org-roam"))
-  (org-roam-dailies-directory "daily/")
-  (org-roam-completion-everywhere t)
-  ;; ! temporarily disabled to try out denote:
-  ;; :bind (("C-c n l" . org-roam-buffer-toggle)
-  ;; 	 ("C-c n f" . org-roam-node-find)
-  ;; 	 ("C-c n g" . org-roam-graph)
-  ;; 	 ("C-c n i" . org-roam-node-insert)
-  ;; 	 ("C-c n c" . org-roam-capture)
-	 
-  ;; 	 ;; Dailies
-  ;; 	 ("C-c n j" . org-roam-dailies-capture-today)
-  ;; 	 ("C-c n J" . org-roam-dailies-capture-yesterday)
-  ;; 	 ("C-c n M-j" . org-roam-dailies-capture-date)
-	 
-  ;; 	 ("C-c n o" . org-roam-dailies-goto-today)
-  ;; 	 ("C-c n O" . org-roam-dailies-goto-yesterday)
-  ;; 	 ("C-c n M-o" . org-roam-dailies-goto-date)
-	 
-  ;; 	 ("C-c n p" . org-roam-dailies-goto-previous-note)
-  ;; 	 ("C-c n n" . org-roam-dailies-goto-next-note)
-  ;; 	 :map org-mode-map
-  ;; 	 ("C-M-i" . completion-at-point))
-  :config
-  ;; (org-roam-database-connector 'sqlite)
-  ;; If you're using a vertical completion framework, you might want a more informative completion interface
-  (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
-
-  (setq org-roam-dailies-capture-templates
-        '(("d" "default" entry
-           "* %?"
-           :target (file+head "%<%Y-%m-%d>.org"
-                              "#+title: %<%Y-%m-%d>\n"))))
-
-  (org-roam-db-autosync-mode)
-  ;; If using org-roam-protocol
-  (require 'org-roam-protocol)
-
-  (setq org-roam-graph-executable "dot")
-  ;; (setq org-roam-graph-viewer "")
-
-  ;; (add-to-list 'display-buffer-alist
-  ;;              '("\\*org-roam\\*"
-  ;; 		 (display-buffer-pop-up-frame)
-  ;; 		 (inhibit-switch-frame)
-  ;; 		 (pop-up-frame-parameters
-  ;; 		  (width . 40))
-  ;; 		 ))
-
-  (add-to-list 'display-buffer-alist
-	       '("\\*org-roam\\*"
-		 (display-buffer-in-direction)
-		 (direction . right)
-		 (window-width . 0.33)
-		 (window-height . fit-window-to-buffer)))
-  
-  )
-
-(use-package org-roam-ui
-  :ensure t
-  :after org-roam
-  ;;         normally we'd recommend hooking orui after org-roam, but since
-  ;;         org-roam does not have a hookable mode anymore, you're advised to
-  ;;         pick something yourself if you don't care about startup time, use
-  ;;         :hook (after-init . org-roam-ui-mode)
-  :config
-  (setq org-roam-ui-sync-theme t
-	org-roam-ui-follow t
-	org-roam-ui-update-on-save t
-	org-roam-ui-open-on-start t))
-
-(use-package denote
-  :ensure t
-  :hook (dired-mode . denote-dired-mode)
-  :bind
-  (("C-c n n" . denote)
-   ("C-c n r" . denote-rename-file)
-   ("C-c n l" . denote-link)
-   ("C-c n b" . denote-backlinks)
-   ("C-c n d" . denote-dired)
-   ("C-c n g" . denote-grep))
-  :config
-  (setq denote-directory (expand-file-name "~/Documents/notes/"))
-
-  ;; Pick dates, where relevant, with Org's advanced interface:
-  (setq denote-date-prompt-use-org-read-date t)
-  
-  ;; Automatically rename Denote buffers when opening them so that
-  ;; instead of their long file name they have, for example, a literal
-  ;; "[D]" followed by the file's title.  Read the doc string of
-  ;; `denote-rename-buffer-format' for how to modify this.
-  (denote-rename-buffer-mode 1)
-
-  ;;
-  )
-
-(use-package rainbow-mode
-  :ensure t
-  :diminish
-  :hook org-mode prog-mode)
-
-(use-package beacon
-  :ensure t
-  :diminish
-  :config
-  (beacon-mode 1))
+  (mindstream-mode))
 
 (use-package nerd-icons
   :ensure t
@@ -2502,7 +2401,7 @@ chacking if a region is active or not."
 
 (use-package symex
   :ensure nil
-  :after symex-core
+  :after (symex-core meow)
   :vc (symex
        :url "https://github.com/drym-org/symex.el"
        :lisp-dir "symex"
@@ -2510,7 +2409,63 @@ chacking if a region is active or not."
        :rev :newest)
   :config
   (symex-mode 1)
-  (global-set-key (kbd "C-'") #'symex-mode-interface))
+  
+  ;; (global-set-key (kbd "C-;") #'symex-mode-interface)
+
+  ;; use meow’s clipboard instead of system clipboard
+  (advice-add #'symex-yank :around
+	      (lambda (fn &rest args)
+		(let ((select-enable-clipboard meow-use-clipboard))
+		  (apply fn args))))
+
+  (advice-add #'symex-paste-before :around
+	      (lambda (fn &rest args)
+		(let ((select-enable-clipboard meow-use-clipboard))
+		  (apply fn args))))
+
+  (advice-add #'symex-paste-after :around
+	      (lambda (fn &rest args)
+		(let ((select-enable-clipboard meow-use-clipboard))
+		  (apply fn args))))
+
+  (defun ph/pop-item-kill-ring ()
+    "Pops the most recently killed item in kill ring and sets the
+pointer accordingly."
+    (when kill-ring
+      (let ((top-kill (car kill-ring)))
+	(setf kill-ring (cdr kill-ring))
+	(setf kill-ring-yank-pointer kill-ring)
+	top-kill)))
+
+  (defun ph/push-item-kill-ring (item)
+    "Pushes given `item' to kill-ring as the recently killed item and
+sets the pointer accordingly."
+    (when kill-ring
+      (setf kill-ring (cons item kill-ring))
+      (setf kill-ring-yank-pointer kill-ring)))
+
+  (defun ph/symex-replace-by-yank ()
+    "Replaces selected sexp by the top item in `kill-ring', keeping it
+on top while pushing the killed sexp below it. This way, the same
+replacement can be made multiple times and the replaced sexps
+still remain accessible by `yank-pop'."
+    (interactive)
+    (let ((select-enable-clipboard meow-use-clipboard))
+      (symex-paste-before 1)
+      (symex-save-excursion
+	(call-interactively #'symex-go-forward)
+	(let ((yank-item (ph/pop-item-kill-ring)))
+	  (symex-delete 1)
+	  (ph/push-item-kill-ring yank-item)))))
+  
+  ;; This makes sure Symex properly exits to normal or insert modes:
+  (defalias 'symex-user-defined-lower-mode 'meow-insert-mode)
+  (defalias 'symex-user-defined-lowest-mode 'meow-insert-mode)
+  (defalias 'symex-user-defined-higher-mode 'meow-normal-mode)
+  ;; (could also redefine functions `symex-escape-higher', `symex-escape-higher' and `symex-escape-higher' like in symex-evil.el)
+
+  ;; meows undo/redo seems to work without modifications
+  )
 
 (use-package symex-ide
   :ensure nil
@@ -2520,7 +2475,98 @@ chacking if a region is active or not."
        :lisp-dir "symex-ide"
        :rev :newest)
   :config
-  (symex-ide-mode 1))
+  (symex-ide-mode 1)
+
+  ;; symex-ide defines additional bindings which may override my custom bindings if defined in the main symex package, so I define them here:
+  (lithium-define-keys symex-editing-mode
+    (("y" undo-only)
+     ("Y" undo-redo)
+     ("c" symex-yank)
+     ("C" symex-yank-remaining)
+     ("p" symex-paste-after)
+     ("P" symex-paste-before)
+     ("r" symex-change :exit)
+     ;; TODO: how to replace by yank?
+     ("R" ph/symex-replace-by-yank)
+     ;; ("R" symex-change-remaining :exit)
+     ("_" symex-replace :exit)
+     ("q" symex-change-delimiter)
+     ("N" symex-raise)
+     ("d" symex-delete)
+     ("D" symex-clear)
+     ("|" symex-split)
+     ("&" symex-join)
+     ("-" symex-splice)
+     ("x" symex-join-lines)
+     ("X" symex-join-lines-backwards)
+
+     ("'" symex-repeat)
+     ("`" symex-cycle-quote)
+     ("~" symex-cycle-unquote)
+
+     ("," symex-capture-backward)
+     ("<" symex-emit-backward)
+     (">" symex-emit-forward)
+     ("." symex-capture-forward)
+     ("z" symex-swallow)
+     ("Z" symex-swallow-tail)
+
+     ("h" symex-go-backward)
+     ("k" symex-go-down)
+     ("j" symex-go-up)
+     ("l" symex-go-forward)
+     ("L" symex-traverse-forward)
+     ("H" symex-traverse-backward)
+     ("u" symex-leap-backward)
+     ("o" symex-leap-forward)
+     ("U" symex-soar-backward)
+     ("O" symex-soar-forward)
+     ("J" symex-climb-branch)
+     ("K" symex-descend-branch)
+     ("C-j" symex-next-visual-line)
+     ("C-k" symex-previous-visual-line)
+
+     ("T" symex-shift-backward)
+     ("t" symex-shift-forward)
+     
+     ("(" symex-create-round)
+     ("[" symex-create-square)
+     ("{" symex-create-curly)
+     (")" symex-wrap-round)
+     ("]" symex-wrap-square)
+     ("}" symex-wrap-curly)
+
+     ("s" symex-goto-first)
+     ("e" symex-goto-last)
+     ("S" symex-insert-before :exit)
+     ("E" symex-append-after :exit)
+
+     ("a" symex-append-at-end :exit)
+     ("i" symex-insert-at-beginning :exit)
+
+     ("<return>" newline)
+     ("C-{" symex-insert-newline)
+     ("C-}" symex-append-newline)
+     ("A" symex-open-line-after :exit)
+     ("I" symex-open-line-before :exit)
+
+     ("/e" symex-evaluate)
+     ("/E" symex-evaluate-remaining)
+     ("/d" symex-evaluate-definition)
+     (":" eval-expression)
+
+     ;; ("C-[" symex-escape-higher)
+     ("C-M-§" symex-escape-higher) ;; ph/meow-symex-exit-normal
+     ("SPC" meow-keypad)
+     ("v" ph/scroll-up-half)
+     ("V" ph/scroll-down-half)
+     ("§" cider-doc) ;; ! replace with generic selector
+
+     ("C-h k" describe-key) ;; to prevent `meow-describe-key'
+     )
+    )
+
+  )
 
 (use-package treesit
   :config
@@ -2624,21 +2670,6 @@ chacking if a region is active or not."
   ;;
   )
 
-(add-to-list 'load-path "~/Dev/emacs-obsidian-excalidraw")
-
-(use-package emacs-obsidian-excalidraw
-  :ensure nil
-  :config
-  (setq emacs-obsidian-excalidraw-vault "figures-excalidraw")
-  (setq emacs-obsidian-excalidraw-vault-dir "~/Documents/Org-roam/figures-excalidraw")
-  (setq emacs-obsidian-excalidraw-image-format "png")
-  (setq emacs-obsidian-excalidraw-default-name "figure")
-  (setq emacs-obsidian-excalidraw-relative-paths t)
-  (setq emacs-obsidian-excalidraw-timestamp t)
-  ;; you should enable correspond format auto export in excalidraw
-;;
-  )
-
 (use-package citeproc
   :ensure t
   ;;
@@ -2715,11 +2746,6 @@ chacking if a region is active or not."
   ;; :bind
   ;; (("C-." . embark-act))
   :config (citar-embark-mode))
-
-(use-package citar-org-roam
-  :ensure t
-  :after (citar org-roam)
-  :config (citar-org-roam-mode))
 
   (use-package cider
     :ensure t

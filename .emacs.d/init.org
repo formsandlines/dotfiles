@@ -587,6 +587,10 @@ General bindings:
 (keymap-set Info-mode-map "M-{" #'Info-search-backward)
 (keymap-set Info-mode-map "M-}" #'Info-search-next)
 
+;; for convenience and because `H-r' and `H-l' somehow don’t work in meow
+(keymap-set Info-mode-map "P" #'Info-history-back)
+(keymap-set Info-mode-map "N" #'Info-history-forward)
+
 ;; `C-M-d' triggers dictionary on MacOS, so `isearch-del-char` needs to be
 ;; rebound. Also, it is incredibly annoying that `DEL' also returns to the
 ;; previous search item, so:
@@ -1172,7 +1176,8 @@ calls `meow-eval-last-exp'."
    '("'" . repeat)			; dot-mode-execute
    '("\"" . meow-end-or-call-kmacro)    
    '("C-]" . meow-paren-mode) ;; ? -> C-]
-   ;; '("C-;" . meow-symex-mode)
+   ;; '("C-;" . symex-mode-interface)
+   '("C-;" . meow-symex-mode)
    '("C-=" . meow-table-mode) ;; C-: -> C-=
    '("C-+" . meow-calc-mode)
    '("C->" . ph/meow-overwrite-enter)
@@ -1324,7 +1329,7 @@ calls `meow-eval-last-exp'."
 
     '("SPC" . meow-keypad)
     '("C-M-§" . meow-normal-mode)
-    ;; '("C-;" . meow-symex-mode)
+    '("C-;" . meow-symex-mode)
 
     '("p" . meow-yank)
     '("P" . meow-yank-pop)
@@ -1427,7 +1432,39 @@ calls `meow-eval-last-exp'."
   ;;
   )
 #+end_src
-**** COMMENT +My meow symex state:
+**** +My meow symex state:
+#+begin_src elisp
+(use-package meow
+  ;; :after symex
+  :config
+
+  (setq meow-symex-keymap (make-keymap))
+  (meow-define-state symex
+    "meow state for structural editing with symex"
+    :lighter " [S]"
+    :keymap meow-symex-keymap
+    (if meow-symex-mode
+	(run-hooks 'meow-symex-mode-enable-hook)))
+
+  (setq meow-cursor-type-symex 'hollow)
+
+  (apply 'meow-define-keys 'symex ph/meow-prefix-slash)  
+  (apply 'meow-define-keys 'symex ph/meow-prefix-backslash)  
+  (apply 'meow-define-keys 'symex ph/meow-common)
+
+  (add-hook 'meow-symex-mode-enable-hook
+	    (lambda ()
+              (symex-mode-interface)))
+  
+  ;; `meow-define-keys' doesn’t redefine keys in Symex mode, so I redefined them in symex config
+  (meow-define-keys 'symex
+    '("C-h k" . describe-key)
+    '("C-;" . ignore))
+  
+  ;;
+  )
+#+end_src
+**** COMMENT OLD +My meow symex state:
 #+begin_src elisp
 (use-package meow
   :after symex
@@ -1808,7 +1845,7 @@ calls `meow-eval-last-exp'."
     '("C-M-§" . ph/meow-overwrite-exit)
 
     ;; '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    ;; '("C-;" . meow-symex-mode)
+    '("C-;" . meow-symex-mode)
     ;; '("C-]" . meow-paren-mode) ;; temporary workaround
     ;; '("C-=" . meow-table-mode)
     '("C-y" . meow-yank))
@@ -1892,7 +1929,7 @@ state (other than motion state) doesn’t bind anything."
     '("H-SPC" . meow-keypad)
     '("C-M-§" . meow-insert-exit)
     '("S-<backspace>" . ph/kill-whole-line-move-prev)
-    ;; '("C-;" . meow-symex-mode)
+    '("C-;" . meow-symex-mode)
     '("C-]" . meow-paren-mode) ;; temporary workaround
     '("C-=" . meow-table-mode) ;; C-: -> C-=
     '("C-M-y" . meow-yank)
@@ -1996,7 +2033,7 @@ state (other than motion state) doesn’t bind anything."
   ;;
   )
 #+end_src
-* Version control
+** Version control
 *** magit
 #+begin_src elisp
 (use-package magit
@@ -2018,7 +2055,7 @@ state (other than motion state) doesn’t bind anything."
 
 #+end_src
 ** Shell/Terminal
-*** COMMENT vterm
+*** vterm
 #+begin_src elisp
 (use-package vterm
   :ensure t
@@ -2035,7 +2072,7 @@ state (other than motion state) doesn’t bind anything."
 
 
 #+end_src
-*** COMMENT vterm-toggle
+*** vterm-toggle
 #+begin_src elisp
 (use-package vterm-toggle
   :ensure t
@@ -2095,7 +2132,7 @@ state (other than motion state) doesn’t bind anything."
   ;;
   )
 #+end_src
-** OrgMode
+** OrgMode/Writing
 *** org /(built-in)/
 #+begin_src elisp
 (use-package org
@@ -2395,21 +2432,7 @@ See [[info:org#Conflicts][org#Conflicts]] on instructions for how to resolve con
   ;;
   )
 
-(defun ph/org-transclude-ref ()
-  (interactive)
-  (let ((context (org-element-lineage
-                  (org-element-context)'(link) t)))
-    (let* ((contents-beg (org-element-property :contents-begin context))
-	   (contents-end (org-element-property :contents-end context))
-	   (contents (when contents-beg
-		       (buffer-substring-no-properties
-			contents-beg contents-end)))
-	   (link (org-element-link-interpreter context contents)))
-      (save-excursion
-	(org-transclusion-search-or-add-next-empty-line)
-	(insert (format "#+transclude: %s :only-contents :exclude-elements \"headline drawer\"\n" link))
-	(org-transclusion-add)
-	(forward-line -1)))))
+
 #+end_src
 *** +My custom orgtbl converter
 #+begin_src elisp
@@ -2504,7 +2527,7 @@ Subtracts right margin and org indentation level from fill-column"
   ;;
   )
 #+end_src
-*** org-transclusion
+*** COMMENT org-transclusion
 #+begin_src elisp
 ;; Somehow the fringe in target buffer does not show up.
 ;; Workaround, source:
@@ -2547,8 +2570,24 @@ Subtracts right margin and org indentation level from fill-column"
   ;; (add-hook 'org-transclusion-after-add-functions
   ;; 	    #'org-transclusion-content-insert-add-overlay)
   )
+
+(defun ph/org-transclude-ref ()
+  (interactive)
+  (let ((context (org-element-lineage
+                  (org-element-context)'(link) t)))
+    (let* ((contents-beg (org-element-property :contents-begin context))
+	   (contents-end (org-element-property :contents-end context))
+	   (contents (when contents-beg
+		       (buffer-substring-no-properties
+			contents-beg contents-end)))
+	   (link (org-element-link-interpreter context contents)))
+      (save-excursion
+	(org-transclusion-search-or-add-next-empty-line)
+	(insert (format "#+transclude: %s :only-contents :exclude-elements \"headline drawer\"\n" link))
+	(org-transclusion-add)
+	(forward-line -1)))))
 #+end_src
-*** org-roam
+*** COMMENT org-roam
 #+begin_src elisp
 ;; (use-package emacsql-sqlite-builtin
 ;;   :ensure t)
@@ -2617,7 +2656,7 @@ Subtracts right margin and org indentation level from fill-column"
   )
 
 #+end_src
-*** org-roam-ui
+*** COMMENT org-roam-ui
 #+begin_src elisp
 (use-package org-roam-ui
   :ensure t
@@ -2632,7 +2671,7 @@ Subtracts right margin and org indentation level from fill-column"
 	org-roam-ui-update-on-save t
 	org-roam-ui-open-on-start t))
 #+end_src
-*** denote
+*** COMMENT denote
 #+begin_src elisp
 (use-package denote
   :ensure t
@@ -2687,7 +2726,13 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   ;; 					     path))))
   )
 #+end_src
-
+*** Mindstream
+#+begin_src elisp
+(use-package mindstream
+  :ensure t
+  :config
+  (mindstream-mode))
+#+end_src
 ** Snippets
 *** COMMENT yasnippet
 ? not sure if I need it
@@ -2700,7 +2745,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
 #+end_src
 
 ** Appearance
-*** rainbow-mode
+*** COMMENT rainbow-mode
 #+begin_src elisp
 (use-package rainbow-mode
   :ensure t
@@ -2708,7 +2753,7 @@ Doesn’t work - wait for updates, especially on [[https://github.com/wdavew/org
   :hook org-mode prog-mode)
 #+end_src
 
-*** beacon (highlight my cursor)
+*** COMMENT beacon (highlight my cursor)
 #+begin_src elisp
 (use-package beacon
   :ensure t
@@ -3659,7 +3704,7 @@ with symex right now.
 
 (use-package symex
   :ensure nil
-  :after symex-core
+  :after (symex-core meow)
   :vc (symex
        :url "https://github.com/drym-org/symex.el"
        :lisp-dir "symex"
@@ -3667,7 +3712,63 @@ with symex right now.
        :rev :newest)
   :config
   (symex-mode 1)
-  (global-set-key (kbd "C-'") #'symex-mode-interface))
+  
+  ;; (global-set-key (kbd "C-;") #'symex-mode-interface)
+
+  ;; use meow’s clipboard instead of system clipboard
+  (advice-add #'symex-yank :around
+	      (lambda (fn &rest args)
+		(let ((select-enable-clipboard meow-use-clipboard))
+		  (apply fn args))))
+
+  (advice-add #'symex-paste-before :around
+	      (lambda (fn &rest args)
+		(let ((select-enable-clipboard meow-use-clipboard))
+		  (apply fn args))))
+
+  (advice-add #'symex-paste-after :around
+	      (lambda (fn &rest args)
+		(let ((select-enable-clipboard meow-use-clipboard))
+		  (apply fn args))))
+
+  (defun ph/pop-item-kill-ring ()
+    "Pops the most recently killed item in kill ring and sets the
+pointer accordingly."
+    (when kill-ring
+      (let ((top-kill (car kill-ring)))
+	(setf kill-ring (cdr kill-ring))
+	(setf kill-ring-yank-pointer kill-ring)
+	top-kill)))
+
+  (defun ph/push-item-kill-ring (item)
+    "Pushes given `item' to kill-ring as the recently killed item and
+sets the pointer accordingly."
+    (when kill-ring
+      (setf kill-ring (cons item kill-ring))
+      (setf kill-ring-yank-pointer kill-ring)))
+
+  (defun ph/symex-replace-by-yank ()
+    "Replaces selected sexp by the top item in `kill-ring', keeping it
+on top while pushing the killed sexp below it. This way, the same
+replacement can be made multiple times and the replaced sexps
+still remain accessible by `yank-pop'."
+    (interactive)
+    (let ((select-enable-clipboard meow-use-clipboard))
+      (symex-paste-before 1)
+      (symex-save-excursion
+	(call-interactively #'symex-go-forward)
+	(let ((yank-item (ph/pop-item-kill-ring)))
+	  (symex-delete 1)
+	  (ph/push-item-kill-ring yank-item)))))
+  
+  ;; This makes sure Symex properly exits to normal or insert modes:
+  (defalias 'symex-user-defined-lower-mode 'meow-insert-mode)
+  (defalias 'symex-user-defined-lowest-mode 'meow-insert-mode)
+  (defalias 'symex-user-defined-higher-mode 'meow-normal-mode)
+  ;; (could also redefine functions `symex-escape-higher', `symex-escape-higher' and `symex-escape-higher' like in symex-evil.el)
+
+  ;; meows undo/redo seems to work without modifications
+  )
 
 (use-package symex-ide
   :ensure nil
@@ -3677,9 +3778,101 @@ with symex right now.
        :lisp-dir "symex-ide"
        :rev :newest)
   :config
-  (symex-ide-mode 1))
+  (symex-ide-mode 1)
+
+  ;; symex-ide defines additional bindings which may override my custom bindings if defined in the main symex package, so I define them here:
+  (lithium-define-keys symex-editing-mode
+    (("y" undo-only)
+     ("Y" undo-redo)
+     ("c" symex-yank)
+     ("C" symex-yank-remaining)
+     ("p" symex-paste-after)
+     ("P" symex-paste-before)
+     ("r" symex-change :exit)
+     ;; TODO: how to replace by yank?
+     ("R" ph/symex-replace-by-yank)
+     ;; ("R" symex-change-remaining :exit)
+     ("_" symex-replace :exit)
+     ("q" symex-change-delimiter)
+     ("N" symex-raise)
+     ("d" symex-delete)
+     ("D" symex-clear)
+     ("|" symex-split)
+     ("&" symex-join)
+     ("-" symex-splice)
+     ("x" symex-join-lines)
+     ("X" symex-join-lines-backwards)
+
+     ("'" symex-repeat)
+     ("`" symex-cycle-quote)
+     ("~" symex-cycle-unquote)
+
+     ("," symex-capture-backward)
+     ("<" symex-emit-backward)
+     (">" symex-emit-forward)
+     ("." symex-capture-forward)
+     ("z" symex-swallow)
+     ("Z" symex-swallow-tail)
+
+     ("h" symex-go-backward)
+     ("k" symex-go-down)
+     ("j" symex-go-up)
+     ("l" symex-go-forward)
+     ("L" symex-traverse-forward)
+     ("H" symex-traverse-backward)
+     ("u" symex-leap-backward)
+     ("o" symex-leap-forward)
+     ("U" symex-soar-backward)
+     ("O" symex-soar-forward)
+     ("J" symex-climb-branch)
+     ("K" symex-descend-branch)
+     ("C-j" symex-next-visual-line)
+     ("C-k" symex-previous-visual-line)
+
+     ("T" symex-shift-backward)
+     ("t" symex-shift-forward)
+     
+     ("(" symex-create-round)
+     ("[" symex-create-square)
+     ("{" symex-create-curly)
+     (")" symex-wrap-round)
+     ("]" symex-wrap-square)
+     ("}" symex-wrap-curly)
+
+     ("s" symex-goto-first)
+     ("e" symex-goto-last)
+     ("S" symex-insert-before :exit)
+     ("E" symex-append-after :exit)
+
+     ("a" symex-append-at-end :exit)
+     ("i" symex-insert-at-beginning :exit)
+
+     ("<return>" newline)
+     ("C-{" symex-insert-newline)
+     ("C-}" symex-append-newline)
+     ("A" symex-open-line-after :exit)
+     ("I" symex-open-line-before :exit)
+
+     ("/e" symex-evaluate)
+     ("/E" symex-evaluate-remaining)
+     ("/d" symex-evaluate-definition)
+     (":" eval-expression)
+
+     ;; ("C-[" symex-escape-higher)
+     ("C-M-§" symex-escape-higher) ;; ph/meow-symex-exit-normal
+     ("SPC" meow-keypad)
+     ("v" ph/scroll-up-half)
+     ("V" ph/scroll-down-half)
+     ("§" cider-doc) ;; ! replace with generic selector
+
+     ("C-h k" describe-key) ;; to prevent `meow-describe-key'
+     )
+    )
+
+  )
 
 #+end_src
+
 *** COMMENT lispy
 #+begin_src elisp
 (use-package lispy
@@ -3867,30 +4060,13 @@ janet-lsp
   ;;
   )
 #+end_src
-*** emacs-obsidian-excalidraw
-**** local
+*** COMMENT emacs-obsidian-excalidraw (local)
 #+begin_src elisp
 (add-to-list 'load-path "~/Dev/emacs-obsidian-excalidraw")
 
 (use-package emacs-obsidian-excalidraw
+  ;; :vc (:fetcher github :repo hsingko/emacs-obsidian-excalidraw)
   :ensure nil
-  :config
-  (setq emacs-obsidian-excalidraw-vault "figures-excalidraw")
-  (setq emacs-obsidian-excalidraw-vault-dir "~/Documents/Org-roam/figures-excalidraw")
-  (setq emacs-obsidian-excalidraw-image-format "png")
-  (setq emacs-obsidian-excalidraw-default-name "figure")
-  (setq emacs-obsidian-excalidraw-relative-paths t)
-  (setq emacs-obsidian-excalidraw-timestamp t)
-  ;; you should enable correspond format auto export in excalidraw
-;;
-  )
-
-#+end_src
-**** COMMENT repo
-#+begin_src elisp
-(use-package emacs-obsidian-excalidraw
-  :vc (:fetcher github :repo hsingko/emacs-obsidian-excalidraw)
-  ;; :ensure t
   :config
   (setq emacs-obsidian-excalidraw-vault "figures-excalidraw")
   (setq emacs-obsidian-excalidraw-vault-dir "~/Documents/Org-roam/figures-excalidraw")
@@ -3989,7 +4165,7 @@ janet-lsp
   :config (citar-embark-mode))
 
 #+end_src
-**** citar-org-roam
+**** COMMENT citar-org-roam
 #+begin_src elisp
 (use-package citar-org-roam
   :ensure t
@@ -5361,28 +5537,37 @@ Notes:
 ;;  )
 #+end_src
 
-* TODO
+* TODO 
 To do:
-- [ ] Symex 2.0 meow integration
-  - [ ] how to switch from meow to symex modes (esp. insert) and back
-  - [ ] see what I need to migrate from my custom functions
-    - do I need custom wrappers for symex to call ~(meow-insert)~? maybe create
-      advices instead?
-    - are there still separate ~-ts~ functions in symex for tree-sitter and do I
-      have to wrap/modify them too, like before?
-    - how can I integrate eval with janet?
-    - do I need to modify yank/paste/replace-related functions from symex to
-      use meows yank/paste functions?
-  - [ ] are my keys still ok or should I take some inspiration from symex?
+- [-] Symex 2.0 meow integration
+  - [X] how to switch from meow to symex modes (esp. insert) and back
+  - [-] see what I need to migrate from my custom functions
+    - [X] do I need custom wrappers for symex to call ~(meow-insert)~? maybe
+      create advices instead?
+      - nope, just need to set some variables to meow modes
+    - [X] are there still separate ~-ts~ functions in symex for tree-sitter and
+      do I have to wrap/modify them too, like before?
+      - seems like there are, no wrapping/modifying needed so far
+    - [ ] how can I integrate eval with janet?
+    - [X] do I need to modify yank/paste/replace-related functions from symex
+      to use meows yank/paste functions?
+      - just needed to add some advices around symex yank and paste functions
+        where I switched to meows clipboard
+  - [X] are my keys still ok or should I take some inspiration from symex?
+    - since they are mostly made to be consistent with my normal meow keys and
+      have been adjusted multiple times to fit my workflow, I shouldn’t change
+      them if I don’t see the need
   - [ ] do I still need ~smartparens~ (seems to be recommended with non-lisp
     major modes)
 
 To fix:
-- [ ] Symex 2.0 issues
+- [X] Symex 2.0 issues
   - not sure if my use-package adaptations from Straight.el are 100% correct
     - does ~:lisp-dir~ work the same way?
-  - there were some compile errors but it seems to be working just fine?
+    - there were some compile errors but it seems to be working just fine?
+    - looks like this works, had no issues so far
   - ~M-H~ (shift backwards as far as possible) doesn’t seem to work?
+    - seems to work now
 - [ ] it is very annoying when I accidentally close the main frame while I
   just wanted to close the popup frame, how can I prevent this?
 - [ ] fontaine somehow doesn’t change the font-size anymore, why???
