@@ -309,15 +309,16 @@ one, an error is signaled."
   (interactive)
   (org-babel-load-file (locate-user-emacs-file "init.org")))
 
-(defun ph/visit-theme ()
-  "Opens my theme file."
-  (interactive)
-  (find-file (locate-user-emacs-file "themes/pmacs-theme.el")))
+;; I don’t use this anymore:
+;; (defun ph/visit-theme ()
+;;   "Opens my theme file."
+;;   (interactive)
+;;   (find-file (locate-user-emacs-file "themes/pmacs-theme.el")))
+
+;; (keymap-global-set "C-c s t" #'ph/visit-theme)
 
 (keymap-global-set "C-c s s" #'ph/visit-config)
 (keymap-global-set "C-c s r" #'ph/reload-config)
-
-(keymap-global-set "C-c s t" #'ph/visit-theme)
 
 (keymap-global-set "C-c b n" (lambda ()
 			     (interactive)
@@ -945,6 +946,11 @@ calls `meow-eval-last-exp'."
    ;; '("M-v" . meow-clipboard-yank) ;; was yank
    ))
 
+(defun ph/meow-comment-line ()
+  (interactive)
+  (meow-line 1)
+  (meow-comment))
+
 (defconst ph/meow-normal
   (list
    '("0" . meow-expand-0)
@@ -959,6 +965,7 @@ calls `meow-eval-last-exp'."
    '("9" . meow-expand-9)
    '(";" . meow-reverse)		; ' -> ;
 
+   '("?" . ph/meow-comment-line)
 
    '("k" . meow-prev)
    '("j" . meow-next)
@@ -2085,6 +2092,11 @@ Subtracts right margin and org indentation level from fill-column"
   :config
   (mindstream-mode))
 
+(use-package rainbow-mode
+  :ensure t
+  :diminish
+  :hook org-mode prog-mode)
+
 (use-package nerd-icons
   :ensure t
   :custom
@@ -3079,9 +3091,9 @@ still remain accessible by `yank-pop'."
           (border-mode-line-inactive bg-mode-line-inactive)
 
 	  ;; Mode line: sage background
-	  (bg-mode-line-active bg-sage)
+	  ;; (bg-mode-line-active bg-sage)
           (fg-mode-line-active fg-main)
-          (border-mode-line-active bg-green-intense)
+          ;; (border-mode-line-active bg-green-intense)
 
 	  ;; Links: subtle underlines
 	  (underline-link border)
@@ -3108,6 +3120,9 @@ still remain accessible by `yank-pop'."
           (bg-hover "#c3f5e7")
 	  (bg-region "#ece9e5")
 	  (bg-search-lazy bg-hover)
+
+	  ;; Mode line
+	  (bg-mode-line-active bg-sage)
 
 	  ;; Syntax
 	  (comment fg-dim)
@@ -3140,6 +3155,66 @@ still remain accessible by `yank-pop'."
           (fg-heading-8 fg-main)
           ;;
 	  ))
+
+  (setq modus-vivendi-tinted-palette-overrides
+	`(;; General
+	  (fg-main "#e5e2f6")
+	  (bg-main "#15131f")
+	  (bg-hl-line "#070612")
+	  (fg-dim "#534f6d")
+	  (bg-dim "#1a1827")
+          (bg-hover "#684f9e")
+	  (bg-region "#393651")
+	  ;; (bg-search-lazy bg-hover)
+
+	  (fg-line-number-active "#7a7596")
+	  (bg-inactive "#312e47") ;; for `bg-line-number-active'
+	  (bg-active bg-main) ;; for `bg-tab-current'
+
+	  ;; Mode line
+	  (bg-mode-line-active "#4c3a74")
+	  (bg-mode-line-inactive bg-inactive)
+	  (fg-mode-line-active "#d5cce1")
+	  (fg-mode-line-inactive "#7a7596")
+
+	  ;; Tab bar		
+	  (bg-tab-bar bg-main)
+          (bg-tab-current bg-active)
+          (bg-tab-other bg-inactive)
+	
+	  ;; Syntax
+	  (comment fg-dim)
+          (string yellow-cooler)
+          ;; (docstring "#87786e")
+          ;; (keyword cyan-cooler)
+          ;; (fnname blue)
+          ;; (variable magenta-warmer)
+          ;; (constant green)
+          ;; (identifier yellow-cooler)
+          ;; (builtin magenta)
+          ;; (type red)
+          
+	  ;; (cursor ,ph/cursor-bg)
+          (bg-search-current bg-yellow-intense)
+          (bg-search-lazy bg-blue-subtle)
+          
+          ;; Org-mode
+	  ;; (fg-prose-code magenta-warmer)
+	  ;; (fg-prose-verbatim magenta-cooler)
+          (fg-heading-0 yellow-faint)
+          (fg-heading-1 magenta-cooler)
+          (fg-heading-2 blue-warmer)
+          (fg-heading-3 blue-faint)
+          (fg-heading-4 cyan-faint)
+          (fg-heading-5 cyan-faint)
+          (fg-heading-6 fg-alt)
+          (fg-heading-7 fg-dim)
+          (fg-heading-8 fg-main)
+          ;; ;;
+	  ))
+
+  (setq modus-themes-to-toggle
+	'(modus-operandi-tinted modus-vivendi-tinted))
   
   )
 

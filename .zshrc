@@ -159,10 +159,6 @@ otherjava() {
   PATH=$JAVA_HOME"/bin:"$PATH
 }
 
-# serendipity
-# echo "Docstring of the day (script by @borkdude):"
-# ~/.dotfiles/scripts/random_doc.clj
-
 # zsh syntax highlighting (installed from Homebrew)
 source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 

@@ -3,9 +3,11 @@
 .private
 .clj-kondo
 .lsp
-.config/nvim/timeshift.vim/
 .zshrc.swp
 /.emacs.d/config.el
 .nrepl-port
 .cpcache
 .apl.history
+.config/clj-kondo/hooks/instaparse.clj
+.config/clj-kondo/hooks/quil.clj
+.config/clj-kondo/hooks/tengen.clj
